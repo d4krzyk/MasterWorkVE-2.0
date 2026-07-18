@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Conda / env
+.env
+.conda/
+
+# CMake
+build/
+**/build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+
+# Compiled binaries
+*.so
+*.o
+*.a
+
+# Habitat builds
+habitat-sim/build/
+habitat-lab/build/
+
+# Habitat generated data
+my-operations/Replica/
+
+# Logs
+*.log
+
+# Models / data
+*.pth
+*.pt
+*.ckpt

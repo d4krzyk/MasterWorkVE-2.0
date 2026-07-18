@@ -1,0 +1,12 @@
+diff --git a/src_python/habitat_sim/__init__.py b/src_python/habitat_sim/__init__.py
+index 86eb9b23..98dcaf8f 100644
+--- a/src_python/habitat_sim/__init__.py
++++ b/src_python/habitat_sim/__init__.py
+@@ -10,6 +10,7 @@ __version__ = "0.2.2"
+ 
+ if not getattr(builtins, "__HSIM_SETUP__", False):
+     # TODO: kept only for compatibiliy with existing code. Please gradually remove
++    import quaternion  # noqa: F401 - must precede bindings import, avoids free(): invalid pointer (see facebookresearch/habitat-sim#1747)
+     import habitat_sim._ext.habitat_sim_bindings
+     from habitat_sim import (
+         agent,
