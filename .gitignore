@@ -34,3 +34,7 @@ my-operations/Replica/
 *.pth
 *.pt
 *.ckpt
+
+
+.claude
+CLAUDE.md
