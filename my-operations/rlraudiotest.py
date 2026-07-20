@@ -33,9 +33,9 @@ audio_sensor_spec.uuid = "audio_sensor"
 audio_sensor_spec.outputDirectory = str(repo_root / "my-operations/audio_sim_output")
 audio_sensor_spec.acousticsConfig.enableMaterials = False
 audio_sensor_spec.channelLayout.channelType = (
-    habitat_sim.sensor.RLRAudioPropagationChannelLayoutType.Mono
+    habitat_sim.sensor.RLRAudioPropagationChannelLayoutType.Binaural
 )
-audio_sensor_spec.channelLayout.channelCount = 1
+audio_sensor_spec.channelLayout.channelCount = 2
 audio_sensor_spec.acousticsConfig.sampleRate = 44100
 
 agent_cfg = habitat_sim.AgentConfiguration()
