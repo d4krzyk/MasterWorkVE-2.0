@@ -72,10 +72,8 @@ def parse_args():
     p.add_argument(
         "--material-config",
         default=None,
-        help="Opcjonalna sciezka do JSON z materialami akustycznymi. UWAGA: "
-        "wg CLAUDE.md, enableMaterials=True + semantic mesh Replica room_0 "
-        "SIGSEGV-uje w tym repo (niezwiazane z fixem RLR, nienaprawione) - "
-        "uzycie tej flagi na innych scenach jest eksperymentalne.",
+        help="Opcjonalna sciezka do JSON z materialami akustycznymi "
+        "(wlacza acousticsConfig.enableMaterials + semantic mesh).",
     )
     p.add_argument("--out-dir", default="./rlr_test_out", help="Katalog na artefakty (domyslnie ./rlr_test_out).")
     p.add_argument(
@@ -175,14 +173,6 @@ def build_simulator(args):
         # load_semantic_mesh=True material-config zostalby po cichu
         # zignorowany.
         cfg.load_semantic_mesh = True
-        print(
-            "UWAGA: --material-config wymusza enableMaterials=True + "
-            "semantic mesh. Wg CLAUDE.md, ta kombinacja SIGSEGV-uje "
-            "(natywny crash procesu, nie wyjatek Pythona - ten skrypt NIE "
-            "moze go zlapac) na Replica room_0 w tym repo. Jesli proces "
-            "zniknie bez podsumowania PASS/FAIL, to jest ten znany problem.",
-            flush=True,
-        )
 
     rgb_spec = habitat_sim.CameraSensorSpec()
     rgb_spec.uuid = "rgb"
