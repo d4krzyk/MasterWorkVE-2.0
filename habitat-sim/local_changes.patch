@@ -1,3 +1,164 @@
+diff --git a/src/deps/rlr-audio-propagation b/src/deps/rlr-audio-propagation
+index bdb262d4..4fd446b4 160000
+--- a/src/deps/rlr-audio-propagation
++++ b/src/deps/rlr-audio-propagation
+@@ -1 +1 @@
+-Subproject commit bdb262d4db9cf6fc4c27c3eb74620e5af7f62f18
++Subproject commit 4fd446b4abb5c71fb7a232a083bbddd65f25fc6f
+diff --git a/src/esp/bindings/SensorBindings.cpp b/src/esp/bindings/SensorBindings.cpp
+index 6b49a885..95661128 100644
+--- a/src/esp/bindings/SensorBindings.cpp
++++ b/src/esp/bindings/SensorBindings.cpp
+@@ -289,6 +289,11 @@ void initSensorBindings(py::module& m) {
+ #endif
+ 
+ #ifdef ESP_BUILD_WITH_AUDIO
++// These pybind11 bindings expose the RLRA_DEPRECATED C++ compatibility shim
++// of rlr-audio-propagation (see the note in AudioSensor.h) - silence the
++// resulting -Wdeprecated-declarations.
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+   // ==== RLRAudioPropagation::Config ====
+   py::class_<RLRAudioPropagation::Configuration>(
+       m, "RLRAudioPropagationConfiguration")
+@@ -404,6 +409,7 @@ void initSensorBindings(py::module& m) {
+       .def_readwrite(
+           "channelCount", &RLRAudioPropagation::ChannelLayout::channelCount,
+           R"(int | 2 | Number of output channels in simulated audio)");
++#pragma GCC diagnostic pop
+ 
+ #else
+   py::class_<AudioEmptyStubConfigurationClass>(
+@@ -416,6 +422,8 @@ void initSensorBindings(py::module& m) {
+ #endif  // ESP_BUILD_WITH_AUDIO
+ 
+ #ifdef ESP_BUILD_WITH_AUDIO
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+   // ==== AudioSensorSpec ====
+   py::class_<AudioSensorSpec, AudioSensorSpec::ptr, SensorSpec>(
+       m, "AudioSensorSpec", py::dynamic_attr())
+@@ -429,6 +437,7 @@ void initSensorBindings(py::module& m) {
+       .def_readwrite(
+           "channelLayout", &AudioSensorSpec::channelLayout_,
+           R"(RLRAudioPropagationChannelLayout | Defined in the relevant section | Channel layout for simulated output audio)");
++#pragma GCC diagnostic pop
+ #else
+   py::class_<AudioSensorSpec, AudioSensorSpec::ptr, SensorSpec>(
+       m, "AudioSensorSpec", py::dynamic_attr())
+diff --git a/src/esp/sensor/AudioSensor.cpp b/src/esp/sensor/AudioSensor.cpp
+index 90b304c6..7f9afbca 100644
+--- a/src/esp/sensor/AudioSensor.cpp
++++ b/src/esp/sensor/AudioSensor.cpp
+@@ -9,6 +9,15 @@
+ #include "AudioSensor.h"
+ #include "esp/sim/Simulator.h"
+ 
++// This whole file calls into the RLRA_DEPRECATED C++ compatibility shim of
++// rlr-audio-propagation (see the note in AudioSensor.h) - silence the
++// resulting -Wdeprecated-declarations so -Werror doesn't turn it into a
++// build failure.
++#ifdef ESP_BUILD_WITH_AUDIO
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
++#endif  // ESP_BUILD_WITH_AUDIO
++
+ namespace esp {
+ namespace sensor {
+ 
+@@ -100,11 +109,14 @@ void AudioSensor::setAudioListenerTransform(const vec3f& agentPos,
+   //    add a listener
+   if (newInitialization_ || (lastAgentPos_ != agentPos) ||
+       !(lastAgentRot_.isApprox(agentRotQuat))) {
+-    audioSimulator_->AddListener(
++    auto errorCode = audioSimulator_->AddListener(
+         RLRAudioPropagation::Vector3f{agentPos(0), agentPos(1), agentPos(2)},
+         RLRAudioPropagation::Quaternion{agentRotQuat(0), agentRotQuat(1),
+                                         agentRotQuat(2), agentRotQuat(3)},
+         audioSensorSpec_->channelLayout_);
++    ESP_DEBUG() << logHeader_
++                << "[DIAG] AddListener errorCode : "
++                << static_cast<int>(errorCode);
+   }
+ }
+ 
+@@ -142,8 +154,11 @@ void AudioSensor::runSimulation(sim::Simulator& sim) {
+     newSource_ = false;
+     ESP_DEBUG() << logHeader_
+                 << "Adding source at position : " << lastSourcePos_;
+-    audioSimulator_->AddSource(RLRAudioPropagation::Vector3f{
++    auto addSourceErrorCode = audioSimulator_->AddSource(RLRAudioPropagation::Vector3f{
+         lastSourcePos_(0), lastSourcePos_(1), lastSourcePos_(2)});
++    ESP_DEBUG() << logHeader_
++                << "[DIAG] AddSource errorCode : "
++                << static_cast<int>(addSourceErrorCode);
+   }
+ 
+   // Run the audio simulation
+@@ -286,7 +301,9 @@ void AudioSensor::createAudioSimulator() {
+   audioSimulator_ = std::make_unique<RLRAudioPropagation::Simulator>();
+   lastAgentPos_ = {__FLT_MIN__, __FLT_MIN__, __FLT_MIN__};
+ 
+-  audioSimulator_->Configure(audioSensorSpec_->acousticsConfig_);
++  auto errorCode = audioSimulator_->Configure(audioSensorSpec_->acousticsConfig_);
++  ESP_DEBUG() << logHeader_
++              << "[DIAG] Configure errorCode : " << static_cast<int>(errorCode);
+ }
+ 
+ void AudioSensor::loadSemanticMesh(sim::Simulator& sim) {
+@@ -437,7 +454,17 @@ void AudioSensor::loadMesh(sim::Simulator& sim) {
+ 
+   ESP_DEBUG() << "Vertex count : " << vertices.vertexCount
+               << ", Index count : " << indices.indexCount;
+-  audioSimulator_->LoadMeshData(vertices, indices);
++  auto loadErrorCode = audioSimulator_->LoadMeshData(vertices, indices);
++  ESP_DEBUG() << logHeader_
++              << "[DIAG] LoadMeshData errorCode : "
++              << static_cast<int>(loadErrorCode);
++  // Unlike loadSemanticMesh() (see below), this path never called UploadMesh(),
++  // so the propagation engine never received the geometry and RunSimulation()
++  // silently produced an empty impulse response (ChannelCount == 0).
++  auto uploadErrorCode = audioSimulator_->UploadMesh();
++  ESP_DEBUG() << logHeader_
++              << "[DIAG] UploadMesh errorCode : "
++              << static_cast<int>(uploadErrorCode);
+ }
+ 
+ std::string AudioSensor::getSimulationFolder() {
+@@ -473,3 +500,7 @@ void AudioSensor::writeIRFile(const Observation& obs) {
+ 
+ }  // namespace sensor
+ }  // namespace esp
++
++#ifdef ESP_BUILD_WITH_AUDIO
++#pragma GCC diagnostic pop
++#endif  // ESP_BUILD_WITH_AUDIO
+diff --git a/src/esp/sensor/AudioSensor.h b/src/esp/sensor/AudioSensor.h
+index 815b3b6d..66e58791 100644
+--- a/src/esp/sensor/AudioSensor.h
++++ b/src/esp/sensor/AudioSensor.h
+@@ -13,6 +13,12 @@
+ #include "esp/sensor/Sensor.h"
+ 
+ #ifdef ESP_BUILD_WITH_AUDIO
++// rlr-audio-propagation was bumped past the old C++ Simulator/Configuration/
++// ChannelLayout API (see habitat-sim/src/deps/rlr-audio-propagation git log) -
++// that API is kept as an RLRA_DEPRECATED compatibility shim over the new C
++// API, which -Werror turns into a hard error without this.
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+ #include "rlr-audio-propagation/RLRAudioPropagationPkg/headers/RLRAudioPropagation.h"
+ #else
+ #include "esp/sensor/AudioSensorStubs.h"
+@@ -170,4 +176,8 @@ class AudioSensor : public Sensor {
+ }  // namespace sensor
+ }  // namespace esp
+ 
++#ifdef ESP_BUILD_WITH_AUDIO
++#pragma GCC diagnostic pop
++#endif  // ESP_BUILD_WITH_AUDIO
++
+ #endif  // ESP_SENSOR_AUDIOSENSOR_H_
 diff --git a/src_python/habitat_sim/__init__.py b/src_python/habitat_sim/__init__.py
 index 86eb9b23..98dcaf8f 100644
 --- a/src_python/habitat_sim/__init__.py

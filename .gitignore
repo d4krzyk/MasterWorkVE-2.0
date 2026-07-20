@@ -26,6 +26,7 @@ habitat-lab/build/
 
 # Habitat generated data
 my-operations/Replica/
+scenes_ve_metadata_locations/
 
 # Logs
 *.log

@@ -13,6 +13,12 @@
 #include "esp/sensor/Sensor.h"
 
 #ifdef ESP_BUILD_WITH_AUDIO
+// rlr-audio-propagation was bumped past the old C++ Simulator/Configuration/
+// ChannelLayout API (see habitat-sim/src/deps/rlr-audio-propagation git log) -
+// that API is kept as an RLRA_DEPRECATED compatibility shim over the new C
+// API, which -Werror turns into a hard error without this.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include "rlr-audio-propagation/RLRAudioPropagationPkg/headers/RLRAudioPropagation.h"
 #else
 #include "esp/sensor/AudioSensorStubs.h"
@@ -169,5 +175,9 @@ class AudioSensor : public Sensor {
 
 }  // namespace sensor
 }  // namespace esp
+
+#ifdef ESP_BUILD_WITH_AUDIO
+#pragma GCC diagnostic pop
+#endif  // ESP_BUILD_WITH_AUDIO
 
 #endif  // ESP_SENSOR_AUDIOSENSOR_H_

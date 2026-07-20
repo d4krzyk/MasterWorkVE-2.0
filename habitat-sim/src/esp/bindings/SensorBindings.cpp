@@ -289,6 +289,11 @@ void initSensorBindings(py::module& m) {
 #endif
 
 #ifdef ESP_BUILD_WITH_AUDIO
+// These pybind11 bindings expose the RLRA_DEPRECATED C++ compatibility shim
+// of rlr-audio-propagation (see the note in AudioSensor.h) - silence the
+// resulting -Wdeprecated-declarations.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   // ==== RLRAudioPropagation::Config ====
   py::class_<RLRAudioPropagation::Configuration>(
       m, "RLRAudioPropagationConfiguration")
@@ -404,6 +409,7 @@ void initSensorBindings(py::module& m) {
       .def_readwrite(
           "channelCount", &RLRAudioPropagation::ChannelLayout::channelCount,
           R"(int | 2 | Number of output channels in simulated audio)");
+#pragma GCC diagnostic pop
 
 #else
   py::class_<AudioEmptyStubConfigurationClass>(
@@ -416,6 +422,8 @@ void initSensorBindings(py::module& m) {
 #endif  // ESP_BUILD_WITH_AUDIO
 
 #ifdef ESP_BUILD_WITH_AUDIO
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   // ==== AudioSensorSpec ====
   py::class_<AudioSensorSpec, AudioSensorSpec::ptr, SensorSpec>(
       m, "AudioSensorSpec", py::dynamic_attr())
@@ -429,6 +437,7 @@ void initSensorBindings(py::module& m) {
       .def_readwrite(
           "channelLayout", &AudioSensorSpec::channelLayout_,
           R"(RLRAudioPropagationChannelLayout | Defined in the relevant section | Channel layout for simulated output audio)");
+#pragma GCC diagnostic pop
 #else
   py::class_<AudioSensorSpec, AudioSensorSpec::ptr, SensorSpec>(
       m, "AudioSensorSpec", py::dynamic_attr())

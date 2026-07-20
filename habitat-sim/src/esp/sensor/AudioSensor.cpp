@@ -9,6 +9,15 @@
 #include "AudioSensor.h"
 #include "esp/sim/Simulator.h"
 
+// This whole file calls into the RLRA_DEPRECATED C++ compatibility shim of
+// rlr-audio-propagation (see the note in AudioSensor.h) - silence the
+// resulting -Wdeprecated-declarations so -Werror doesn't turn it into a
+// build failure.
+#ifdef ESP_BUILD_WITH_AUDIO
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif  // ESP_BUILD_WITH_AUDIO
+
 namespace esp {
 namespace sensor {
 
@@ -100,11 +109,14 @@ void AudioSensor::setAudioListenerTransform(const vec3f& agentPos,
   //    add a listener
   if (newInitialization_ || (lastAgentPos_ != agentPos) ||
       !(lastAgentRot_.isApprox(agentRotQuat))) {
-    audioSimulator_->AddListener(
+    auto errorCode = audioSimulator_->AddListener(
         RLRAudioPropagation::Vector3f{agentPos(0), agentPos(1), agentPos(2)},
         RLRAudioPropagation::Quaternion{agentRotQuat(0), agentRotQuat(1),
                                         agentRotQuat(2), agentRotQuat(3)},
         audioSensorSpec_->channelLayout_);
+    ESP_DEBUG() << logHeader_
+                << "[DIAG] AddListener errorCode : "
+                << static_cast<int>(errorCode);
   }
 }
 
@@ -142,8 +154,11 @@ void AudioSensor::runSimulation(sim::Simulator& sim) {
     newSource_ = false;
     ESP_DEBUG() << logHeader_
                 << "Adding source at position : " << lastSourcePos_;
-    audioSimulator_->AddSource(RLRAudioPropagation::Vector3f{
+    auto addSourceErrorCode = audioSimulator_->AddSource(RLRAudioPropagation::Vector3f{
         lastSourcePos_(0), lastSourcePos_(1), lastSourcePos_(2)});
+    ESP_DEBUG() << logHeader_
+                << "[DIAG] AddSource errorCode : "
+                << static_cast<int>(addSourceErrorCode);
   }
 
   // Run the audio simulation
@@ -286,7 +301,9 @@ void AudioSensor::createAudioSimulator() {
   audioSimulator_ = std::make_unique<RLRAudioPropagation::Simulator>();
   lastAgentPos_ = {__FLT_MIN__, __FLT_MIN__, __FLT_MIN__};
 
-  audioSimulator_->Configure(audioSensorSpec_->acousticsConfig_);
+  auto errorCode = audioSimulator_->Configure(audioSensorSpec_->acousticsConfig_);
+  ESP_DEBUG() << logHeader_
+              << "[DIAG] Configure errorCode : " << static_cast<int>(errorCode);
 }
 
 void AudioSensor::loadSemanticMesh(sim::Simulator& sim) {
@@ -437,7 +454,17 @@ void AudioSensor::loadMesh(sim::Simulator& sim) {
 
   ESP_DEBUG() << "Vertex count : " << vertices.vertexCount
               << ", Index count : " << indices.indexCount;
-  audioSimulator_->LoadMeshData(vertices, indices);
+  auto loadErrorCode = audioSimulator_->LoadMeshData(vertices, indices);
+  ESP_DEBUG() << logHeader_
+              << "[DIAG] LoadMeshData errorCode : "
+              << static_cast<int>(loadErrorCode);
+  // Unlike loadSemanticMesh() (see below), this path never called UploadMesh(),
+  // so the propagation engine never received the geometry and RunSimulation()
+  // silently produced an empty impulse response (ChannelCount == 0).
+  auto uploadErrorCode = audioSimulator_->UploadMesh();
+  ESP_DEBUG() << logHeader_
+              << "[DIAG] UploadMesh errorCode : "
+              << static_cast<int>(uploadErrorCode);
 }
 
 std::string AudioSensor::getSimulationFolder() {
@@ -473,3 +500,7 @@ void AudioSensor::writeIRFile(const Observation& obs) {
 
 }  // namespace sensor
 }  // namespace esp
+
+#ifdef ESP_BUILD_WITH_AUDIO
+#pragma GCC diagnostic pop
+#endif  // ESP_BUILD_WITH_AUDIO
