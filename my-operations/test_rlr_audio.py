@@ -192,8 +192,15 @@ def build_simulator(args):
     audio_spec.position = [0.0, 1.5, 0.0]
     audio_spec.acousticsConfig.sampleRate = SAMPLE_RATE
     audio_spec.acousticsConfig.enableMaterials = use_materials
-    audio_spec.acousticsConfig.indirectRayCount = 500
-    audio_spec.acousticsConfig.threadCount = 1
+    # Domyslnie 500 promieni na jednym watku - taka konfiguracja stoi za CALA
+    # dotychczasowa charakteryzacja szumu (E1/E3/E4, checkpoint-boundary), wiec
+    # zmiana domyslnej wartosci rozspoinilaby te pomiary. Oba parametry mozna
+    # jednak nadpisac przez args, bo E2 porownuje wlasnie "wiecej promieni" z
+    # "wiecej renderow", a to wymaga przemiatania indirectRayCount.
+    # UWAGA: swiezy AudioSensorSpec() raportuje indirectRayCount=5000 - to
+    # domyslna wartosc biblioteki, NIE ta uzywana tutaj.
+    audio_spec.acousticsConfig.indirectRayCount = getattr(args, "indirect_ray_count", None) or 500
+    audio_spec.acousticsConfig.threadCount = getattr(args, "thread_count", None) or 1
     audio_spec.channelLayout.channelType = habitat_sim.sensor.RLRAudioPropagationChannelLayoutType.Binaural
     # Binaural = 2 kanaly (lewe/prawe ucho) z definicji - channelCount=1
     # bylby niespojny z tym layoutem i dalby zly ksztalt na wejsciu do

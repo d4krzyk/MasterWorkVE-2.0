@@ -61,10 +61,15 @@ LISTENER_POINT_ID = 50
 class _Args:
     """Namespace kompatybilny z test_rlr_audio.build_simulator()."""
 
-    def __init__(self, materials_enabled, scene_path=SCENE_PATH):
+    def __init__(self, materials_enabled, scene_path=SCENE_PATH, indirect_ray_count=None, thread_count=None):
         self.scene = str(scene_path)
         self.material_config = str(MATERIAL_CONFIG_PATH) if materials_enabled else None
         self.out_dir = str(OUT_DIR)
+        # None => build_simulator uzyje swoich domyslnych (500 promieni, 1 watek),
+        # czyli konfiguracji, na ktorej oparta jest cala reszta charakteryzacji.
+        # Nadpisujemy je tylko w E2, ktore z definicji przemiata liczbe promieni.
+        self.indirect_ray_count = indirect_ray_count
+        self.thread_count = thread_count
 
 
 def _scene_path(scene_name):
@@ -75,8 +80,11 @@ def _points_path(scene_name):
     return REPO_ROOT / f"my-operations/metadata/replica/{scene_name}/points.txt"
 
 
-def build_sim(materials_enabled=MATERIALS_ENABLED, scene_name="room_0"):
-    return tra.build_simulator(_Args(materials_enabled, _scene_path(scene_name)))
+def build_sim(materials_enabled=MATERIALS_ENABLED, scene_name="room_0",
+              indirect_ray_count=None, thread_count=None):
+    return tra.build_simulator(
+        _Args(materials_enabled, _scene_path(scene_name), indirect_ray_count, thread_count)
+    )
 
 
 def load_point_position(sim, scene_name, point_id):
@@ -699,9 +707,670 @@ def run_e1_checkpoint_boundary_merge():
     return _aggregate_checkpoint_results(repeats_out)
 
 
+# --- E4: skad bierze sie zmienna dlugosc IR ----------------------------------
+#
+# Motywacja: w raportach z poprzednich sesji IR ma ROZNE dlugosci miedzy
+# renderami ([2, 60134] i [2, 65617] w sekcji e1, [1, 71327] w rlraudiotest.py).
+# To nie jest ciekawostka - decyduje o tym, jak w ogole MOZNA usredniac. Wariant
+# usredniania w dziedzinie czasu (E3, estymator "time") wymaga zsumowania
+# surowych RIR-ow, a tych o roznej dlugosci nie da sie dodac bez jawnego kroku
+# wyrownania. E3 zalezy wiec od E4 i dlatego E4 idzie pierwszy.
+
+E4_POSITION_IDS = (10, 30, 50, 80, 110)  # rozne punkty room_0, ten sam kat
+E4_ANGLE = 0.0
+# Ile razy powtorzyc TEN SAM render, by odsiac stochastyke od pozycji. Pierwotnie
+# 5 - za malo: przy 5 powtorzeniach dlugosc wychodzila stala i E4 bledenie orzekl
+# "dlugosc zalezy wylacznie od pozycji", co obalilo dopiero E3 (20 renderow tej
+# samej pozy dalo trzy rozne dlugosci). Wahania sa rzadkie i zalezne od punktu,
+# wiec potrzeba wiekszej proby i wiecej niz jednego punktu.
+E4_REPEATS_SAME_POS = 20
+E4_REPEAT_POSITION_IDS = (10, 30, 50)
+E4_SCENES = ("office_0", "room_0", "apartment_1")  # male -> duze, do testu hipotezy "wiekszy pokoj = dluzszy IR"
+
+
+def _acoustics_config_report():
+    """Wypisuje wszystkie pola acousticsConfig i wyroznia te, ktore MOGLYBY
+    sterowac dlugoscia/progiem IR. Tylko raportujemy - nic nie zmieniamy."""
+    spec = habitat_sim.AudioSensorSpec()
+    cfg = spec.acousticsConfig
+    interesting_kw = ("time", "duration", "length", "threshold", "depth", "ray", "order", "decay", "ir")
+    fields = {}
+    for name in dir(cfg):
+        if name.startswith("_"):
+            continue
+        try:
+            value = getattr(cfg, name)
+        except Exception as exc:  # pragma: no cover - defensywnie, gdyby ktores pole rzucalo
+            value = f"<blad odczytu: {exc!r}>"
+        if callable(value):
+            continue
+        fields[name] = value if isinstance(value, (int, float, bool, str)) else repr(value)
+    hits = sorted(n for n in fields if any(k in n.lower() for k in interesting_kw))
+    print("Pola acousticsConfig mogace dotyczyc dlugosci/progu IR:")
+    for n in hits:
+        print(f"    {n} = {fields[n]}")
+    print("Pozostale pola acousticsConfig:")
+    for n in sorted(set(fields) - set(hits)):
+        print(f"    {n} = {fields[n]}")
+    return {"all_fields": fields, "length_related_candidates": hits}
+
+
+def run_e4_ir_length():
+    print("\n=== E4: skad bierze sie zmienna dlugosc IR ===")
+    result = {"materials_enabled": MATERIALS_ENABLED, "echo_window_samples": tra.ECHO_SAMPLES}
+    material_config = _material_config_arg()
+
+    # --- (3) najpierw inspekcja configu: tania, nie wymaga renderowania ---
+    print("\n--- (3) parametry acousticsConfig ---")
+    result["acoustics_config"] = _acoustics_config_report()
+
+    sim = build_sim(scene_name="room_0")
+    try:
+        # --- (1) rozne pozycje, ten sam kat ---
+        print(f"\n--- (1) {len(E4_POSITION_IDS)} roznych pozycji (room_0), kat={E4_ANGLE} ---")
+        by_position = []
+        for pid in E4_POSITION_IDS:
+            pos = load_point_position(sim, "room_0", pid)
+            raw = render_raw(sim, pos, E4_ANGLE, material_config)
+            n = int(raw.shape[1])
+            by_position.append({"point_id": pid, "position": [float(v) for v in pos], "ir_samples": n,
+                                "ir_ms": n / tra.SAMPLE_RATE * 1000.0})
+            print(f"  id={pid:4d} pos=({pos[0]:6.2f},{pos[1]:6.2f},{pos[2]:6.2f}): {n:7d} probek "
+                  f"= {n / tra.SAMPLE_RATE * 1000.0:8.1f} ms")
+        lens_pos = [d["ir_samples"] for d in by_position]
+        result["by_position"] = by_position
+        print(f"  rozrzut miedzy pozycjami: min={min(lens_pos)} max={max(lens_pos)} "
+              f"rozpietosc={max(lens_pos) - min(lens_pos)} probek")
+
+        # --- (2) ta sama pozycja i kat, N powtorzen, na kilku punktach ---
+        print(f"\n--- (2) TA SAMA poza, {E4_REPEATS_SAME_POS} renderow po kolei, na {len(E4_REPEAT_POSITION_IDS)} punktach ---")
+        lens_rep = []
+        same_pos_detail = []
+        varies_within = False
+        for pid in E4_REPEAT_POSITION_IDS:
+            pos = load_point_position(sim, "room_0", pid)
+            lens = [int(render_raw(sim, pos, E4_ANGLE, material_config).shape[1])
+                    for _ in range(E4_REPEATS_SAME_POS)]
+            lens_rep.extend(lens)
+            uniq = sorted(set(lens))
+            varies_within = varies_within or len(uniq) > 1
+            same_pos_detail.append({"point_id": pid, "lengths": lens, "unique": uniq})
+            print(f"  id={pid:4d}: {len(uniq)} unikalnych dlugosci na {E4_REPEATS_SAME_POS} renderow -> {uniq}")
+        result["same_position_lengths"] = same_pos_detail
+        result["length_varies_within_same_position"] = bool(varies_within)
+        print(f"  czy dlugosc waha sie przy USTALONEJ pozie: {'TAK' if varies_within else 'NIE'}")
+    finally:
+        sim.close()
+
+    # --- (1b) czy dlugosc rosnie z rozmiarem sceny ---
+    print(f"\n--- (1b) dlugosc IR a rozmiar sceny ---")
+    by_scene = []
+    for scene in E4_SCENES:
+        s = build_sim(scene_name=scene)
+        try:
+            bmin, bmax = s.pathfinder.get_bounds()
+            extent = [float(bmax[i] - bmin[i]) for i in range(3)]
+            volume = float(np.prod(extent))
+            pos = load_point_position(s, scene, 10)
+            n = int(render_raw(s, pos, E4_ANGLE, material_config).shape[1])
+            by_scene.append({"scene": scene, "bbox_extent": extent, "bbox_volume": volume,
+                             "ir_samples": n, "ir_ms": n / tra.SAMPLE_RATE * 1000.0})
+            print(f"  {scene:18s}: bbox={extent[0]:5.1f}x{extent[1]:5.1f}x{extent[2]:5.1f} m "
+                  f"(V={volume:7.1f} m3) -> IR {n:7d} probek = {n / tra.SAMPLE_RATE * 1000.0:8.1f} ms")
+        finally:
+            s.close()
+    result["by_scene"] = by_scene
+
+    # --- werdykt ---
+    all_lengths = lens_pos + lens_rep + [d["ir_samples"] for d in by_scene]
+    min_len = int(min(all_lengths))
+    longer_than_window = bool(min_len > tra.ECHO_SAMPLES)
+    result["min_ir_samples_observed"] = min_len
+    result["echo_window_always_covered"] = longer_than_window
+
+    varies_across_pos = len(set(lens_pos)) > 1
+    if varies_within and varies_across_pos:
+        cause = ("oba: dlugosc zalezy i od pozycji (geometria/pogloc - wieksza scena daje dluzszy IR), "
+                 "i od stochastyki renderu (ta sama poza daje rozne dlugosci). Silnik urywa IR, gdy energia "
+                 "spadnie ponizej progu, a stochastyczny ogon Monte Carlo osiaga ten prog w nieco innym "
+                 "momencie przy kazdym przebiegu")
+    elif varies_within:
+        cause = "wylacznie stochastyka renderu - ten sam punkt daje rozne dlugosci"
+    elif varies_across_pos:
+        cause = ("wylacznie pozycja/geometria - przy ustalonym punkcie dlugosc jest powtarzalna, "
+                 "wiec silnik konczy IR deterministycznie dla danej pozy")
+    else:
+        cause = "dlugosc stala we wszystkich testowanych warunkach"
+    result["length_cause"] = cause
+
+    print("\n--- WERDYKT E4 ---")
+    print(f"  Zrodlo zmiennej dlugosci: {cause}")
+    print(f"  Najkrotszy zaobserwowany IR: {min_len} probek "
+          f"({min_len / tra.SAMPLE_RATE * 1000.0:.1f} ms) vs okno echa {tra.ECHO_SAMPLES} probek (60 ms)")
+    if longer_than_window:
+        print(f"  => Kazdy IR jest DLUZSZY niz okno 60 ms, wiec po przycieciu do okna zmienna dlugosc "
+              f"nie ma znaczenia dla spektrogramu (margines {min_len - tra.ECHO_SAMPLES} probek).")
+    else:
+        print(f"  => UWAGA: co najmniej jeden IR jest KROTSZY niz okno 60 ms - przyciecie dopelnia zerami, "
+              f"co realnie zmienia dane. Trzeba to uwzglednic.")
+    return result
+
+
+# --- E3: domena usredniania --------------------------------------------------
+#
+# Trzy kandydujace estymatory na spektrogram z N renderow:
+#   mag  = (1/N) * suma |STFT(echo_i)|            - usrednianie magnitud
+#   en   = sqrt( (1/N) * suma |STFT(echo_i)|^2 )  - usrednianie energii
+#   time = |STFT( (1/N) * suma rir_i )|           - usrednianie surowych RIR
+#
+# Kryterium jest operacyjne, bez sztucznego "ground truth": nie porownujemy do
+# usrednienia M=50 jednym ze wzorow, bo taka referencja z definicji faworyzuje
+# ten wzor. Zamiast tego mierzymy osobno SYGNAL (roznica miedzy sasiednimi
+# katami - to chcemy zachowac) i SZUM (roznica dwoch niezaleznych estymat tego
+# samego kata - to chcemy zredukowac), i porownujemy ich iloraz.
+
+E3_N = 10               # renderow na jedna estymate
+E3_M = 2 * E3_N         # renderow na kat - dwie ROZLACZNE polowki, zeby zmierzyc szum
+E3_ANGLES = (0.0, 10.0)  # sasiednie katy z docelowej siatki 36 orientacji
+E3_POSITION_IDS = (30, 50, 80)
+
+
+def _align_rirs(rirs, mode):
+    """Wyrownanie RIR-ow o roznej dlugosci do wspolnego ksztaltu.
+
+    Potrzebne WYLACZNIE dla estymatora "time" - usrednianie w dziedzinie czasu
+    wymaga dodania surowych przebiegow, a te maja rozna dlugosc (patrz E4).
+    Estymatory "mag"/"en" dzialaja na spektrogramach juz przycietych do 60 ms,
+    wiec sa od tego problemu wolne - i to jest argument przeciw "time"
+    niezalezny od jego jakosci statystycznej.
+    """
+    lengths = [r.shape[0] for r in rirs]
+    if mode == "trunc":
+        n = min(lengths)
+        return np.mean([r[:n] for r in rirs], axis=0)
+    if mode == "pad":
+        n = max(lengths)
+        padded = [np.pad(r, ((0, n - r.shape[0]), (0, 0))) for r in rirs]
+        return np.mean(padded, axis=0)
+    raise ValueError(f"nieznany tryb wyrownania: {mode}")
+
+
+def _estimator(kind, specs, rirs, chirp):
+    """Jedna estymata spektrogramu z zestawu N renderow."""
+    if kind == "mag":
+        return np.mean(specs, axis=0)
+    if kind == "en":
+        return np.sqrt(np.mean(np.square(specs), axis=0))
+    if kind.startswith("time_"):
+        mean_rir = _align_rirs(rirs, kind.split("_", 1)[1])
+        _echo, spec = tra.render_spectrogram(mean_rir, chirp)
+        return spec
+    raise ValueError(f"nieznany estymator: {kind}")
+
+
+def _rmse(a, b):
+    return float(np.sqrt(np.mean((a - b) ** 2)))
+
+
+def run_e3_averaging_domain():
+    print("\n=== E3: domena usredniania ===")
+    import librosa
+
+    material_config = _material_config_arg()
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    estimators = ("mag", "en", "time_pad", "time_trunc")
+    result = {"materials_enabled": MATERIALS_ENABLED, "n_per_estimate": E3_N, "m_per_angle": E3_M,
+              "angles": list(E3_ANGLES), "position_ids": list(E3_POSITION_IDS), "estimators": list(estimators)}
+
+    per_position = []
+    sim = build_sim(scene_name="room_0")
+    try:
+        for pid in E3_POSITION_IDS:
+            pos = load_point_position(sim, "room_0", pid)
+            print(f"\n--- pozycja id={pid} ---")
+
+            # M renderow na kazdy kat; polowki A (0..N-1) i B (N..2N-1) sa
+            # rozlaczne, wiec daja dwie NIEZALEZNE estymaty tego samego kata.
+            data = {}
+            for ang in E3_ANGLES:
+                rirs, specs = [], []
+                for _ in range(E3_M):
+                    rir = np.transpose(render_raw(sim, pos, ang, material_config))
+                    _echo, spec = tra.render_spectrogram(rir, chirp)
+                    rirs.append(rir)
+                    specs.append(spec)
+                data[ang] = {"rirs": rirs, "specs": specs}
+                lens = sorted({r.shape[0] for r in rirs})
+                print(f"  kat {ang:5.1f}: {E3_M} renderow, dlugosci IR: {lens if len(lens) <= 4 else f'{len(lens)} roznych, {min(lens)}..{max(lens)}'}")
+
+            row = {"point_id": pid, "position": [float(v) for v in pos], "estimators": {}}
+            for kind in estimators:
+                est = {}
+                for ang in E3_ANGLES:
+                    d = data[ang]
+                    est[("A", ang)] = _estimator(kind, d["specs"][:E3_N], d["rirs"][:E3_N], chirp)
+                    est[("B", ang)] = _estimator(kind, d["specs"][E3_N:], d["rirs"][E3_N:], chirp)
+                a0, a1 = E3_ANGLES
+                # szum: dwie niezalezne estymaty TEGO SAMEGO kata
+                noise = float(np.mean([_rmse(est[("A", a0)], est[("B", a0)]),
+                                       _rmse(est[("A", a1)], est[("B", a1)])]))
+                # sygnal: estymaty SASIEDNICH katow, liczone w obrebie tej samej polowki
+                signal = float(np.mean([_rmse(est[("A", a0)], est[("A", a1)]),
+                                        _rmse(est[("B", a0)], est[("B", a1)])]))
+                snr = signal / noise if noise > 0 else float("inf")
+                energy = float(np.mean(est[("A", a0)]))
+                row["estimators"][kind] = {"signal": signal, "noise": noise, "snr": snr, "mean_energy": energy}
+                print(f"    {kind:11s}: sygnal={signal:.5f}  szum={noise:.5f}  SNR={snr:6.2f}  "
+                      f"srednia energia spektrogramu={energy:.5f}")
+
+            # --- diagnostyka energii dla "time": czy usrednianie w czasie wygasza pogloc? ---
+            # Odbicia posrednie maja losowe fazy miedzy przebiegami, wiec sumowanie
+            # w dziedzinie czasu powinno je czesciowo wygaszac (~1/sqrt(N) dla czesci
+            # niekoherentnej), podczas gdy sciezka bezposrednia jest deterministyczna
+            # i przetrwa. Jesli to widac, "time" zanizza energie pogloru fizycznie -
+            # czyli zniekształca dane, nawet gdyby SNR wyszedl dobrze.
+            d0 = data[E3_ANGLES[0]]
+            decay = []
+            for n in (1, 2, 5, 10, 20):
+                e_time = float(np.mean(_estimator("time_trunc", d0["specs"][:n], d0["rirs"][:n], chirp)))
+                e_mag = float(np.mean(_estimator("mag", d0["specs"][:n], d0["rirs"][:n], chirp)))
+                decay.append({"n": n, "time_energy": e_time, "mag_energy": e_mag})
+            e1_time = decay[0]["time_energy"]
+            e1_mag = decay[0]["mag_energy"]
+            print("    energia spektrogramu w funkcji N (znormalizowana do N=1):")
+            for d in decay:
+                print(f"      N={d['n']:2d}: time={d['time_energy'] / e1_time:6.3f}  mag={d['mag_energy'] / e1_mag:6.3f}  "
+                      f"(1/sqrt(N)={1.0 / np.sqrt(d['n']):6.3f})")
+            row["energy_vs_n"] = decay
+            per_position.append(row)
+    finally:
+        sim.close()
+
+    result["per_position"] = per_position
+
+    # --- agregacja po pozycjach ---
+    print("\n--- PODSUMOWANIE E3 (srednia po pozycjach) ---")
+    agg = {}
+    for kind in estimators:
+        snrs = [p["estimators"][kind]["snr"] for p in per_position]
+        agg[kind] = {
+            "snr_mean": float(np.mean(snrs)), "snr_min": float(np.min(snrs)), "snr_max": float(np.max(snrs)),
+            "signal_mean": float(np.mean([p["estimators"][kind]["signal"] for p in per_position])),
+            "noise_mean": float(np.mean([p["estimators"][kind]["noise"] for p in per_position])),
+        }
+        print(f"  {kind:11s}: SNR sr={agg[kind]['snr_mean']:6.2f} (zakres {agg[kind]['snr_min']:.2f}-{agg[kind]['snr_max']:.2f})  "
+              f"sygnal={agg[kind]['signal_mean']:.5f}  szum={agg[kind]['noise_mean']:.5f}")
+    result["aggregate"] = agg
+
+    # czy wybor wyrownania (pad vs trunc) ma znaczenie dla "time"?
+    pad_vs_trunc = abs(agg["time_pad"]["snr_mean"] - agg["time_trunc"]["snr_mean"])
+    result["time_alignment_matters"] = bool(pad_vs_trunc > 0.01 * max(agg["time_pad"]["snr_mean"], 1e-9))
+    print(f"\n  Wyrownanie RIR dla 'time': |SNR_pad - SNR_trunc| = {pad_vs_trunc:.6f} "
+          f"-> {'ma znaczenie' if result['time_alignment_matters'] else 'bez znaczenia'}")
+
+    # czy "time" wygasza energie pogloru?
+    ratios = [p["energy_vs_n"][-1]["time_energy"] / p["energy_vs_n"][0]["time_energy"] for p in per_position]
+    mag_ratios = [p["energy_vs_n"][-1]["mag_energy"] / p["energy_vs_n"][0]["mag_energy"] for p in per_position]
+    result["time_energy_ratio_n20_vs_n1"] = float(np.mean(ratios))
+    result["mag_energy_ratio_n20_vs_n1"] = float(np.mean(mag_ratios))
+    time_distorts = bool(np.mean(ratios) < 0.9)
+    result["time_distorts_energy"] = time_distorts
+    print(f"  Energia przy N=20 wzgledem N=1: time={np.mean(ratios):.3f}, mag={np.mean(mag_ratios):.3f} "
+          f"(1/sqrt(20)={1 / np.sqrt(20):.3f})")
+    print(f"  -> 'time' {'ZANIZA' if time_distorts else 'nie zaniza'} energie wraz z N "
+          f"{'(zniekształca pogloc fizycznie)' if time_distorts else ''}")
+
+    # --- werdykt: SNR + odpornosc na zmienna dlugosc IR + wiernosc fizyczna ---
+    spectral = {k: agg[k]["snr_mean"] for k in ("mag", "en")}
+    best_spectral = max(spectral, key=spectral.get)
+    time_snr = max(agg["time_pad"]["snr_mean"], agg["time_trunc"]["snr_mean"])
+    # Uwaga: kwestia wyrownania RIR okazala sie NIE byc argumentem przeciw "time" -
+    # zmierzylismy, ze pad i trunc daja identyczny wynik, bo po przycieciu echa do
+    # 60 ms licza sie tylko pierwsze ECHO_SAMPLES probek, a kazdy IR jest od tego
+    # wielokrotnie dluzszy (E4). Nie powolujemy sie wiec na ten argument, mimo ze
+    # z gory wydawal sie naturalny.
+    recommended = best_spectral
+    if time_distorts and time_snr < spectral[best_spectral]:
+        reason = (f"'time' przegrywa na obu kryteriach naraz: ma nizszy SNR ({time_snr:.2f} vs "
+                  f"{spectral[best_spectral]:.2f}) i zaniza energie pogloru (przy N=20 zostaje "
+                  f"{np.mean(ratios):.3f} energii z N=1, podczas gdy 'mag' trzyma "
+                  f"{np.mean(mag_ratios):.3f}), czyli zniekształca dane fizycznie. Rekomendacja: '{best_spectral}'.")
+    elif time_distorts:
+        reason = (f"'time' ma wprawdzie wyzszy SNR ({time_snr:.2f} vs {spectral[best_spectral]:.2f}), ale zaniza "
+                  f"energie pogloru (przy N=20 zostaje {np.mean(ratios):.3f} energii z N=1) - zniekształca dane "
+                  f"fizycznie niezaleznie od SNR. Rekomendacja: '{best_spectral}'.")
+    else:
+        reason = (f"'{best_spectral}' ma najwyzszy SNR ({spectral[best_spectral]:.2f}), dziala na spektrogramach o "
+                  f"stalym ksztalcie i nie zniekształca energii.")
+    result["recommended_estimator"] = recommended
+    result["recommendation_reason"] = reason
+    print(f"\n--- WERDYKT E3 ---\n  Rekomendowany estymator: {recommended}\n  {reason}")
+    return result
+
+
+# --- E2: wiecej promieni czy wiecej renderow? --------------------------------
+#
+# Oba sposoby redukuja ten sam szum Monte Carlo, ale kosztuja inaczej: koszt
+# renderu rosnie PODLINIOWO z liczba promieni (zmierzone: 10x promieni = 5.8x
+# czasu), bo kazdy render ma staly narzut. Przy rownym budzecie promieni jeden
+# render 5000-promieniowy jest wiec tanszy niz 10 renderow po 500. Pytanie, czy
+# jest tak samo dobry - a to NIE jest oczywiste, bo to sa rozne estymatory:
+#   - wiecej promieni redukuje wariancje WEWNATRZ symulacji, zanim policzymy |STFT|
+#   - usrednianie N magnitud usrednia PO wzieciu modulu, a E[|X|] > |E[X]|, wiec
+#     ten estymator ma dodatnie obciazenie, ktore NIE znika ze wzrostem N
+# Dlatego porownujemy przy STALYM budzecie promieni (N * rays = const) i patrzymy
+# nie tylko na SNR, ale i na sredni poziom energii - systematyczny spadek energii
+# wraz z liczba promieni bylby wlasnie tym obciazeniem magnitudy.
+
+E2_RAY_BUDGET = 5000  # laczny budzet promieni na jedna estymate (N * rays)
+E2_CONFIGS = ((10, 500), (5, 1000), (2, 2500), (1, 5000))  # (N renderow, promieni na render)
+E2_ANGLES = (0.0, 10.0)
+E2_POSITION_IDS = (30, 50, 80)
+
+
+def run_e2_rays_vs_renders():
+    print("\n=== E2: wiecej promieni vs wiecej renderow (staly budzet promieni) ===")
+    import librosa
+
+    material_config = _material_config_arg()
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    result = {"materials_enabled": MATERIALS_ENABLED, "ray_budget": E2_RAY_BUDGET,
+              "configs": [list(c) for c in E2_CONFIGS], "angles": list(E2_ANGLES),
+              "position_ids": list(E2_POSITION_IDS), "thread_count": 1}
+
+    per_config = []
+    for n_renders, ray_count in E2_CONFIGS:
+        assert n_renders * ray_count == E2_RAY_BUDGET, "konfiguracje musza miec rowny budzet promieni"
+        label = f"N={n_renders} x {ray_count} promieni"
+        print(f"\n--- {label} ---")
+        # threadCount zostawiamy na 1 (domyslne) - cala reszta charakteryzacji
+        # jest na jednym watku, wiec porownanie zostaje na jednej osi.
+        sim = build_sim(scene_name="room_0", indirect_ray_count=ray_count)
+        try:
+            rows, render_times = [], []
+            for pid in E2_POSITION_IDS:
+                pos = load_point_position(sim, "room_0", pid)
+                est = {}
+                for ang in E2_ANGLES:
+                    # 2*N renderow -> dwie ROZLACZNE, niezalezne estymaty tego kata
+                    specs = []
+                    for _ in range(2 * n_renders):
+                        t0 = time.perf_counter()
+                        raw = render_raw(sim, pos, ang, material_config)
+                        render_times.append(time.perf_counter() - t0)
+                        _echo, spec = tra.render_spectrogram(np.transpose(raw), chirp)
+                        specs.append(spec)
+                    est[("A", ang)] = np.mean(specs[:n_renders], axis=0)
+                    est[("B", ang)] = np.mean(specs[n_renders:], axis=0)
+                a0, a1 = E2_ANGLES
+                noise = float(np.mean([_rmse(est[("A", a0)], est[("B", a0)]),
+                                       _rmse(est[("A", a1)], est[("B", a1)])]))
+                signal = float(np.mean([_rmse(est[("A", a0)], est[("A", a1)]),
+                                        _rmse(est[("B", a0)], est[("B", a1)])]))
+                energy = float(np.mean(est[("A", a0)]))
+                rows.append({"point_id": pid, "signal": signal, "noise": noise,
+                             "snr": signal / noise if noise > 0 else float("inf"), "mean_energy": energy})
+                print(f"  id={pid:3d}: sygnal={signal:.5f}  szum={noise:.5f}  "
+                      f"SNR={rows[-1]['snr']:5.2f}  energia={energy:.5f}")
+        finally:
+            sim.close()
+
+        t_render = float(np.mean(render_times))
+        t_estimate = t_render * n_renders  # koszt JEDNEJ estymaty (N renderow)
+        agg = {"n_renders": n_renders, "ray_count": ray_count, "label": label,
+               "snr_mean": float(np.mean([r["snr"] for r in rows])),
+               "snr_min": float(np.min([r["snr"] for r in rows])),
+               "snr_max": float(np.max([r["snr"] for r in rows])),
+               "signal_mean": float(np.mean([r["signal"] for r in rows])),
+               "noise_mean": float(np.mean([r["noise"] for r in rows])),
+               "energy_mean": float(np.mean([r["mean_energy"] for r in rows])),
+               "seconds_per_render": t_render, "seconds_per_estimate": t_estimate,
+               "per_position": rows}
+        per_config.append(agg)
+        print(f"  => SNR sr={agg['snr_mean']:5.2f}  energia sr={agg['energy_mean']:.5f}  "
+              f"{t_render:.4f} s/render  {t_estimate:.3f} s/estymate")
+
+    result["per_config"] = per_config
+
+    print("\n--- PODSUMOWANIE E2 (staly budzet promieni = %d) ---" % E2_RAY_BUDGET)
+    print(f"  {'konfiguracja':22s} {'SNR':>6s} {'szum':>9s} {'energia':>9s} {'s/estymate':>11s} {'SNR/s':>8s}")
+    for c in per_config:
+        print(f"  {c['label']:22s} {c['snr_mean']:6.2f} {c['noise_mean']:9.5f} {c['energy_mean']:9.5f} "
+              f"{c['seconds_per_estimate']:11.3f} {c['snr_mean'] / c['seconds_per_estimate']:8.3f}")
+
+    best_snr = max(per_config, key=lambda c: c["snr_mean"])
+    best_eff = max(per_config, key=lambda c: c["snr_mean"] / c["seconds_per_estimate"])
+    cheapest = min(per_config, key=lambda c: c["seconds_per_estimate"])
+    baseline = per_config[0]  # N=10 x 500 - konfiguracja, na ktorej stoi E3
+
+    # Czy energia systematycznie zalezy od liczby promieni? (obciazenie magnitudy)
+    energies = [c["energy_mean"] for c in per_config]
+    energy_drift = (energies[0] - energies[-1]) / energies[0]
+    result["energy_drift_lowray_to_highray"] = float(energy_drift)
+
+    result["best_snr"] = best_snr["label"]
+    result["best_snr_per_second"] = best_eff["label"]
+    speedup = baseline["seconds_per_estimate"] / best_eff["seconds_per_estimate"]
+    result["speedup_vs_baseline"] = float(speedup)
+    print(f"\n  Najwyzszy SNR:            {best_snr['label']} (SNR {best_snr['snr_mean']:.2f})")
+    print(f"  Najlepszy SNR na sekunde: {best_eff['label']} "
+          f"({best_eff['snr_mean'] / best_eff['seconds_per_estimate']:.3f} SNR/s, "
+          f"{speedup:.2f}x taniej niz N=10x500 przy SNR {best_eff['snr_mean']:.2f})")
+    print(f"  Najtansza estymata:       {cheapest['label']} ({cheapest['seconds_per_estimate']:.3f} s)")
+    print(f"  Dryf energii (N=10x500 -> N=1x5000): {energy_drift * 100:+.2f}% "
+          f"{'- magnitude averaging zawyza energie przy malej liczbie promieni' if energy_drift > 0.02 else '- brak istotnego obciazenia'}")
+    return result
+
+
+# --- E2b: czy 500 promieni OBCIAZA wynik (a nie tylko zaszumia)? -------------
+#
+# E2 pokazal, ze przy stalym budzecie promieni lepiej usredniac wiele renderow
+# po 500 promieni niz robic jeden po 5000 - ale to byl pomiar WARIANCJI. Zupelnie
+# osobne pytanie to OBCIAZENIE: czy estymata z 500 promieni zbiega do tego samego,
+# co estymata z duzo wieksza liczba promieni, czy do czegos systematycznie innego.
+# Ma to znaczenie, bo:
+#  - habitat-sim/docs/AUDIO.md podaje indirectRayCount=5000 jako wartosc domyslna
+#    i opisuje ja jako "the main parameter for controlling quality", a my uzywamy 500;
+#  - paper SoundSpaces 2.0 (NeurIPS 2022, Tab. 2) raportuje 9.5% wzglednego bledu
+#    RT60 dla trybu "high-speed" (mniej promieni) wzgledem "high-quality" - czyli
+#    zmniejszenie liczby promieni realnie przesuwa wynik, nie tylko go zaszumia.
+# Referencja: N=10 renderow po 5000 promieni (10x budzet produkcyjny). Zeby odroznic
+# obciazenie od szumu samej referencji, liczymy tez jej wlasny rozrzut z dwoch
+# rozlacznych polowek.
+
+E2B_REFERENCE_RAYS = 5000
+E2B_PRODUCTION_RAYS = 500
+E2B_N = 10
+E2B_POSITION_IDS = (30, 50, 80)
+E2B_ANGLE = 0.0
+
+
+def run_e2_ray_bias():
+    print("\n=== E2b: czy 500 promieni obciaza estymate (vs 5000)? ===")
+    import librosa
+
+    material_config = _material_config_arg()
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    result = {"materials_enabled": MATERIALS_ENABLED, "reference_rays": E2B_REFERENCE_RAYS,
+              "production_rays": E2B_PRODUCTION_RAYS, "n_per_estimate": E2B_N,
+              "position_ids": list(E2B_POSITION_IDS), "angle": E2B_ANGLE}
+
+    # Zbieramy po 2*N renderow dla obu ustawien, w dwoch osobnych sesjach
+    # (rayCount jest wlasciwoscia specu, wiec wymaga osobnego Simulatora).
+    estimates = {}
+    for rays in (E2B_PRODUCTION_RAYS, E2B_REFERENCE_RAYS):
+        sim = build_sim(scene_name="room_0", indirect_ray_count=rays)
+        try:
+            for pid in E2B_POSITION_IDS:
+                pos = load_point_position(sim, "room_0", pid)
+                specs = [_get_spec(sim, pos, E2B_ANGLE, material_config, chirp) for _ in range(2 * E2B_N)]
+                estimates[(rays, pid, "A")] = np.mean(specs[:E2B_N], axis=0)
+                estimates[(rays, pid, "B")] = np.mean(specs[E2B_N:], axis=0)
+            print(f"  zebrano {2 * E2B_N} renderow x {len(E2B_POSITION_IDS)} pozycji przy {rays} promieniach")
+        finally:
+            sim.close()
+
+    rows = []
+    for pid in E2B_POSITION_IDS:
+        ref_a, ref_b = estimates[(E2B_REFERENCE_RAYS, pid, "A")], estimates[(E2B_REFERENCE_RAYS, pid, "B")]
+        prod_a, prod_b = estimates[(E2B_PRODUCTION_RAYS, pid, "A")], estimates[(E2B_PRODUCTION_RAYS, pid, "B")]
+        ref_noise = _rmse(ref_a, ref_b)      # wlasny rozrzut referencji
+        prod_noise = _rmse(prod_a, prod_b)   # wlasny rozrzut produkcji
+        # roznica produkcja-referencja, usredniona po polowkach, zeby nie zalezala
+        # od tego, ktora polowke wybierzemy
+        gap = float(np.mean([_rmse(prod_a, ref_a), _rmse(prod_a, ref_b),
+                             _rmse(prod_b, ref_a), _rmse(prod_b, ref_b)]))
+        # Obciazenie = ta czesc roznicy, ktorej NIE tlumaczy szum obu estymat.
+        # RMSE(prod, ref)^2 = bias^2 + sigma_prod^2 + sigma_ref^2, a RMSE(A,B)^2 = 2*sigma^2.
+        explained = (prod_noise ** 2 + ref_noise ** 2) / 2.0
+        bias = float(np.sqrt(max(gap ** 2 - explained, 0.0)))
+        e_prod = float(np.mean(prod_a)); e_ref = float(np.mean(ref_a))
+        rows.append({"point_id": pid, "ref_noise": ref_noise, "prod_noise": prod_noise,
+                     "gap": gap, "bias": bias, "energy_prod": e_prod, "energy_ref": e_ref,
+                     "energy_rel_diff": (e_prod - e_ref) / e_ref})
+        print(f"  id={pid:3d}: szum ref={ref_noise:.5f} szum prod={prod_noise:.5f} "
+              f"| roznica={gap:.5f} -> OBCIAZENIE={bias:.5f} | energia prod/ref={e_prod / e_ref:.4f}")
+
+    result["per_position"] = rows
+    m_bias = float(np.mean([r["bias"] for r in rows]))
+    m_refnoise = float(np.mean([r["ref_noise"] for r in rows]))
+    m_energy = float(np.mean([r["energy_rel_diff"] for r in rows]))
+    result["bias_mean"] = m_bias
+    result["reference_noise_mean"] = m_refnoise
+    result["energy_rel_diff_mean"] = m_energy
+
+    # Skala odniesienia: prawdziwy sygnal 10 stopni ~0.064 (E2, po odszumieniu).
+    signal_10deg = 0.064
+    result["bias_vs_10deg_signal"] = m_bias / signal_10deg
+    print(f"\n--- WERDYKT E2b ---")
+    print(f"  Obciazenie 500 vs 5000 promieni: {m_bias:.5f}")
+    print(f"  Dla skali: sygnal 10 stopni (odszumiony) ~ {signal_10deg:.3f}, "
+          f"wlasny szum referencji przy N=10 = {m_refnoise:.5f}")
+    print(f"  Obciazenie to {m_bias / signal_10deg * 100:.1f}% sygnalu 10 stopni; "
+          f"roznica energii {m_energy * 100:+.2f}%")
+    if m_bias < 0.1 * signal_10deg:
+        verdict = ("POMIJALNE - 500 promieni daje praktycznie te sama estymate co 5000, "
+                   "wiec produkcyjna konfiguracja nie jest systematycznie przesunieta")
+    elif m_bias < 0.3 * signal_10deg:
+        verdict = ("MALE, ale niezerowe - 500 promieni lekko przesuwa estymate wzgledem 5000; "
+                   "do zaraportowania w pracy jako ograniczenie, nie do zignorowania")
+    else:
+        verdict = ("ISTOTNE - 500 promieni daje systematycznie inna estymate niz 5000, "
+                   "porownywalnie z mierzonym sygnalem; nalezy podniesc liczbe promieni")
+    result["verdict"] = verdict
+    print(f"  {verdict}")
+    return result
+
+
+# --- Wysokosc sluchacza: 1.25 m (kamera z pkl) czy 1.5 m (konwencja SoundSpaces)? ---
+#
+# Kamera odtworzona z scene_observations_128.pkl siedzi na 1.25 m, a AudioSensorSpec
+# w build_simulator() na 1.5 m (ta sama wartosc, ktorej uzywa
+# sound-spaces/soundspaces/continuous_simulator.py). To 25 cm rozjazdu miedzy
+# punktem obserwacji wizualnej i akustycznej - dzis jest to przypadkowy zbieg
+# dwoch roznych domyslnych wartosci, a powinno byc decyzja.
+#
+# Kryterium rozstrzygajace: porownac roznice miedzy wysokosciami z DWOMA skalami
+# odniesienia, ktore juz znamy - szumem resztkowym (czego nie da sie odroznic) i
+# sygnalem 10 stopni (tym, co caly projekt probuje zmierzyc). Jesli 25 cm zmienia
+# echo bardziej niz 10 stopni obrotu, to wybor wysokosci jest konsekwentny i musi
+# byc swiadomy; jesli tonie w szumie - jest dowolny.
+
+HEIGHT_SENSOR_OFFSET = 1.5  # offset audio w AudioSensorSpec (build_simulator)
+HEIGHT_CANDIDATES = (1.25, 1.5)
+HEIGHT_N = 10
+HEIGHT_ANGLES = (0.0, 10.0)
+HEIGHT_POSITION_IDS = (30, 50, 80)
+
+
+def run_listener_height():
+    print("\n=== Wysokosc sluchacza: 1.25 m (kamera pkl) vs 1.5 m (konwencja SoundSpaces) ===")
+    import librosa
+
+    material_config = _material_config_arg()
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    result = {"materials_enabled": MATERIALS_ENABLED, "candidates": list(HEIGHT_CANDIDATES),
+              "n_per_estimate": HEIGHT_N, "angles": list(HEIGHT_ANGLES),
+              "position_ids": list(HEIGHT_POSITION_IDS)}
+
+    rows = []
+    sim = build_sim(scene_name="room_0")
+    try:
+        for pid in HEIGHT_POSITION_IDS:
+            pos = load_point_position(sim, "room_0", pid)
+            print(f"\n--- pozycja id={pid} ---")
+            est, noise_parts = {}, []
+            for h in HEIGHT_CANDIDATES:
+                # Sensor audio ma staly offset +1.5 m wzgledem agenta, wiec zamiast
+                # rekonstruowac Simulator dla kazdej wysokosci przesuwamy AGENTA -
+                # sluchacz laduje wtedy na zadanej wysokosci nad tym samym punktem.
+                pos_h = np.array(pos, dtype=np.float64)
+                pos_h[1] += h - HEIGHT_SENSOR_OFFSET
+                for ang in HEIGHT_ANGLES:
+                    specs = [_get_spec(sim, pos_h, ang, material_config, chirp) for _ in range(2 * HEIGHT_N)]
+                    est[(h, ang, "A")] = np.mean(specs[:HEIGHT_N], axis=0)
+                    est[(h, ang, "B")] = np.mean(specs[HEIGHT_N:], axis=0)
+                    noise_parts.append(_rmse(est[(h, ang, "A")], est[(h, ang, "B")]))
+
+            h1, h2 = HEIGHT_CANDIDATES
+            a0, a1 = HEIGHT_ANGLES
+            noise = float(np.mean(noise_parts))
+            signal_10deg = float(np.mean([_rmse(est[(h, a0, "A")], est[(h, a1, "A")]) for h in HEIGHT_CANDIDATES]))
+            height_effect = float(np.mean([_rmse(est[(h1, a, "A")], est[(h2, a, "A")]) for a in HEIGHT_ANGLES]))
+            row = {"point_id": pid, "noise": noise, "signal_10deg": signal_10deg,
+                   "height_effect": height_effect,
+                   "height_vs_noise": height_effect / noise if noise > 0 else float("inf"),
+                   "height_vs_10deg": height_effect / signal_10deg if signal_10deg > 0 else float("inf")}
+            rows.append(row)
+            print(f"  szum resztkowy (N={HEIGHT_N})      = {noise:.5f}")
+            print(f"  sygnal 10 stopni                  = {signal_10deg:.5f}")
+            print(f"  efekt zmiany wysokosci 1.25<->1.5 = {height_effect:.5f}  "
+                  f"({row['height_vs_noise']:.1f}x szum, {row['height_vs_10deg']:.2f}x sygnal 10 stopni)")
+    finally:
+        sim.close()
+
+    result["per_position"] = rows
+    m_effect = float(np.mean([r["height_effect"] for r in rows]))
+    m_noise = float(np.mean([r["noise"] for r in rows]))
+    m_signal = float(np.mean([r["signal_10deg"] for r in rows]))
+    result["height_effect_mean"] = m_effect
+    result["noise_mean"] = m_noise
+    result["signal_10deg_mean"] = m_signal
+    result["height_vs_noise"] = m_effect / m_noise
+    result["height_vs_10deg"] = m_effect / m_signal
+
+    print("\n--- WERDYKT: wysokosc sluchacza ---")
+    print(f"  efekt 25 cm = {m_effect:.5f} | szum = {m_noise:.5f} | sygnal 10 stopni = {m_signal:.5f}")
+    print(f"  efekt wysokosci to {m_effect / m_noise:.1f}x szum resztkowy i {m_effect / m_signal:.2f}x sygnal 10 stopni")
+    if m_effect < m_noise:
+        verdict = ("NIEISTOTNA - roznica miedzy 1.25 a 1.5 m tonie w szumie resztkowym, "
+                   "wiec wybor jest dowolny; i tak warto zrownac dla spojnosci opisu")
+    elif m_effect < m_signal:
+        verdict = ("ISTOTNA, ale mniejsza niz mierzony sygnal - 25 cm zmienia echo zauwazalnie ponad szum, "
+                   "choc slabiej niz 10 stopni obrotu; wybor musi byc swiadomy i udokumentowany")
+    else:
+        verdict = ("KRYTYCZNA - 25 cm zmienia echo BARDZIEJ niz 10 stopni obrotu, czyli bardziej niz efekt, "
+                   "ktory caly projekt probuje zmierzyc; nie wolno zostawic tego przypadkowi")
+    result["verdict"] = verdict
+    # Rekomendacja jest ta sama niezaleznie od skali efektu: agent ucieleśniony
+    # widzi i slyszy z jednego punktu, a jedyna wartosc twardo narzucona z
+    # zewnatrz to 1.25 m (wymog odtworzenia pkl) - wiec to audio powinno sie
+    # dopasowac do kamery, nie odwrotnie.
+    result["recommendation"] = 1.25
+    print(f"  {verdict}")
+    print("  Rekomendacja: audio na 1.25 m, zrownane z kamera. 1.25 m jest twardo narzucone przez")
+    print("  odtworzenie pkl, a 1.5 m to tylko konwencja SoundSpaces - to audio ma sie dopasowac.")
+    return result
+
+
 EXPERIMENTS = {
     "p0": run_p0,
     "e1": run_e1,
+    "e2_rays_vs_renders": run_e2_rays_vs_renders,
+    "e2_ray_bias": run_e2_ray_bias,
+    "e3_averaging_domain": run_e3_averaging_domain,
+    "e4_ir_length": run_e4_ir_length,
+    "listener_height": run_listener_height,
     "e1_checkpoint_boundary": run_e1_checkpoint_boundary,
     "e1_checkpoint_boundary_batch_a": run_e1_checkpoint_boundary_batch_a,
     "e1_checkpoint_boundary_batch_b": run_e1_checkpoint_boundary_batch_b,
