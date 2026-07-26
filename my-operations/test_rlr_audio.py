@@ -174,22 +174,31 @@ def build_simulator(args):
         # zignorowany.
         cfg.load_semantic_mesh = True
 
+    # Wysokosc wszystkich sensorow nad wezlem agenta. Domyslne 1.5 m zachowane dla
+    # zgodnosci wstecznej ze WSZYSTKIMI wczesniejszymi pomiarami szumu (E1-E4,
+    # checkpoint-boundary, Blok A/B/C) - zmiana domyslnej rozspoinilaby je.
+    # Produkcja idzie na 1.25 m: tyle ma kamera odtworzona z scene_observations_128.pkl
+    # (patrz PKL_FORMAT.md), a agent ucielesniony musi widziec i slyszec z jednego
+    # punktu - roznica 25 cm zmienia echo mocniej niz obrot o 10 stopni (patrz
+    # eksperyment listener_height).
+    sensor_height = float(getattr(args, "sensor_height", None) or 1.5)
+
     rgb_spec = habitat_sim.CameraSensorSpec()
     rgb_spec.uuid = "rgb"
     rgb_spec.sensor_type = habitat_sim.SensorType.COLOR
     rgb_spec.resolution = [128, 128]
-    rgb_spec.position = [0.0, 1.5, 0.0]
+    rgb_spec.position = [0.0, sensor_height, 0.0]
 
     depth_spec = habitat_sim.CameraSensorSpec()
     depth_spec.uuid = "depth"
     depth_spec.sensor_type = habitat_sim.SensorType.DEPTH
     depth_spec.resolution = [128, 128]
-    depth_spec.position = [0.0, 1.5, 0.0]
+    depth_spec.position = [0.0, sensor_height, 0.0]
 
     audio_spec = habitat_sim.AudioSensorSpec()
     audio_spec.uuid = "audio_sensor"
     audio_spec.outputDirectory = str(Path(args.out_dir) / "rlr_sim_output")
-    audio_spec.position = [0.0, 1.5, 0.0]
+    audio_spec.position = [0.0, sensor_height, 0.0]
     audio_spec.acousticsConfig.sampleRate = SAMPLE_RATE
     audio_spec.acousticsConfig.enableMaterials = use_materials
     # Domyslnie 500 promieni na jednym watku - taka konfiguracja stoi za CALA

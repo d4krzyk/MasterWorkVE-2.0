@@ -18,7 +18,10 @@ kolejne sesje moga dopisywac wyniki bez nadpisywania wczesniejszych.
 """
 
 import argparse
+import contextlib
 import json
+import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -61,9 +64,17 @@ LISTENER_POINT_ID = 50
 class _Args:
     """Namespace kompatybilny z test_rlr_audio.build_simulator()."""
 
-    def __init__(self, materials_enabled, scene_path=SCENE_PATH, indirect_ray_count=None, thread_count=None):
+    def __init__(self, materials_enabled, scene_path=SCENE_PATH, indirect_ray_count=None, thread_count=None,
+                 material_config=None, sensor_height=None):
         self.scene = str(scene_path)
-        self.material_config = str(MATERIAL_CONFIG_PATH) if materials_enabled else None
+        # None => build_simulator uzyje 1.5 m (wysokosc calej wczesniejszej
+        # charakteryzacji). Eksperymenty produkcyjne podaja 1.25 m - patrz
+        # PRODUCTION_SENSOR_HEIGHT.
+        self.sensor_height = sensor_height
+        # material_config=None => domyslny mp3d (konfiguracja calej dotychczasowej
+        # charakteryzacji). Nadpisujemy tylko tam, gdzie porownujemy same configi
+        # materialow miedzy soba (Blok B).
+        self.material_config = str(material_config or MATERIAL_CONFIG_PATH) if materials_enabled else None
         self.out_dir = str(OUT_DIR)
         # None => build_simulator uzyje swoich domyslnych (500 promieni, 1 watek),
         # czyli konfiguracji, na ktorej oparta jest cala reszta charakteryzacji.
@@ -81,9 +92,10 @@ def _points_path(scene_name):
 
 
 def build_sim(materials_enabled=MATERIALS_ENABLED, scene_name="room_0",
-              indirect_ray_count=None, thread_count=None):
+              indirect_ray_count=None, thread_count=None, material_config=None, sensor_height=None):
     return tra.build_simulator(
-        _Args(materials_enabled, _scene_path(scene_name), indirect_ray_count, thread_count)
+        _Args(materials_enabled, _scene_path(scene_name), indirect_ray_count, thread_count,
+              material_config, sensor_height)
     )
 
 
@@ -1262,6 +1274,280 @@ def run_e2_ray_bias():
     return result
 
 
+# --- BLOK A: czy obciazenie od liczby promieni ZALEZY OD ORIENTACJI? ---------
+#
+# E2b wykazal, ze 500 promieni daje estymate systematycznie przesunieta wzgledem
+# 5000 (obciazenie 0.0220 RMSE = 34% sygnalu 10 stopni, energia -2.2%) i ze
+# usrednianie tego nie usuwa. Zostalo jednak pytanie, ktore jako jedyne moze
+# UNIEWAZNIC glowna teze pracy:
+#
+#   czy to obciazenie jest JEDNORODNE po orientacjach, czy zalezy od kata?
+#
+# - jednorodne  -> ten sam renderer stoi po obu stronach ablacji (36 vs 4 katy),
+#                  obciazenie w duzej mierze sie skraca, porownanie zostaje wazne,
+#                  a rzecz jest tylko zastrzezeniem o realizmie bezwzglednym;
+# - zalezne od kata -> silnik wstrzykuje sztuczny sygnal ROZNICUJACY ORIENTACJE,
+#                  ktory wyglada jak geometria pokoju, a jest artefaktem samplingu
+#                  Monte Carlo. To zatruwa dokladnie ten efekt, ktory mierzymy.
+#
+# Konfiguracja celowo taka sama jak w calej dotychczasowej charakteryzacji
+# (mp3d_material_config.json, threadCount=1) - inaczej wynik nie bylby porownywalny
+# z E2/E2b. threadCount=1 dodatkowo dlatego, ze watki lamia determinizm RNG i
+# podnosza szum o 22-35%, a tutaj mierzymy male roznice na tle szumu.
+#
+# Metoda: dla kazdej pozycji i kazdej z 36 orientacji renderujemy N razy przy 500
+# i N razy przy 5000 promieniach. Kazdy zestaw N dzielimy na dwie rozlaczne polowki
+# (A/B) - polowki sluza za KONTROLE: pokazuja, o ile dana metryka skacze z samego
+# szumu, przy TYM SAMYM rayCount. Bez tej kontroli rozrzut po katach jest
+# nieinterpretowalny, bo nie wiadomo, czy to orientacja czy Monte Carlo.
+
+E2BO_RAYS = (500, 5000)
+E2BO_N = 8                     # renderow na (pozycja, kat, rayCount); dzielone 4+4 na kontrole
+E2BO_ANGLES = tuple(float(a) for a in range(0, 360, 10))  # docelowa siatka 36 katow
+# Dwie sceny o roznej akustyce: room_0 (baza calej charakteryzacji) i office_0
+# (najglosniejsza w pomiarach z 07-20 - inny czas pogloru, inna geometria).
+E2BO_POSITIONS = (("room_0", 50), ("office_0", 30))
+
+
+def _energy(spec):
+    """Calkowita energia spektrogramu - skalarny wskaznik 'ile echa' bez ksztaltu."""
+    return float(np.sum(np.square(spec.astype(np.float64))))
+
+
+def _rms(spec):
+    return float(np.sqrt(np.mean(np.square(spec.astype(np.float64)))))
+
+
+def _circular_delta(values, angles, step_deg=10.0):
+    """Pary sasiednich orientacji (z zawinieciem 360->0) jako indeksy."""
+    n = len(angles)
+    return [(i, (i + 1) % n) for i in range(n)]
+
+
+def _dominant_harmonic(series):
+    """Najsilniejsza harmoniczna przebiegu R(theta) po pelnym obrocie.
+
+    Losowy rozrzut rozklada energie rowno po harmonicznych; systematyczny wzorzec
+    (np. okresowosc co 90 stopni od czterech scian) skupia ja w jednym prazku.
+    Zwraca (indeks harmonicznej, amplituda, okres w stopniach); indeks 4 = okres 90.
+    """
+    x = np.asarray(series, dtype=np.float64)
+    x = x - x.mean()
+    amps = np.abs(np.fft.rfft(x)) / len(x)
+    k = int(np.argmax(amps[1:]) + 1)  # pomijamy skladowa stala
+    return k, float(amps[k]), 360.0 / k
+
+
+def run_e2_bias_orientation():
+    print("\n=== BLOK A: czy obciazenie od liczby promieni zalezy od orientacji? ===")
+    import librosa
+
+    material_config = _material_config_arg()
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    half = E2BO_N // 2
+    signal_10deg = 0.064  # prawdziwy (odszumiony) sygnal 10 stopni z E2 - skala odniesienia
+
+    result = {"materials_enabled": MATERIALS_ENABLED, "rays": list(E2BO_RAYS), "n_per_angle": E2BO_N,
+              "half_size": half, "n_angles": len(E2BO_ANGLES), "angle_step_deg": 10.0,
+              "positions": [{"scene": s, "point_id": p} for s, p in E2BO_POSITIONS],
+              "thread_count": 1, "reference_signal_10deg": signal_10deg,
+              "material_config": "mp3d_material_config.json (jak w calej dotychczasowej charakteryzacji)"}
+
+    per_position = []
+    for scene, pid in E2BO_POSITIONS:
+        print(f"\n--- {scene} id={pid} ---")
+        # halves[rays] = {"A": [spec per kat], "B": [...]}; trzymamy tylko polowki,
+        # pelna estymata N=8 to ich srednia - oszczedza polowe pamieci.
+        halves = {}
+        for rays in E2BO_RAYS:
+            sim = build_sim(scene_name=scene, indirect_ray_count=rays, thread_count=1)
+            try:
+                pos = load_point_position(sim, scene, pid)
+                a_list, b_list = [], []
+                t0 = time.perf_counter()
+                for ang in E2BO_ANGLES:
+                    specs = [_get_spec(sim, pos, ang, material_config, chirp) for _ in range(E2BO_N)]
+                    a_list.append(np.mean(specs[:half], axis=0).astype(np.float32))
+                    b_list.append(np.mean(specs[half:], axis=0).astype(np.float32))
+                dt = time.perf_counter() - t0
+                halves[rays] = {"A": a_list, "B": b_list}
+                print(f"  {rays:5d} promieni: {len(E2BO_ANGLES)} katow x {E2BO_N} renderow w {dt:.1f} s "
+                      f"({dt / (len(E2BO_ANGLES) * E2BO_N):.3f} s/render)")
+            finally:
+                sim.close()
+
+        full = {r: [(a + b) / 2.0 for a, b in zip(halves[r]["A"], halves[r]["B"])] for r in E2BO_RAYS}
+        r_lo, r_hi = E2BO_RAYS  # 500 (produkcja) i 5000 (referencja)
+
+        # --- METRYKA 1: skalarny wskaznik obciazenia per orientacja ---------------
+        # R(theta) = energia_500 / energia_5000. Wartosc <1 odpowiada zmierzonemu
+        # w E2b spadkowi energii o 2.2%; pytanie brzmi, czy ten spadek jest taki sam
+        # dla kazdego kata.
+        r_theta = [_energy(full[r_lo][i]) / _energy(full[r_hi][i]) for i in range(len(E2BO_ANGLES))]
+        # Kontrola: to samo, ale miedzy dwiema NIEZALEZNYMI polowkami przy TYM SAMYM
+        # rayCount - czyli czysty szum, zero wplywu liczby promieni.
+        r_ctrl = {r: [_energy(halves[r]["A"][i]) / _energy(halves[r]["B"][i])
+                      for i in range(len(E2BO_ANGLES))] for r in E2BO_RAYS}
+
+        sd_r = float(np.std(r_theta))
+        sd_ctrl = {r: float(np.std(v)) for r, v in r_ctrl.items()}
+        # Skalowanie kontroli do tej samej liczby renderow. Var(log E_{r,N}) = v_r/N.
+        #   glowna metryka: Var = (v_lo + v_hi)/N
+        #   kontrola przy r: Var = 2*v_r/(N/2) = 4*v_r/N  =>  v_r/N = Var_ctrl,r / 4
+        # stad Var_null_glownej = (Var_ctrl,lo + Var_ctrl,hi)/4, czyli sd/2.
+        sd_null = 0.5 * float(np.sqrt(sd_ctrl[r_lo] ** 2 + sd_ctrl[r_hi] ** 2))
+        k_h, amp_h, period_h = _dominant_harmonic(r_theta)
+        k_hc, amp_hc, _ = _dominant_harmonic(r_ctrl[r_hi])
+
+        # --- METRYKA 2: zalezna od kata czesc obciazenia W JEDNOSTKACH RMSE -------
+        # Jesli obciazenie bylo tylko jednorodnym wzmocnieniem g, to
+        # spec_500(theta) = g * spec_5000(theta) dla kazdego theta i roznice miedzy
+        # orientacjami skaluja sie tak samo - nieszkodliwe. Szkodliwa jest dopiero
+        # ZMIENNOSC g po katach. Jej wklad do RMSE to |g(theta)-g_sr| * RMS(spec).
+        g = np.sqrt(np.asarray(r_theta))
+        g_ctrl = {r: np.sqrt(np.asarray(v)) for r, v in r_ctrl.items()}
+        sd_g = float(np.std(g))
+        sd_g_null = 0.5 * float(np.sqrt(np.std(g_ctrl[r_lo]) ** 2 + np.std(g_ctrl[r_hi]) ** 2))
+        sd_g_true = float(np.sqrt(max(sd_g ** 2 - sd_g_null ** 2, 0.0)))  # odjecie szumu w kwadraturze
+        mean_rms = float(np.mean([_rms(s) for s in full[r_hi]]))
+        gain_bias_rmse = sd_g_true * mean_rms
+
+        # --- METRYKA 3 (ROZSTRZYGAJACA): czy liczba promieni zmienia ZMIERZONA -----
+        # ROZNICE MIEDZY SASIEDNIMI ORIENTACJAMI? To jest dokladnie ta wielkosc,
+        # na ktorej stoi cala praca. Czula tez na ksztalt, nie tylko na energie.
+        pairs = _circular_delta(None, E2BO_ANGLES)
+        d_lo = np.array([_rmse(full[r_lo][i], full[r_lo][j]) for i, j in pairs])
+        d_hi = np.array([_rmse(full[r_hi][i], full[r_hi][j]) for i, j in pairs])
+        delta = d_lo - d_hi
+        # Kontrola: ta sama roznica, ale miedzy dwiema polowkami przy tym samym
+        # rayCount. Obie polowki sa jednakowo zaszumione, wiec systematyczne
+        # zawyzenie RMSE przez szum sie skraca i zostaje sam rozrzut losowy.
+        delta_ctrl = {}
+        for r in E2BO_RAYS:
+            da = np.array([_rmse(halves[r]["A"][i], halves[r]["A"][j]) for i, j in pairs])
+            db = np.array([_rmse(halves[r]["B"][i], halves[r]["B"][j]) for i, j in pairs])
+            delta_ctrl[r] = da - db
+        mean_abs_delta = float(np.mean(np.abs(delta)))
+        mean_abs_delta_ctrl = float(np.mean([np.mean(np.abs(v)) for v in delta_ctrl.values()]))
+
+        row = {
+            "scene": scene, "point_id": pid,
+            "R_theta": [float(v) for v in r_theta],
+            "R_theta_mean": float(np.mean(r_theta)), "R_theta_std": sd_r,
+            "R_control_std_per_rays": sd_ctrl, "R_control_std_scaled": sd_null,
+            "R_spread_vs_control": sd_r / sd_null if sd_null > 0 else float("inf"),
+            "dominant_harmonic_k": k_h, "dominant_harmonic_period_deg": period_h,
+            "dominant_harmonic_amp": amp_h, "control_dominant_harmonic_amp": amp_hc,
+            "gain_sd": sd_g, "gain_sd_null": sd_g_null, "gain_sd_noise_corrected": sd_g_true,
+            "spectrogram_rms": mean_rms, "angle_dependent_bias_rmse": gain_bias_rmse,
+            "delta10_mean_500": float(np.mean(d_lo)), "delta10_mean_5000": float(np.mean(d_hi)),
+            "delta10_shift_mean_abs": mean_abs_delta,
+            "delta10_shift_control_mean_abs": mean_abs_delta_ctrl,
+            "delta10_shift_vs_signal": mean_abs_delta / signal_10deg,
+        }
+        per_position.append(row)
+
+        print(f"  M1 R(theta): srednia={np.mean(r_theta):.4f} (E2b przewidywal ~0.978), "
+              f"rozrzut po katach={sd_r:.5f}")
+        print(f"     kontrola (polowki, ten sam rayCount): surowy={sd_ctrl[r_lo]:.5f}/{sd_ctrl[r_hi]:.5f}, "
+              f"przeskalowany do N={E2BO_N}: {sd_null:.5f}  -> stosunek {sd_r / sd_null:.2f}x")
+        print(f"     najsilniejsza harmoniczna: k={k_h} (okres {period_h:.0f} st.), amp={amp_h:.5f} "
+              f"| kontrola amp={amp_hc:.5f}")
+        print(f"  M2 zalezna od kata czesc obciazenia = {gain_bias_rmse:.5f} RMSE "
+              f"({gain_bias_rmse / signal_10deg * 100:.1f}% sygnalu 10 st.)")
+        print(f"  M3 zmierzona roznica 10 st.: przy 500 = {np.mean(d_lo):.5f}, przy 5000 = {np.mean(d_hi):.5f}")
+        print(f"     |przesuniecie| = {mean_abs_delta:.5f} ({mean_abs_delta / signal_10deg * 100:.1f}% sygnalu) "
+              f"| kontrola = {mean_abs_delta_ctrl:.5f}")
+
+    result["per_position"] = per_position
+    _plot_bias_orientation(per_position, result)
+
+    # --- WERDYKT ---------------------------------------------------------------
+    # Decyduje METRYKA 3 (przesuniecie zmierzonej roznicy 10 stopni), bo to ona
+    # bezposrednio odpowiada na pytanie "czy liczba promieni zmienia to, co
+    # mierzymy". M1/M2 sluza jako spojne potwierdzenie i jako wykryty/niewykryty
+    # wzorzec strukturalny.
+    m3 = float(np.mean([r["delta10_shift_mean_abs"] for r in per_position]))
+    m3_ctrl = float(np.mean([r["delta10_shift_control_mean_abs"] for r in per_position]))
+    m2 = float(np.mean([r["angle_dependent_bias_rmse"] for r in per_position]))
+    spread_ratio = float(np.mean([r["R_spread_vs_control"] for r in per_position]))
+    result["summary"] = {"delta10_shift_mean_abs": m3, "delta10_shift_control_mean_abs": m3_ctrl,
+                         "angle_dependent_bias_rmse": m2, "R_spread_vs_control": spread_ratio}
+
+    print("\n--- WERDYKT BLOK A ---")
+    print(f"  Rozrzut R(theta) / rozrzut kontrolny        = {spread_ratio:.2f}x")
+    print(f"  Zalezna od kata czesc obciazenia (M2)       = {m2:.5f} RMSE")
+    print(f"  Przesuniecie zmierzonej roznicy 10 st. (M3) = {m3:.5f} RMSE (kontrola {m3_ctrl:.5f})")
+    print(f"  Sygnal 10 stopni (odszumiony, E2)           = {signal_10deg:.3f} RMSE")
+    print(f"  -> M3 to {m3 / signal_10deg * 100:.1f}% sygnalu, M2 to {m2 / signal_10deg * 100:.1f}% sygnalu")
+
+    # Progi: 10% sygnalu = "o rzad wielkosci mniej" (kryterium z opisu zadania),
+    # 50% = juz porownywalne z mierzonym efektem. Dodatkowo zadamy, zeby efekt
+    # przewyzszal wlasna kontrole - inaczej mierzymy szum, a nie orientacje.
+    worst = max(m2, m3)
+    above_control = m3 > m3_ctrl
+    if worst < 0.1 * signal_10deg and not above_control:
+        verdict = ("NIEISTOTNY - obciazenie od liczby promieni jest praktycznie jednorodne po "
+                   "orientacjach: jego czesc zalezna od kata jest o rzad wielkosci mniejsza niz "
+                   "sygnal 10 stopni i nie przekracza wlasnej kontroli szumowej. Ablacja 36 vs 4 "
+                   "jest czysta - obciazenie stoi po obu jej stronach jednakowo.")
+    elif worst < 0.1 * signal_10deg:
+        verdict = ("NIEISTOTNY - czesc zalezna od kata jest o rzad wielkosci mniejsza niz sygnal "
+                   "10 stopni, choc nieznacznie przekracza kontrole szumowa; wielkosc efektu jest "
+                   "za mala, zeby zaburzyc ablacje.")
+    elif worst >= 0.5 * signal_10deg:
+        verdict = ("ISTOTNY - obciazenie od liczby promieni zalezy od orientacji w skali "
+                   "porownywalnej z mierzonym sygnalem 10 stopni. To powazny konfundent: silnik "
+                   "roznicuje orientacje sam z siebie. Wymaga decyzji (wyzszy rayCount w produkcji, "
+                   "korekta, albo jawne ograniczenie w pracy).")
+    else:
+        verdict = ("NIEJEDNOZNACZNY - czesc zalezna od kata jest wieksza niz 10% sygnalu, ale "
+                   "mniejsza niz polowa; przy N=%d nie da sie rozstrzygnac, czy to realny efekt "
+                   "orientacji czy resztkowy szum. Potrzebne wieksze N (albo wiecej pozycji)." % E2BO_N)
+    result["verdict"] = verdict
+    print(f"\n  {verdict}")
+    return result
+
+
+def _plot_bias_orientation(per_position, result):
+    """Wykres R(theta): liniowy + polarny. Ksztalt jest wazniejszy niz sam rozrzut -
+    gladki trend albo okresowosc co 90 stopni imituje sygnal geometryczny, a losowy
+    rozrzut nie."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    angles = np.array(E2BO_ANGLES)
+    n = len(per_position)
+    fig = plt.figure(figsize=(13, 4.6 * n))
+    for i, row in enumerate(per_position):
+        r = np.array(row["R_theta"])
+        ax = fig.add_subplot(n, 2, 2 * i + 1)
+        ax.plot(angles, r, "o-", lw=1.4, ms=4, label="R(theta) = E(500)/E(5000)")
+        ax.axhline(row["R_theta_mean"], color="k", ls="--", lw=1, label=f"srednia {row['R_theta_mean']:.4f}")
+        band = row["R_control_std_scaled"]
+        ax.fill_between(angles, row["R_theta_mean"] - band, row["R_theta_mean"] + band,
+                        color="gray", alpha=0.25, label=f"+/-1 sd kontroli ({band:.4f})")
+        ax.set_xlabel("orientacja [stopnie]"); ax.set_ylabel("R(theta)")
+        ax.set_title(f"{row['scene']} id={row['point_id']}  |  rozrzut/kontrola = {row['R_spread_vs_control']:.2f}x")
+        ax.set_xticks(range(0, 360, 45)); ax.grid(alpha=0.3); ax.legend(fontsize=7)
+
+        axp = fig.add_subplot(n, 2, 2 * i + 2, projection="polar")
+        th = np.deg2rad(np.append(angles, 360.0))
+        rr = np.append(r, r[0])
+        axp.plot(th, rr, "o-", lw=1.4, ms=3)
+        axp.plot(th, np.full_like(th, row["R_theta_mean"]), "k--", lw=1)
+        axp.set_theta_zero_location("N"); axp.set_theta_direction(-1)
+        axp.set_title(f"{row['scene']}: harmoniczna k={row['dominant_harmonic_k']} "
+                      f"(okres {row['dominant_harmonic_period_deg']:.0f} st.)", fontsize=9)
+    fig.tight_layout()
+    path = OUT_DIR / "e2_bias_orientation.png"
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+    result["plot_path"] = str(path)
+    print(f"\n  Wykres zapisany: {path}")
+
+
 # --- Wysokosc sluchacza: 1.25 m (kamera z pkl) czy 1.5 m (konwencja SoundSpaces)? ---
 #
 # Kamera odtworzona z scene_observations_128.pkl siedzi na 1.25 m, a AudioSensorSpec
@@ -1363,11 +1649,1104 @@ def run_listener_height():
     return result
 
 
+# --- BLOK B.4: weryfikacja configu materialow dla Repliki --------------------
+#
+# Sam fakt, ze nowy config sie wczytuje i nie loguje ostrzezen, NIE dowodzi, ze
+# cokolwiek robi - sciezka materialow moglaby byc po cichu pominieta i wygladaloby
+# to tak samo. Dlatego trzy niezalezne sprawdzenia:
+#
+#  1. POKRYCIE   - ile kategorii lduje na materiale domyslnym przed i po. Liczone
+#                  z faktycznych ostrzezen warstwy C++, nie z symulacji reguly.
+#  2. KONTROLA POZYTYWNA - czy zamiana configu MIERZALNIE zmienia echo. Jesli
+#                  roznica tonie w szumie renderowania, to config nie dziala i
+#                  trzeba to zglosic, a nie tlumaczyc szumem.
+#  3. KONTROLA NEGATYWNA - config absurdalny (wszystko "Sound Proof", absorpcja
+#                  1.0 na kazdej czestotliwosci) musi zmienic echo drastycznie.
+#                  To dowodzi, ze przypisanie materialu w ogole dochodzi do
+#                  symulatora, a nie tylko ze plik JSON zostal sparsowany.
+
+# Pozycje podane per scena, bo points.txt maja rozna dlugosc (room_0: 136,
+# office_0: 65 wierszy) - wspolna trojka (30,50,80) wychodzila poza zakres office_0.
+MATVERIFY_POSITIONS = (("room_0", 30), ("room_0", 50), ("room_0", 80),
+                       ("office_0", 10), ("office_0", 30), ("office_0", 55))
+MATVERIFY_ANGLES = (0.0, 90.0)
+MATVERIFY_N = 8  # renderow na polowke; 2*N na (config, pozycja, kat)
+MATVERIFY_SCENES = ("room_0", "office_0")
+REPLICA_MATERIAL_CONFIG = REPO_ROOT / "my-operations/replica_material_config.json"
+
+
+@contextlib.contextmanager
+def _capture_native_output(path):
+    """Przechwytuje wyjscie warstwy C++ na poziomie deskryptorow.
+
+    habitat-sim i RLRAudioPropagation pisza prosto do fd 1/2, wiec przekierowanie
+    sys.stdout w Pythonie ich nie lapie. Bez tego nie da sie POLICZYC ostrzezen
+    "Material for category ... was not found" osobno dla kazdego configu.
+    """
+    sys.stdout.flush()
+    sys.stderr.flush()
+    saved_out, saved_err = os.dup(1), os.dup(2)
+    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+    os.dup2(fd, 1)
+    os.dup2(fd, 2)
+    try:
+        yield
+    finally:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os.dup2(saved_out, 1)
+        os.dup2(saved_err, 2)
+        for f in (fd, saved_out, saved_err):
+            os.close(f)
+
+
+def _make_soundproof_config(dst):
+    """Kontrola negatywna: KAZDA kategoria dostaje material o absorpcji 1.0.
+
+    Budowany z naszego configu Repliki, zeby roznil sie od niego wylacznie
+    fizyka materialu, a nie zestawem etykiet. Plik tymczasowy - nie commitujemy.
+    """
+    cfg = json.loads(REPLICA_MATERIAL_CONFIG.read_text())
+    all_labels = []
+    for m in cfg["materials"]:
+        if m["name"] != "Default":
+            all_labels.extend(m["labels"])
+    for m in cfg["materials"]:
+        m["labels"] = all_labels if m["name"] == "Sound Proof" else []
+    cfg["materials"] = [m for m in cfg["materials"] if m["name"] in ("Default", "Sound Proof")]
+    dst.write_text(json.dumps(cfg, indent=1))
+    return dst
+
+
+def run_materials_verify():
+    print("\n=== BLOK B.4: weryfikacja replica_material_config.json ===")
+    import librosa
+
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    tmp_dir = OUT_DIR / "material_verify"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    soundproof = _make_soundproof_config(tmp_dir / "_soundproof_TEMP.json")
+
+    configs = {"mp3d": MATERIAL_CONFIG_PATH, "replica": REPLICA_MATERIAL_CONFIG, "soundproof": soundproof}
+    result = {"configs": {k: str(v) for k, v in configs.items()}, "scenes": list(MATVERIFY_SCENES),
+              "positions": [{"scene": s, "point_id": p} for s, p in MATVERIFY_POSITIONS],
+              "angles": list(MATVERIFY_ANGLES), "n_per_half": MATVERIFY_N}
+
+    per_scene = []
+    for scene in MATVERIFY_SCENES:
+        print(f"\n--- {scene} ---")
+        scene_pids = [p for s, p in MATVERIFY_POSITIONS if s == scene]
+        est, warns = {}, {}
+        for cname, cpath in configs.items():
+            log = tmp_dir / f"native_{scene}_{cname}.log"
+            # Renderowanie pod przechwyconymi deskryptorami; zadnych printow w srodku.
+            with _capture_native_output(log):
+                sim = build_sim(scene_name=scene, material_config=cpath)
+                try:
+                    for pid in scene_pids:
+                        pos = load_point_position(sim, scene, pid)
+                        for ang in MATVERIFY_ANGLES:
+                            specs = [_get_spec(sim, pos, ang, str(cpath), chirp) for _ in range(2 * MATVERIFY_N)]
+                            est[(cname, pid, ang, "A")] = np.mean(specs[:MATVERIFY_N], axis=0)
+                            est[(cname, pid, ang, "B")] = np.mean(specs[MATVERIFY_N:], axis=0)
+                finally:
+                    sim.close()
+            text = log.read_text(errors="replace")
+            cats = sorted(set(re.findall(r"Material for category '([^']*)' was not found", text)))
+            warns[cname] = cats
+            print(f"  {cname:<11}: kategorii na materiale domyslnym = {len(cats)}"
+                  + (f"  {cats}" if cats else ""))
+
+        keys = [(pid, ang) for pid in scene_pids for ang in MATVERIFY_ANGLES]
+        full = {c: {k: (est[(c, k[0], k[1], "A")] + est[(c, k[0], k[1], "B")]) / 2.0 for k in keys} for c in configs}
+
+        # Szum renderowania: rozrzut dwoch niezaleznych polowek TEGO SAMEGO configu.
+        # RMSE(A,B) = sqrt(2)*sigma_N, gdzie sigma_N to szum estymaty z N renderow.
+        # Estymata "full" ma 2N renderow, wiec jej szum to sigma_N/sqrt(2) = noise/2.
+        noise = float(np.mean([_rmse(est[("replica", p, a, "A")], est[("replica", p, a, "B")]) for p, a in keys]))
+        sigma_full = noise / 2.0
+        # Szum SAMEJ ENERGII (sredniej spektrogramu) miedzy polowkami. Energia jest
+        # srednia po ~85 tys. komorek, wiec jej szum jest o rzedy wielkosci mniejszy
+        # niz RMSE - to znacznie czulsza statystyka do stwierdzenia "config dziala".
+        e_noise = float(np.mean([abs(np.mean(est[("replica", p, a, "A")]) - np.mean(est[("replica", p, a, "B")]))
+                                 / np.mean(full["replica"][(p, a)]) for p, a in keys]))
+
+        def _cmp(c1, c2):
+            gap = float(np.mean([_rmse(full[c1][k], full[c2][k]) for k in keys]))
+            # RMSE(c1,c2)^2 = efekt^2 + 2*sigma_full^2 - odejmujemy szum obu estymat,
+            # inaczej porownywalibysmy wielkosc zaszumiona z szumem (blad progu w
+            # pierwszej wersji tego testu).
+            effect = float(np.sqrt(max(gap ** 2 - 2 * sigma_full ** 2, 0.0)))
+            e1 = float(np.mean([np.mean(full[c1][k]) for k in keys]))
+            e2 = float(np.mean([np.mean(full[c2][k]) for k in keys]))
+            return gap, effect, (e1 - e2) / e2
+
+        pos_gap, pos_effect, pos_energy = _cmp("replica", "mp3d")
+        neg_gap, neg_effect, neg_energy = _cmp("soundproof", "replica")
+        row = {"scene": scene, "render_noise": noise, "sigma_full": sigma_full,
+               "energy_noise_rel": e_noise,
+               "default_categories": {c: warns[c] for c in configs},
+               "positive_gap": pos_gap, "positive_effect": pos_effect, "positive_energy_rel": pos_energy,
+               "positive_effect_vs_noise": pos_effect / sigma_full,
+               "positive_energy_vs_noise": abs(pos_energy) / e_noise if e_noise > 0 else float("inf"),
+               "negative_gap": neg_gap, "negative_effect": neg_effect, "negative_energy_rel": neg_energy,
+               "negative_effect_vs_noise": neg_effect / sigma_full}
+        per_scene.append(row)
+        print(f"  szum estymaty (2N={2 * MATVERIFY_N} renderow) = {sigma_full:.5f} RMSE, "
+              f"szum energii = {e_noise * 100:.3f}%")
+        print(f"  KONTROLA POZYTYWNA replica vs mp3d       : roznica surowa {pos_gap:.5f} -> "
+              f"EFEKT {pos_effect:.5f} ({pos_effect / sigma_full:.1f}x szum)")
+        print(f"      energia {pos_energy * 100:+.2f}% ({abs(pos_energy) / e_noise:.0f}x szum energii)")
+        print(f"  KONTROLA NEGATYWNA soundproof vs replica : EFEKT {neg_effect:.5f} "
+              f"({neg_effect / sigma_full:.1f}x szum), energia {neg_energy * 100:+.1f}%")
+
+    result["per_scene"] = per_scene
+    m_pos = float(np.mean([r["positive_effect_vs_noise"] for r in per_scene]))
+    m_pos_e = float(np.mean([r["positive_energy_vs_noise"] for r in per_scene]))
+    m_neg = float(np.mean([r["negative_effect_vs_noise"] for r in per_scene]))
+    n_mp3d = int(np.mean([len(r["default_categories"]["mp3d"]) for r in per_scene]))
+    n_repl = int(np.mean([len(r["default_categories"]["replica"]) for r in per_scene]))
+    same_sign = len({np.sign(r["positive_energy_rel"]) for r in per_scene}) == 1
+    result["summary"] = {"positive_effect_vs_noise": m_pos, "positive_energy_vs_noise": m_pos_e,
+                         "negative_effect_vs_noise": m_neg, "energy_shift_same_sign": bool(same_sign),
+                         "default_categories_mp3d": n_mp3d, "default_categories_replica": n_repl}
+
+    print("\n--- WERDYKT BLOK B.4 ---")
+    print(f"  kategorii na materiale domyslnym: mp3d={n_mp3d} -> replica={n_repl}")
+    print(f"  kontrola pozytywna: efekt {m_pos:.1f}x szum estymaty, energia {m_pos_e:.0f}x szum energii, "
+          f"zgodny znak we wszystkich scenach: {same_sign}")
+    print(f"  kontrola negatywna: efekt {m_neg:.1f}x szum estymaty")
+    # Kryterium glowne to ENERGIA, nie RMSE: energia jest srednia po ~85 tys. komorek
+    # spektrogramu, wiec jej szum jest o rzedy wielkosci mniejszy, a systematyczny
+    # wzrost energii jest dokladnie tym, czego oczekujemy po utwardzeniu sufitu i
+    # podlogi. RMSE sluzy jako miara WIELKOSCI zmiany, nie jako test jej istnienia.
+    if m_pos_e < 5.0 or not same_sign:
+        verdict = ("BLAD - podmiana configu nie zmienia energii echa w sposob systematyczny. "
+                   "Config NIE jest stosowany (albo sciezka materialow jest pominieta); "
+                   "nie wolno tego tlumaczyc szumem.")
+    elif m_neg < 3.0:
+        verdict = ("BLAD - kontrola negatywna (wszystko soundproof) nie zmienia echa drastycznie, "
+                   "wiec przypisanie materialu nie dochodzi do symulatora.")
+    else:
+        verdict = ("OK - config jest stosowany: energia echa przesuwa sie systematycznie i zgodnie "
+                   "co do znaku we wszystkich scenach, wielokrotnie ponad wlasny szum, a absurdalny "
+                   "config zmienia echo drastycznie. Nowe mapowanie dziala.")
+    result["verdict"] = verdict
+    print(f"  {verdict}")
+    soundproof.unlink(missing_ok=True)  # plik tymczasowy, nie commitujemy
+    return result
+
+
+# --- BLOK C: przemiar sygnalu i szumu na FINALNYCH materialach ---------------
+#
+# Cala dotychczasowa charakteryzacja (sygnal 10 stopni = 0.064, podloga szumu
+# 0.03-0.16, SNR ~3 przy N=10) byla mierzona na configu mp3d, w ktorym sufit mial
+# absorpcje 0.60 przy 500 Hz, a podloga 0.65 przy 4 kHz. Nowy config Repliki
+# zmienia oba na twarde (0.05 i 0.07), czyli WYDLUZA pogłos. Dluzszy ogon to
+# wiecej odbic posrednich w oknie 60 ms, a odbicia posrednie sa jedynym zrodlem
+# szumu Monte Carlo - wiec i sygnal, i szum moga sie przesunac, a od ich stosunku
+# zalezy dobor N dla produkcji. Bez tego przemiaru przenosilibysmy do generatora
+# liczbe N wyznaczona dla innej akustyki.
+#
+# Mierzymy oba configi w jednym przebiegu, zeby porownanie bylo bezposrednie.
+
+SNR_POSITIONS = (("room_0", 30), ("room_0", 50), ("room_0", 80), ("office_0", 30))
+SNR_ANGLES = (0.0, 10.0)
+SNR_N = 10          # renderow na polowke (2*N na kat) - jak w E2/E3
+SNR_TARGET = 3.0    # docelowy stosunek sygnal/szum estymaty
+
+
+def run_signal_noise_recheck():
+    print("\n=== BLOK C: sygnal 10 stopni i szum na finalnym configu materialow ===")
+    import librosa
+
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    configs = {"mp3d": MATERIAL_CONFIG_PATH, "replica": REPLICA_MATERIAL_CONFIG}
+    result = {"configs": {k: str(v) for k, v in configs.items()}, "n_per_half": SNR_N,
+              "angles": list(SNR_ANGLES), "target_snr": SNR_TARGET,
+              "positions": [{"scene": s, "point_id": p} for s, p in SNR_POSITIONS],
+              "historical_signal_10deg": 0.064}
+
+    scenes = sorted({s for s, _ in SNR_POSITIONS})
+    rows = []
+    for cname, cpath in configs.items():
+        for scene in scenes:
+            pids = [p for s, p in SNR_POSITIONS if s == scene]
+            sim = build_sim(scene_name=scene, material_config=cpath)
+            try:
+                for pid in pids:
+                    pos = load_point_position(sim, scene, pid)
+                    est = {}
+                    for ang in SNR_ANGLES:
+                        specs = [_get_spec(sim, pos, ang, str(cpath), chirp) for _ in range(2 * SNR_N)]
+                        est[(ang, "A")] = np.mean(specs[:SNR_N], axis=0)
+                        est[(ang, "B")] = np.mean(specs[SNR_N:], axis=0)
+                    a0, a1 = SNR_ANGLES
+                    # RMSE(A,B) = sqrt(2)*sigma_N, gdzie sigma_N to szum estymaty z N renderow
+                    noise_ab = float(np.mean([_rmse(est[(a, "A")], est[(a, "B")]) for a in SNR_ANGLES]))
+                    sigma_n = noise_ab / np.sqrt(2.0)
+                    sigma_1 = sigma_n * np.sqrt(SNR_N)          # szum POJEDYNCZEGO renderu
+                    raw = float(np.mean([_rmse(est[(a0, h)], est[(a1, h)]) for h in ("A", "B")]))
+                    # raw^2 = sygnal^2 + 2*sigma_N^2  ->  odszumiony sygnal
+                    signal = float(np.sqrt(max(raw ** 2 - noise_ab ** 2, 0.0)))
+                    snr = signal / sigma_n if sigma_n > 0 else float("inf")
+                    n_needed = int(np.ceil((SNR_TARGET * sigma_1 / signal) ** 2)) if signal > 0 else -1
+                    energy = float(np.mean([np.mean(est[(a, "A")]) for a in SNR_ANGLES]))
+                    rows.append({"config": cname, "scene": scene, "point_id": pid,
+                                 "noise_halfsplit": noise_ab, "sigma_single_render": sigma_1,
+                                 "raw_10deg": raw, "signal_10deg": signal, "snr_at_N": snr,
+                                 "n_for_target_snr": n_needed, "energy": energy})
+                    print(f"  [{cname:<7}] {scene:<9} id={pid:<3} szum(N={SNR_N})={noise_ab:.5f} "
+                          f"szum 1 renderu={sigma_1:.5f} | sygnal 10 st.={signal:.5f} "
+                          f"| SNR={snr:.2f} | N dla SNR {SNR_TARGET:.0f} = {n_needed}")
+            finally:
+                sim.close()
+
+    result["per_position"] = rows
+
+    def _agg(cname, key):
+        return float(np.mean([r[key] for r in rows if r["config"] == cname]))
+
+    summary = {}
+    for cname in configs:
+        summary[cname] = {k: _agg(cname, k) for k in
+                          ("noise_halfsplit", "sigma_single_render", "signal_10deg", "snr_at_N", "energy")}
+        summary[cname]["n_for_target_snr"] = int(max(r["n_for_target_snr"] for r in rows if r["config"] == cname))
+    result["summary"] = summary
+
+    s_old, s_new = summary["mp3d"], summary["replica"]
+    print("\n--- WERDYKT BLOK C ---")
+    print(f"{'':<22}{'mp3d':>12}{'replica':>12}{'zmiana':>12}")
+    for k, label in (("signal_10deg", "sygnal 10 st."), ("sigma_single_render", "szum 1 renderu"),
+                     ("noise_halfsplit", f"szum estymaty N={SNR_N}"), ("snr_at_N", f"SNR przy N={SNR_N}"),
+                     ("energy", "energia")):
+        chg = (s_new[k] - s_old[k]) / s_old[k] * 100 if s_old[k] else float("nan")
+        print(f"{label:<22}{s_old[k]:>12.5f}{s_new[k]:>12.5f}{chg:>11.1f}%")
+    print(f"{'N dla SNR ' + str(int(SNR_TARGET)):<22}{s_old['n_for_target_snr']:>12d}{s_new['n_for_target_snr']:>12d}")
+
+    sig_shift = abs(s_new["signal_10deg"] - s_old["signal_10deg"]) / s_old["signal_10deg"]
+    if sig_shift < 0.10 and s_new["n_for_target_snr"] <= s_old["n_for_target_snr"]:
+        verdict = ("BEZ ZMIAN - nowe materialy nie przesuwaja istotnie ani sygnalu 10 stopni, ani "
+                   "podlogi szumu; dotychczasowy dobor N pozostaje wazny.")
+    else:
+        verdict = (f"PRZESUNIETE - sygnal 10 stopni zmienil sie o {sig_shift * 100:.0f}%, a wymagane N "
+                   f"dla SNR {SNR_TARGET:.0f} wynosi teraz {s_new['n_for_target_snr']} (bylo "
+                   f"{s_old['n_for_target_snr']}). Liczby szumu z wczesniejszej charakteryzacji nalezy "
+                   "cytowac jako dotyczace configu mp3d, a do generatora wziac wartosci z tego wpisu.")
+    result["verdict"] = verdict
+    print(f"\n  {verdict}")
+    print("  UWAGA: pomiar przy indirectRayCount=500. Produkcja ma isc na 5000-10000, gdzie szum")
+    print("  Monte Carlo jest nizszy - wyliczone N jest wiec gornym ograniczeniem, nie wartoscia docelowa.")
+    return result
+
+
+# --- BLOK 1: czy threadCount zmienia ESTYMATOR, czy tylko tempo? -------------
+#
+# Dwie zmierzone liczby nie trzymaja sie razem fizyki:
+#  (a) 2.57 s (1 watek) vs 0.2739 s (8 watkow) przy 5000 promieni = 9.4x
+#      przyspieszenia na 8 watkach. Superliniowo - niemozliwe dla czystej
+#      paralelizacji TEJ SAMEJ pracy.
+#  (b) watki podnosza szum o 22-35%. Gdyby to byla ta sama estymata policzona
+#      szybciej, szum bylby IDENTYCZNY, nie wyzszy.
+# Obie anomalie wskazuja, ze threadCount moze ZMIENIAC to, co jest liczone (np.
+# dzielic budzet promieni miedzy watki zamiast go zwielokrotniac). Wtedy 8 watkow
+# daje gorsza jakosc szybciej, a nie te sama jakosc szybciej - i wpisanie
+# threadCount>1 do generatora byloby cicha utrata jakosci.
+#
+# Kryterium glowne: ENERGIA (srednia po ~85 tys. komorek spektrogramu, o rzedy
+# wielkosci mniej zaszumiona niz RMSE). RMSE sluzy jako miara wielkosci roznicy,
+# po dekompozycji efekt = sqrt(RMSE^2 - sigma_1^2 - sigma_8^2) - porownywanie
+# surowych RMSE dwoch zaszumionych estymat jest bledem (wystapil raz w Bloku B).
+
+PRODUCTION_SENSOR_HEIGHT = 1.25  # kamera z pkl; patrz PKL_FORMAT.md i listener_height
+THREADEST_RAYS = 500
+THREADEST_THREADS = (1, 8)
+# M=20 dalo werdykt NIEJEDNOZNACZNY (roznica energii 1.6x wlasny szum, przy tym
+# PRZECIWNYCH znakow w dwoch scenach). Eskalacja do 60: szum roznicy energii spada
+# o sqrt(3), a koszt to 60 x 0.28 s = 17 s na konfiguracje - pomijalny.
+THREADEST_M = 60            # renderow na (pozycja, threadCount); dzielone 30+30
+THREADEST_ANGLE = 0.0
+THREADEST_POSITIONS = (("room_0", 50), ("office_0", 30))
+# Osobna sonda czasowa dla 5000 promieni - potrzebna do tabeli decyzyjnej, ale
+# nie do samego testu estymatora (tam wystarcza 500).
+THREADEST_TIMING_RAYS = (500, 5000)
+THREADEST_TIMING_REPEATS = 12
+
+
+def _median_render_time(sim, pos, material_config, chirp, repeats):
+    _get_spec(sim, pos, 0.0, material_config, chirp)  # rozgrzewka, nie liczona
+    times = []
+    for i in range(repeats):
+        t0 = time.perf_counter()
+        _get_spec(sim, pos, float((i * 37) % 360), material_config, chirp)
+        times.append(time.perf_counter() - t0)
+    # mediana, nie srednia - pojedyncze zacieciae systemu nie ma zaburzac wyniku
+    return float(np.median(times))
+
+
+def run_e2_thread_estimator():
+    print("\n=== BLOK 1: czy threadCount zmienia estymator, czy tylko tempo? ===")
+    import librosa
+
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    mc = str(REPLICA_MATERIAL_CONFIG)
+    half = THREADEST_M // 2
+    result = {"rays": THREADEST_RAYS, "threads": list(THREADEST_THREADS), "m_per_config": THREADEST_M,
+              "angle": THREADEST_ANGLE, "sensor_height": PRODUCTION_SENSOR_HEIGHT,
+              "material_config": mc,
+              "positions": [{"scene": s, "point_id": p} for s, p in THREADEST_POSITIONS]}
+
+    rows = []
+    for scene, pid in THREADEST_POSITIONS:
+        print(f"\n--- {scene} id={pid} ---")
+        est, tmed, ir_len = {}, {}, {}
+        for th in THREADEST_THREADS:
+            sim = build_sim(scene_name=scene, indirect_ray_count=THREADEST_RAYS, thread_count=th,
+                            material_config=REPLICA_MATERIAL_CONFIG,
+                            sensor_height=PRODUCTION_SENSOR_HEIGHT)
+            try:
+                pos = load_point_position(sim, scene, pid)
+                # Dlugosc IR jako niezalezna sonda "czy liczone jest to samo" -
+                # silnik urywa IR przy progu energii, wiec inna liczba probek
+                # oznaczalaby inna symulacje, a nie inne tempo.
+                ir_len[th] = int(np.asarray(render_raw(sim, pos, THREADEST_ANGLE, mc)).shape[-1])
+                specs, times = [], []
+                for _ in range(THREADEST_M):
+                    t0 = time.perf_counter()
+                    specs.append(_get_spec(sim, pos, THREADEST_ANGLE, mc, chirp))
+                    times.append(time.perf_counter() - t0)
+                est[(th, "A")] = np.mean(specs[:half], axis=0)
+                est[(th, "B")] = np.mean(specs[half:], axis=0)
+                est[(th, "full")] = np.mean(specs, axis=0)
+                tmed[th] = float(np.median(times))
+            finally:
+                sim.close()
+
+        t1, t8 = THREADEST_THREADS
+        # RMSE(A,B) = sqrt(2)*sigma_N (N = half). Estymata "full" ma 2N renderow,
+        # wiec jej szum to sigma_N/sqrt(2), czyli RMSE(A,B)/2.
+        noise = {th: _rmse(est[(th, "A")], est[(th, "B")]) for th in THREADEST_THREADS}
+        sigma_full = {th: noise[th] / 2.0 for th in THREADEST_THREADS}
+        energy = {th: float(np.mean(est[(th, "full")])) for th in THREADEST_THREADS}
+        e_noise = {th: abs(float(np.mean(est[(th, "A")])) - float(np.mean(est[(th, "B")]))) / energy[th]
+                   for th in THREADEST_THREADS}
+        gap = _rmse(est[(t1, "full")], est[(t8, "full")])
+        effect = float(np.sqrt(max(gap ** 2 - sigma_full[t1] ** 2 - sigma_full[t8] ** 2, 0.0)))
+        e_diff = (energy[t8] - energy[t1]) / energy[t1]
+        # Szum roznicy energii miedzy dwoma estymatami "full": kazda ma szum
+        # e_noise/2 (polowki maja 2x mniej renderow), wiec lacznie w kwadraturze.
+        e_diff_noise = float(np.sqrt((e_noise[t1] / 2.0) ** 2 + (e_noise[t8] / 2.0) ** 2))
+
+        row = {"scene": scene, "point_id": pid,
+               "noise_halfsplit": noise, "sigma_full": sigma_full,
+               "energy": energy, "energy_noise_rel": e_noise,
+               "ir_samples": ir_len, "median_s_per_render": tmed,
+               "gap_rmse": gap, "effect_rmse": effect,
+               "effect_vs_noise": effect / max(sigma_full.values()),
+               "energy_diff_rel": e_diff, "energy_diff_noise_rel": e_diff_noise,
+               "energy_diff_vs_noise": abs(e_diff) / e_diff_noise if e_diff_noise > 0 else float("inf"),
+               "noise_ratio_8_vs_1": noise[t8] / noise[t1],
+               "speedup_8_vs_1": tmed[t1] / tmed[t8]}
+        rows.append(row)
+        print(f"  czas/render (mediana): 1 watek {tmed[t1]:.4f} s, 8 watkow {tmed[t8]:.4f} s "
+              f"-> przyspieszenie {tmed[t1] / tmed[t8]:.2f}x")
+        print(f"  dlugosc IR: 1 watek {ir_len[t1]} probek, 8 watkow {ir_len[t8]} probek")
+        print(f"  szum wlasny (N={half}): 1 watek {noise[t1]:.5f}, 8 watkow {noise[t8]:.5f} "
+              f"-> stosunek {noise[t8] / noise[t1]:.3f}x")
+        print(f"  RMSE(1 watek, 8 watkow) surowe = {gap:.5f} -> EFEKT po dekompozycji = {effect:.5f} "
+              f"({effect / max(sigma_full.values()):.1f}x szum estymaty)")
+        print(f"  ENERGIA: 1 watek {energy[t1]:.5f}, 8 watkow {energy[t8]:.5f} -> roznica "
+              f"{e_diff * 100:+.2f}% (szum roznicy {e_diff_noise * 100:.2f}%, "
+              f"czyli {abs(e_diff) / e_diff_noise:.1f}x)")
+
+    result["per_position"] = rows
+
+    # --- sonda czasowa dla tabeli decyzyjnej ---------------------------------
+    print("\n--- sonda czasowa (room_0 id=50, mediana z "
+          f"{THREADEST_TIMING_REPEATS} renderow) ---")
+    timing = {}
+    for rays in THREADEST_TIMING_RAYS:
+        for th in THREADEST_THREADS:
+            if rays == THREADEST_RAYS:
+                timing[f"{rays}/{th}"] = float(np.mean([r["median_s_per_render"][th] for r in rows]))
+                continue
+            sim = build_sim(scene_name="room_0", indirect_ray_count=rays, thread_count=th,
+                            material_config=REPLICA_MATERIAL_CONFIG,
+                            sensor_height=PRODUCTION_SENSOR_HEIGHT)
+            try:
+                pos = load_point_position(sim, "room_0", 50)
+                timing[f"{rays}/{th}"] = _median_render_time(sim, pos, mc, chirp, THREADEST_TIMING_REPEATS)
+            finally:
+                sim.close()
+    for k, v in timing.items():
+        print(f"  {k:>10} promieni/watkow: {v:.4f} s/render")
+    result["timing_s_per_render"] = timing
+
+    # --- WERDYKT --------------------------------------------------------------
+    m_e_ratio = float(np.mean([r["energy_diff_vs_noise"] for r in rows]))
+    m_e_diff = float(np.mean([r["energy_diff_rel"] for r in rows]))
+    m_effect = float(np.mean([r["effect_vs_noise"] for r in rows]))
+    same_sign = len({np.sign(r["energy_diff_rel"]) for r in rows}) == 1
+    m_noise_ratio = float(np.mean([r["noise_ratio_8_vs_1"] for r in rows]))
+    m_speedup = float(np.mean([r["speedup_8_vs_1"] for r in rows]))
+    result["summary"] = {"energy_diff_rel_mean": m_e_diff, "energy_diff_vs_noise": m_e_ratio,
+                         "effect_vs_noise": m_effect, "energy_shift_same_sign": bool(same_sign),
+                         "noise_ratio_8_vs_1": m_noise_ratio, "speedup_8_vs_1": m_speedup}
+
+    print("\n--- WERDYKT BLOK 1 ---")
+    print(f"  roznica energii 8 vs 1 watek: {m_e_diff * 100:+.2f}%, czyli {m_e_ratio:.1f}x wlasny szum "
+          f"(zgodny znak w obu pozycjach: {same_sign})")
+    print(f"  efekt w RMSE po dekompozycji: {m_effect:.1f}x szum estymaty")
+    print(f"  stosunek szumu 8/1 watek: {m_noise_ratio:.3f}x | przyspieszenie: {m_speedup:.2f}x")
+    if m_e_ratio >= 3.0 and same_sign:
+        verdict = ("WATKI ZMIENIAJA ESTYMATOR - energia echa przesuwa sie systematycznie i zgodnie co do "
+                   "znaku miedzy 1 a 8 watkami, wielokrotnie ponad wlasny szum obu estymat. To nie jest ta "
+                   "sama estymata policzona szybciej. Watki WYKLUCZONE z produkcji; generator idzie na "
+                   "threadCount=1.")
+    elif m_e_ratio < 1.5 and m_effect < 1.5:
+        verdict = ("WATKI TO TYLKO PREDKOSC - roznica energii miesci sie w szumie obu estymat, a efekt w "
+                   "RMSE po dekompozycji nie przekracza szumu. Watki sa bezpieczne pod wzgledem wartosci "
+                   "oczekiwanej, ale kosztuja odtwarzalnosc bit-exact i podnosza szum pojedynczego renderu.")
+    else:
+        verdict = (f"NIEJEDNOZNACZNY - roznica energii to {m_e_ratio:.1f}x szum (prog rozstrzygajacy: <1.5 "
+                   f"lub >=3.0), a efekt RMSE {m_effect:.1f}x. Przy M={THREADEST_M} nie da sie rozdzielic "
+                   "realnego przesuniecia od resztkowego szumu - potrzebne wieksze M albo wiecej pozycji.")
+    result["verdict"] = verdict
+    print(f"\n  {verdict}")
+    return result
+
+
+# --- BLOK 1b: ILE PROMIENI naprawde liczy 8 watkow? --------------------------
+#
+# Test rozstrzygajacy hipoteze "threadCount dzieli budzet promieni miedzy watki".
+# Zamiast pytac "czy 8 watkow rozni sie od 1 watku" (roznica tonela w szumie przy
+# M=20), pytamy WPROST: ktorej liczbie promieni na JEDNYM watku odpowiada wynik
+# z 8 watkow? Budujemy drabine 1-watkowa 62/125/250/500 promieni (500/8 = 62.5,
+# wiec gdyby budzet byl dzielony, 8 watkow wypadloby przy ~62) i szukamy szczebla,
+# ktory najlepiej pasuje energia i szumem do 8 watkow przy 500 promieniach.
+#
+# To jest test o duzej mocy, bo energia i szum zmieniaja sie z liczba promieni
+# MONOTONICZNIE i o wiele bardziej niz roznica 1 vs 8 watkow - E2b zmierzyl -2.2%
+# energii miedzy 500 a 5000, wiec skala jest znana.
+
+THREADRAYS_SCENE = "room_0"
+THREADRAYS_POINT = 50
+THREADRAYS_LADDER = (62, 125, 250, 500)   # 1 watek; 62 ~ 500/8
+THREADRAYS_REFERENCE = (500, 8)           # (promienie, watki) - punkt odniesienia
+THREADRAYS_M = 60
+THREADRAYS_ANGLE = 0.0
+
+
+def run_e2_thread_effective_rays():
+    print("\n=== BLOK 1b: ilu promieniom na 1 watku odpowiada 8 watkow? ===")
+    import librosa
+
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    mc = str(REPLICA_MATERIAL_CONFIG)
+    half = THREADRAYS_M // 2
+    configs = [(r, 1) for r in THREADRAYS_LADDER] + [THREADRAYS_REFERENCE]
+    result = {"scene": THREADRAYS_SCENE, "point_id": THREADRAYS_POINT, "m_per_config": THREADRAYS_M,
+              "ladder": list(THREADRAYS_LADDER), "reference": list(THREADRAYS_REFERENCE),
+              "sensor_height": PRODUCTION_SENSOR_HEIGHT, "material_config": mc}
+
+    rows = []
+    for rays, th in configs:
+        sim = build_sim(scene_name=THREADRAYS_SCENE, indirect_ray_count=rays, thread_count=th,
+                        material_config=REPLICA_MATERIAL_CONFIG,
+                        sensor_height=PRODUCTION_SENSOR_HEIGHT)
+        try:
+            pos = load_point_position(sim, THREADRAYS_SCENE, THREADRAYS_POINT)
+            specs, times = [], []
+            for _ in range(THREADRAYS_M):
+                t0 = time.perf_counter()
+                specs.append(_get_spec(sim, pos, THREADRAYS_ANGLE, mc, chirp))
+                times.append(time.perf_counter() - t0)
+            a, b = np.mean(specs[:half], axis=0), np.mean(specs[half:], axis=0)
+            full = np.mean(specs, axis=0)
+            noise = _rmse(a, b)                       # sqrt(2)*sigma_half
+            sigma_1 = noise / np.sqrt(2.0) * np.sqrt(half)   # szum POJEDYNCZEGO renderu
+            e = float(np.mean(full))
+            e_noise = abs(float(np.mean(a)) - float(np.mean(b))) / e
+            rows.append({"rays": rays, "threads": th, "energy": e, "energy_noise_rel": e_noise,
+                         "noise_halfsplit": noise, "sigma_single_render": sigma_1,
+                         "sigma_full": noise / 2.0, "full": full,
+                         "median_s_per_render": float(np.median(times))})
+            print(f"  {rays:>4} promieni / {th} watek: energia {e:.5f} (+/-{e_noise * 100:.2f}%), "
+                  f"szum 1 renderu {sigma_1:.5f}, {np.median(times):.4f} s/render")
+        finally:
+            sim.close()
+
+    ref = rows[-1]
+    ladder = rows[:-1]
+    # Dopasowanie: ktory szczebel jest najblizszy energia i ktory szumem.
+    for r in ladder:
+        r["energy_gap_rel"] = (ref["energy"] - r["energy"]) / r["energy"]
+        gap = _rmse(ref["full"], r["full"])
+        r["gap_rmse"] = gap
+        r["effect_rmse"] = float(np.sqrt(max(gap ** 2 - ref["sigma_full"] ** 2 - r["sigma_full"] ** 2, 0.0)))
+        r["sigma_ratio"] = ref["sigma_single_render"] / r["sigma_single_render"]
+    best_energy = min(ladder, key=lambda r: abs(r["energy_gap_rel"]))
+    best_noise = min(ladder, key=lambda r: abs(np.log(r["sigma_ratio"])))
+    best_spec = min(ladder, key=lambda r: r["effect_rmse"])
+
+    for r in ladder + [ref]:
+        r.pop("full", None)
+    result["per_config"] = rows
+    result["best_match_energy"] = best_energy["rays"]
+    result["best_match_noise"] = best_noise["rays"]
+    result["best_match_spectrogram"] = best_spec["rays"]
+
+    print(f"\n  {'szczebel':>9}{'roznica energii':>18}{'szum ref/szczebel':>20}{'efekt RMSE':>13}")
+    for r in ladder:
+        print(f"  {r['rays']:>9}{r['energy_gap_rel'] * 100:>17.2f}%{r['sigma_ratio']:>20.3f}"
+              f"{r['effect_rmse']:>13.5f}")
+    print(f"\n  8 watkow @500 pasuje najlepiej do 1 watku @ {best_energy['rays']} promieni (energia), "
+          f"{best_noise['rays']} (szum), {best_spec['rays']} (spektrogram)")
+
+    # Werdykt: jesli 8 watkow odpowiada ~500 promieniom -> watki nie dziela budzetu.
+    # Jesli ~62 -> dziela go dokladnie. Cokolwiek pomiedzy = czesciowa utrata.
+    votes = [best_energy["rays"], best_noise["rays"], best_spec["rays"]]
+    if all(v == 500 for v in votes):
+        verdict = ("WATKI NIE DZIELA BUDZETU - 8 watkow przy 500 promieniach odpowiada 1 watkowi przy "
+                   "500 promieniach we wszystkich trzech kryteriach (energia, szum, spektrogram). "
+                   "Watki licza te sama prace, tylko szybciej.")
+    elif all(v <= 125 for v in votes):
+        verdict = ("WATKI DZIELA BUDZET - 8 watkow przy 500 promieniach odpowiada 1 watkowi przy "
+                   f"~{max(votes)} promieniach, czyli okolo 500/8. To potwierdza, ze threadCount dzieli "
+                   "budzet promieni: dostajesz gorsza jakosc szybciej, nie te sama jakosc szybciej.")
+    else:
+        verdict = (f"CZESCIOWA UTRATA - kryteria wskazuja na {votes} promieni (energia/szum/spektrogram), "
+                   "czyli 8 watkow nie odpowiada ani pelnym 500, ani 500/8. Watki zmieniaja jakosc, ale "
+                   "nie przez proste dzielenie budzetu.")
+    result["verdict"] = verdict
+    print(f"\n  {verdict}")
+    return result
+
+
+# --- BLOK 1c: test symetryczny hipotezy "watki dziela budzet promieni" -------
+#
+# Drabina z Bloku 1b wskazala, ze 8 watkow @500 lezy spektralnie NAJBLIZEJ 1 watku
+# @62 promieni (62 = 500/8), ale dwa z trzech kryteriow nie mialy mocy rozdzielczej:
+#  - energia zmienia sie o 0.67% w calym zakresie 62-500 promieni, przy szumie
+#    +/-0.1-0.3% - bo energia jest zdominowana przez sciezke bezposrednia i wczesne
+#    odbicia, ktore sa DETERMINISTYCZNE i niezalezne od liczby promieni. (Energia
+#    byla czula na MATERIALY, bo te zmieniaja absorpcje globalnie - to inny wplyw.)
+#  - szum pojedynczego renderu spada z liczba promieni bardzo wolno (E2: 10x promieni
+#    = 1.23x mniej szumu) i wyszedl niemonotonicznie.
+# Zostalo jedno kryterium, wiec trzeba je sprawdzic testem o przeciwnym kierunku.
+#
+# Hipoteza H1 "threadCount dzieli budzet miedzy watki" przewiduje DWIE rownosci:
+#     500/1 watek  ==  4000/8 watkow      (bo 4000/8 = 500 na watek)
+#      62/1 watek  ==   500/8 watkow      (bo  500/8 = 62.5 na watek)
+# Hipoteza H0 "watki to tylko predkosc" przewiduje:
+#     500/1 watek  ==   500/8 watkow
+# Te przewidywania sie wykluczaja, wiec macierz odleglosci miedzy czterema
+# konfiguracjami rozstrzyga sprawe niezaleznie od tego, ktora metryke uznamy za
+# czula. Kazda odleglosc liczona po dekompozycji: efekt = sqrt(RMSE^2 - s1^2 - s2^2).
+
+THREADBUDGET_CONFIGS = ((500, 1), (4000, 8), (500, 8), (62, 1))
+THREADBUDGET_M = 60
+THREADBUDGET_SCENE = "room_0"
+THREADBUDGET_POINT = 50
+THREADBUDGET_ANGLE = 0.0
+
+
+def run_e2_thread_budget_confirm():
+    print("\n=== BLOK 1c: test symetryczny - czy watki dziela budzet promieni? ===")
+    import librosa
+
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    mc = str(REPLICA_MATERIAL_CONFIG)
+    half = THREADBUDGET_M // 2
+    result = {"configs": [list(c) for c in THREADBUDGET_CONFIGS], "m_per_config": THREADBUDGET_M,
+              "scene": THREADBUDGET_SCENE, "point_id": THREADBUDGET_POINT,
+              "sensor_height": PRODUCTION_SENSOR_HEIGHT, "material_config": mc}
+
+    data = {}
+    for rays, th in THREADBUDGET_CONFIGS:
+        sim = build_sim(scene_name=THREADBUDGET_SCENE, indirect_ray_count=rays, thread_count=th,
+                        material_config=REPLICA_MATERIAL_CONFIG,
+                        sensor_height=PRODUCTION_SENSOR_HEIGHT)
+        try:
+            pos = load_point_position(sim, THREADBUDGET_SCENE, THREADBUDGET_POINT)
+            specs, times = [], []
+            for _ in range(THREADBUDGET_M):
+                t0 = time.perf_counter()
+                specs.append(_get_spec(sim, pos, THREADBUDGET_ANGLE, mc, chirp))
+                times.append(time.perf_counter() - t0)
+            a, b = np.mean(specs[:half], axis=0), np.mean(specs[half:], axis=0)
+            data[(rays, th)] = {"full": np.mean(specs, axis=0), "sigma_full": _rmse(a, b) / 2.0,
+                                "sigma_single": _rmse(a, b) / np.sqrt(2.0) * np.sqrt(half),
+                                "energy": float(np.mean(np.mean(specs, axis=0))),
+                                "median_s": float(np.median(times))}
+            d = data[(rays, th)]
+            print(f"  {rays:>4} promieni / {th} watek: energia {d['energy']:.5f}, "
+                  f"szum 1 renderu {d['sigma_single']:.5f}, {d['median_s']:.4f} s/render")
+        finally:
+            sim.close()
+
+    labels = [f"{r}/{t}" for r, t in THREADBUDGET_CONFIGS]
+    matrix = {}
+    print(f"\n  macierz odleglosci (efekt RMSE po odjeciu szumu obu estymat):")
+    print("  " + " " * 10 + "".join(f"{l:>10}" for l in labels))
+    for i, ci in enumerate(THREADBUDGET_CONFIGS):
+        row = []
+        for j, cj in enumerate(THREADBUDGET_CONFIGS):
+            if i == j:
+                row.append(0.0)
+                continue
+            gap = _rmse(data[ci]["full"], data[cj]["full"])
+            eff = float(np.sqrt(max(gap ** 2 - data[ci]["sigma_full"] ** 2 - data[cj]["sigma_full"] ** 2, 0.0)))
+            row.append(eff)
+            matrix[f"{labels[i]} vs {labels[j]}"] = eff
+        print(f"  {labels[i]:>10}" + "".join(f"{v:>10.5f}" for v in row))
+
+    for c in data:
+        data[c].pop("full")
+    result["per_config"] = {f"{r}/{t}": data[(r, t)] for r, t in THREADBUDGET_CONFIGS}
+    result["distance_matrix"] = matrix
+
+    d_h1_a = matrix["500/1 vs 4000/8"]   # H1 przewiduje ~0
+    d_h1_b = matrix["500/8 vs 62/1"]     # H1 przewiduje ~0
+    d_h0 = matrix["500/1 vs 500/8"]      # H0 przewiduje ~0
+    d_far = matrix["500/1 vs 62/1"]      # skala odniesienia: realna roznica 8x promieni
+    result["h1_pred_500_1_vs_4000_8"] = d_h1_a
+    result["h1_pred_500_8_vs_62_1"] = d_h1_b
+    result["h0_pred_500_1_vs_500_8"] = d_h0
+    result["reference_500_1_vs_62_1"] = d_far
+
+    print(f"\n  H1 (watki dziela budzet) przewiduje ~0 dla:")
+    print(f"      500/1 vs 4000/8 = {d_h1_a:.5f}")
+    print(f"      500/8 vs   62/1 = {d_h1_b:.5f}")
+    print(f"  H0 (watki to tylko predkosc) przewiduje ~0 dla:")
+    print(f"      500/1 vs  500/8 = {d_h0:.5f}")
+    print(f"  skala odniesienia (realna roznica 8x promieni na 1 watku):")
+    print(f"      500/1 vs   62/1 = {d_far:.5f}")
+
+    h1_score = max(d_h1_a, d_h1_b)
+    if h1_score < 0.5 * d_h0 and d_h0 > 0.3 * d_far:
+        verdict = ("WATKI DZIELA BUDZET PROMIENI - obie rownosci przewidziane przez H1 sa spelnione, a "
+                   "rownosc przewidziana przez H0 nie. threadCount=8 przy R promieniach daje ten sam "
+                   "wynik co threadCount=1 przy R/8 promieniach: dostajesz gorsza jakosc szybciej, nie "
+                   "te sama jakosc szybciej. Watki WYKLUCZONE z produkcji.")
+    elif d_h0 < 0.5 * h1_score:
+        verdict = ("WATKI TO TYLKO PREDKOSC - 500/1 i 500/8 sa nieodroznialne, a konfiguracje o rozniacej "
+                   "sie liczbie promieni na watek juz nie. Watki sa bezpieczne pod wzgledem jakosci "
+                   "(kosztuja tylko odtwarzalnosc bit-exact).")
+    else:
+        verdict = (f"NIEJEDNOZNACZNY - zadna z hipotez nie jest wyraznie lepsza: H1 daje {h1_score:.5f}, "
+                   f"H0 daje {d_h0:.5f}, przy skali odniesienia {d_far:.5f}. Potrzebne wieksze M albo "
+                   "druga pozycja.")
+    result["verdict"] = verdict
+    print(f"\n  {verdict}")
+    return result
+
+
+# --- BLOK 2: czy tysiace renderow w JEDNEJ instancji ciekna? -----------------
+#
+# Wiemy, ze ~30 KONSTRUKCJI Simulatora w jednym procesie kladzie karte sprzetowo
+# (wyciek GL/EGL na sim.close(), procedura odzysku przez PCI FLR w CLAUDE.md).
+# To jednak inny wzorzec zuzycia zasobow niz tysiace RENDEROW w jednej instancji -
+# a to wlasnie jest wzorzec produkcyjny ("jeden dlugo zyjacy Simulator na scene").
+# Jesli render tez cieknie, architektura wymaga rotacji instancji w obrebie sceny
+# (co jest bezpieczne dzieki werdyktowi BEZPIECZNY z e1_checkpoint_boundary_merge).
+#
+# Mierzymy trzy rzeczy naraz, bo wyciek moze sie ujawnic w kazdej z osobna:
+#  - pamiec GPU (karta),
+#  - RSS procesu (host - alokacje po stronie CPU tez potrafia rosnac),
+#  - czas renderu (czesto rosnie WCZESNIEJ niz sama pamiec, np. przy narastajacej
+#    liczbie zywych obiektow do przejrzenia).
+
+GPUMEM_SCENE = "room_0"
+GPUMEM_RENDERS = 3000
+GPUMEM_SAMPLE_EVERY = 100
+GPUMEM_RAYS = 500
+GPUMEM_THREADS = 1
+
+
+def _gpu_mem_mib():
+    """Pamiec GPU zajeta lacznie (MiB) - z nvidia-smi, bo habitat trzyma kontekst
+    przez EGL/GL, a nie jako 'compute app', wiec per-proces czesto nie widac."""
+    import subprocess
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=15)
+        return float(out.stdout.strip().splitlines()[0])
+    except Exception:
+        return float("nan")
+
+
+def _proc_rss_mib():
+    with open("/proc/self/status") as f:
+        for line in f:
+            if line.startswith("VmRSS:"):
+                return float(line.split()[1]) / 1024.0
+    return float("nan")
+
+
+def _largest_scene_render_count(n_renders_per_sample):
+    """Ile renderow przypadnie na najwieksza scene - cel, do ktorego ekstrapolujemy."""
+    biggest, best = None, -1
+    for sd in sorted((REPO_ROOT / "my-operations/metadata/replica").iterdir()):
+        pf = sd / "points.txt"
+        if not pf.exists():
+            continue
+        n = sum(1 for _ in pf.open())
+        if n > best:
+            biggest, best = sd.name, n
+    return biggest, best, best * 36 * n_renders_per_sample
+
+
+def run_gpu_memory_scale():
+    print("\n=== BLOK 2: pamiec GPU i RSS przy tysiacach runSimulation() ===")
+    import librosa
+
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    mc = str(REPLICA_MATERIAL_CONFIG)
+    n_prod = int(os.environ.get("VE_N_RENDERS", "10"))  # N z Bloku 1
+    big_scene, big_points, big_renders = _largest_scene_render_count(n_prod)
+    print(f"  Najwieksza scena: {big_scene} ({big_points} lokalizacji) -> "
+          f"{big_points} x 36 katow x N={n_prod} = {big_renders} renderow w jednej instancji")
+
+    result = {"scene": GPUMEM_SCENE, "renders": GPUMEM_RENDERS, "sample_every": GPUMEM_SAMPLE_EVERY,
+              "rays": GPUMEM_RAYS, "threads": GPUMEM_THREADS, "sensor_height": PRODUCTION_SENSOR_HEIGHT,
+              "n_renders_per_sample_assumed": n_prod,
+              "largest_scene": big_scene, "largest_scene_points": big_points,
+              "largest_scene_renders": big_renders,
+              "gpu_total_mib": None}
+
+    points = pd.read_csv(_points_path(GPUMEM_SCENE), sep="\t", header=None, names=["id", "a", "b", "c"])
+    n_points = len(points)
+    baseline_gpu = _gpu_mem_mib()
+    samples = []
+
+    sim = build_sim(scene_name=GPUMEM_SCENE, indirect_ray_count=GPUMEM_RAYS, thread_count=GPUMEM_THREADS,
+                    material_config=REPLICA_MATERIAL_CONFIG, sensor_height=PRODUCTION_SENSOR_HEIGHT)
+    try:
+        # Cache pozycji, zeby snap_point nie mieszal sie do pomiaru czasu renderu.
+        pos_cache = {}
+        for i in range(GPUMEM_RENDERS):
+            # Wzorzec produkcyjny: przechodzimy po lokalizacjach i 36 katach, a nie
+            # renderujemy w kolko jednego stanu - inny stan to inna praca silnika.
+            pid = (i // 36) % n_points
+            ang = float((i % 36) * 10)
+            if pid not in pos_cache:
+                pos_cache[pid] = load_point_position(sim, GPUMEM_SCENE, pid)
+            t0 = time.perf_counter()
+            _get_spec(sim, pos_cache[pid], ang, mc, chirp)
+            dt = time.perf_counter() - t0
+            if i % GPUMEM_SAMPLE_EVERY == 0 or i == GPUMEM_RENDERS - 1:
+                samples.append({"render": i, "gpu_mib": _gpu_mem_mib(), "rss_mib": _proc_rss_mib(),
+                                "s_per_render": dt})
+                s = samples[-1]
+                print(f"    render {i:5d}: GPU {s['gpu_mib']:.0f} MiB, RSS {s['rss_mib']:.0f} MiB, "
+                      f"{s['s_per_render']:.3f} s", flush=True)
+    finally:
+        sim.close()
+
+    result["baseline_gpu_mib"] = baseline_gpu
+    result["samples"] = samples
+    result["gpu_total_mib"] = 16303.0  # RTX 5070 Ti
+
+    # --- analiza trendu -------------------------------------------------------
+    # Pierwsze 5 probek (500 renderow) to faza rozgrzewki - alokacje buforow,
+    # cache'e sceny. Trend liczymy DOPIERO po niej, inaczej rozgrzewka udaje wyciek.
+    warm = [s for s in samples if s["render"] >= 500]
+    x = np.array([s["render"] for s in warm], dtype=np.float64)
+    trends = {}
+    for key in ("gpu_mib", "rss_mib", "s_per_render"):
+        y = np.array([s[key] for s in warm], dtype=np.float64)
+        slope = float(np.polyfit(x, y, 1)[0]) if len(x) > 2 else float("nan")
+        trends[key] = {"per_1000_renders": slope * 1000.0,
+                       "first": float(y[0]), "last": float(y[-1]),
+                       "min": float(y.min()), "max": float(y.max()),
+                       "std": float(y.std())}
+    result["trends"] = trends
+
+    _plot_gpu_memory(samples, result)
+
+    gpu_rate = trends["gpu_mib"]["per_1000_renders"]
+    rss_rate = trends["rss_mib"]["per_1000_renders"]
+    time_rate = trends["s_per_render"]["per_1000_renders"]
+    headroom = result["gpu_total_mib"] - trends["gpu_mib"]["last"]
+    # Prog: rozrzut samego pomiaru nvidia-smi to kilkanascie MiB (desktop tez
+    # alokuje), wiec za wyciek uznajemy dopiero tempo istotnie ponad ten szum.
+    gpu_leaks = gpu_rate > 3 * trends["gpu_mib"]["std"] and gpu_rate > 10.0
+    rss_leaks = rss_rate > 3 * trends["rss_mib"]["std"] and rss_rate > 10.0
+    time_grows = time_rate > 0.02 * trends["s_per_render"]["first"]
+
+    print("\n--- WERDYKT BLOK 2 ---")
+    print(f"  GPU: {trends['gpu_mib']['first']:.0f} -> {trends['gpu_mib']['last']:.0f} MiB "
+          f"(tempo {gpu_rate:+.1f} MiB / 1000 renderow, rozrzut {trends['gpu_mib']['std']:.1f})")
+    print(f"  RSS: {trends['rss_mib']['first']:.0f} -> {trends['rss_mib']['last']:.0f} MiB "
+          f"(tempo {rss_rate:+.1f} MiB / 1000 renderow, rozrzut {trends['rss_mib']['std']:.1f})")
+    print(f"  czas/render: {trends['s_per_render']['first']:.3f} -> {trends['s_per_render']['last']:.3f} s "
+          f"(tempo {time_rate:+.4f} s / 1000 renderow)")
+    if not gpu_leaks and not rss_leaks and not time_grows:
+        verdict = ("STABILNA - po fazie rozgrzewki ani pamiec GPU, ani RSS procesu, ani czas renderu nie "
+                   f"rosna w tempie odrozniamym od szumu pomiaru na {GPUMEM_RENDERS} renderach. "
+                   "Architektura 'jeden Simulator na scene' jest bezpieczna bez rotacji instancji.")
+    else:
+        parts = []
+        if gpu_leaks:
+            n_to_oom = headroom / gpu_rate * 1000.0
+            parts.append(f"GPU rosnie {gpu_rate:.1f} MiB/1000 renderow; przy zapasie {headroom:.0f} MiB "
+                         f"pamieci zabraknie po ~{n_to_oom:.0f} renderach "
+                         f"({'PRZED' if n_to_oom < big_renders else 'PO'} koncu najwiekszej sceny, "
+                         f"ktora wymaga {big_renders})")
+        if rss_leaks:
+            parts.append(f"RSS rosnie {rss_rate:.1f} MiB/1000 renderow")
+        if time_grows:
+            parts.append(f"czas renderu rosnie {time_rate:+.4f} s/1000 renderow")
+        verdict = "ROSNIE - " + "; ".join(parts) + "."
+    result["verdict"] = verdict
+    print(f"\n  {verdict}")
+    return result
+
+
+def _plot_gpu_memory(samples, result):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    x = [s["render"] for s in samples]
+    fig, axes = plt.subplots(3, 1, figsize=(9, 9), sharex=True)
+    for ax, key, label, color in ((axes[0], "gpu_mib", "pamiec GPU [MiB]", "tab:red"),
+                                  (axes[1], "rss_mib", "RSS procesu [MiB]", "tab:blue"),
+                                  (axes[2], "s_per_render", "czas renderu [s]", "tab:green")):
+        y = [s[key] for s in samples]
+        ax.plot(x, y, "o-", ms=3, lw=1.2, color=color)
+        ax.axvline(500, color="k", ls=":", lw=1)
+        ax.set_ylabel(label)
+        ax.grid(alpha=0.3)
+    axes[0].set_title(f"{result['scene']}, {result['renders']} renderow w JEDNEJ instancji "
+                      f"({result['rays']} promieni / {result['threads']} watek)\n"
+                      "linia kropkowana = koniec fazy rozgrzewki (500 renderow)", fontsize=10)
+    axes[2].set_xlabel("numer renderu")
+    fig.tight_layout()
+    path = OUT_DIR / "gpu_memory_scale.png"
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+    result["plot_path"] = str(path)
+    print(f"\n  Wykres zapisany: {path}")
+
+
+# --- BLOK 3: podloga szumu na kolejnych scenach ------------------------------
+#
+# N dobieramy pod NAJGORSZA scene, nie pod srednia, a scharakteryzowane mamy 4 z 18
+# (room_0, apartment_1, office_0, frl_apartment_0). office_0 juz wymagal N=9 zamiast 7.
+#
+# Priorytet: najpierw sceny HELD-OUT (apartment_2, frl_apartment_5, office_4), bo to
+# z nich pochodza finalne liczby pracy, wiec ich charakterystyka szumu wazy wiecej niz
+# treningowych. office_4 dodatkowo ma najgorsze pokrycie materialowe (9.4% powierzchni
+# to class_id=-1, ktore zawsze dostaje material domyslny - patrz REPLICA_MATERIALS.md).
+# hotel_0 jako czwarta, bo to kategoria sceny nieobecna w dotychczasowej czworce.
+
+NOISEFLOOR_SCENES = ("apartment_2", "frl_apartment_5", "office_4", "hotel_0")
+NOISEFLOOR_ANGLES = (0.0, 10.0)
+NOISEFLOOR_N = 10
+NOISEFLOOR_TARGET_SNR = 3.5
+# Ulamki dlugosci points.txt zamiast stalych id - sceny maja rozna liczbe punktow
+# (65-258), a chodzi o dwie pozycje ODLEGLE od siebie, nie o konkretne indeksy.
+NOISEFLOOR_FRACTIONS = (0.20, 0.75)
+
+
+def run_noise_floor_scenes():
+    print("\n=== BLOK 3: podloga szumu na scenach spoza dotychczasowej czworki ===")
+    import librosa
+
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    mc = str(REPLICA_MATERIAL_CONFIG)
+    rays = int(os.environ.get("VE_RAYS", "500"))
+    threads = int(os.environ.get("VE_THREADS", "1"))
+    result = {"scenes": list(NOISEFLOOR_SCENES), "angles": list(NOISEFLOOR_ANGLES),
+              "n_per_half": NOISEFLOOR_N, "target_snr": NOISEFLOOR_TARGET_SNR,
+              "rays": rays, "threads": threads, "sensor_height": PRODUCTION_SENSOR_HEIGHT,
+              "material_config": mc, "position_fractions": list(NOISEFLOOR_FRACTIONS)}
+
+    rows = []
+    for scene in NOISEFLOOR_SCENES:
+        n_points = sum(1 for _ in _points_path(scene).open())
+        pids = [int(f * n_points) for f in NOISEFLOOR_FRACTIONS]
+        print(f"\n--- {scene} ({n_points} lokalizacji, pozycje {pids}) ---")
+        sim = build_sim(scene_name=scene, indirect_ray_count=rays, thread_count=threads,
+                        material_config=REPLICA_MATERIAL_CONFIG,
+                        sensor_height=PRODUCTION_SENSOR_HEIGHT)
+        try:
+            for pid in pids:
+                pos = load_point_position(sim, scene, pid)
+                est = {}
+                for ang in NOISEFLOOR_ANGLES:
+                    specs = [_get_spec(sim, pos, ang, mc, chirp) for _ in range(2 * NOISEFLOOR_N)]
+                    est[(ang, "A")] = np.mean(specs[:NOISEFLOOR_N], axis=0)
+                    est[(ang, "B")] = np.mean(specs[NOISEFLOOR_N:], axis=0)
+                a0, a1 = NOISEFLOOR_ANGLES
+                # RMSE(A,B) = sqrt(2)*sigma_N; sigma_1 = sigma_N*sqrt(N)
+                noise_ab = float(np.mean([_rmse(est[(a, "A")], est[(a, "B")]) for a in NOISEFLOOR_ANGLES]))
+                sigma_n = noise_ab / np.sqrt(2.0)
+                sigma_1 = sigma_n * np.sqrt(NOISEFLOOR_N)
+                raw = float(np.mean([_rmse(est[(a0, h)], est[(a1, h)]) for h in ("A", "B")]))
+                signal = float(np.sqrt(max(raw ** 2 - noise_ab ** 2, 0.0)))
+                snr = signal / sigma_n if sigma_n > 0 else float("inf")
+                n_needed = int(np.ceil((NOISEFLOOR_TARGET_SNR * sigma_1 / signal) ** 2)) if signal > 0 else -1
+                rows.append({"scene": scene, "point_id": pid, "n_points": n_points,
+                             "noise_halfsplit": noise_ab, "sigma_single_render": sigma_1,
+                             "raw_10deg": raw, "signal_10deg": signal, "snr_at_N": snr,
+                             "n_for_target_snr": n_needed,
+                             "energy": float(np.mean(est[(a0, "A")]))})
+                print(f"  id={pid:<4} szum(N={NOISEFLOOR_N})={noise_ab:.5f} szum 1 renderu={sigma_1:.5f} "
+                      f"| sygnal 10 st.={signal:.5f} | SNR={snr:.2f} "
+                      f"| N dla SNR {NOISEFLOOR_TARGET_SNR} = {n_needed}")
+        finally:
+            sim.close()
+
+    result["per_position"] = rows
+
+    # --- WERDYKT: pokazujemy ROZKLAD, nie samo ekstremum ----------------------
+    # Poprzednim razem automat wypisal "PRZESUNIETE" zdominowany przez jeden punkt,
+    # podczas gdy srednie stały w miejscu - stad tu jawnie mediana obok maksimum.
+    sig = np.array([r["signal_10deg"] for r in rows])
+    s1 = np.array([r["sigma_single_render"] for r in rows])
+    nn = np.array([r["n_for_target_snr"] for r in rows])
+    per_scene = {}
+    for scene in NOISEFLOOR_SCENES:
+        sub = [r for r in rows if r["scene"] == scene]
+        per_scene[scene] = {"signal_mean": float(np.mean([r["signal_10deg"] for r in sub])),
+                            "sigma_single_mean": float(np.mean([r["sigma_single_render"] for r in sub])),
+                            "snr_mean": float(np.mean([r["snr_at_N"] for r in sub])),
+                            "n_required": int(max(r["n_for_target_snr"] for r in sub))}
+    result["per_scene"] = per_scene
+    result["summary"] = {"signal_median": float(np.median(sig)), "signal_min": float(sig.min()),
+                         "signal_max": float(sig.max()),
+                         "sigma_single_median": float(np.median(s1)), "sigma_single_max": float(s1.max()),
+                         "n_median": int(np.median(nn)), "n_max": int(nn.max()),
+                         "reference_signal": 0.0648, "reference_sigma_single": 0.05393}
+
+    print("\n--- WERDYKT BLOK 3 ---")
+    print(f"{'scena':<18}{'sygnal 10 st.':>15}{'szum 1 rend.':>14}{'SNR N=10':>10}{'N dla 3.5':>11}")
+    for scene, v in per_scene.items():
+        print(f"{scene:<18}{v['signal_mean']:>15.5f}{v['sigma_single_mean']:>14.5f}"
+              f"{v['snr_mean']:>10.2f}{v['n_required']:>11d}")
+    print(f"\n  sygnal 10 st.: mediana {np.median(sig):.5f}, zakres {sig.min():.5f}-{sig.max():.5f} "
+          f"(odniesienie 0.0648)")
+    print(f"  szum 1 renderu: mediana {np.median(s1):.5f}, max {s1.max():.5f} "
+          f"(odniesienie 0.05393, znany zakres 0.03-0.16)")
+    print(f"  N dla SNR {NOISEFLOOR_TARGET_SNR}: mediana {int(np.median(nn))}, MAKSIMUM {int(nn.max())}")
+    in_range = bool(s1.max() <= 0.16 and sig.min() >= 0.04)
+    result["within_known_range"] = in_range
+    return result
+
+
+# --- Czy podloga szumu zalezy od ORIENTACJI, czy tylko od POZYCJI? -----------
+#
+# Blok 3 pokazal, ze sygnal 10 stopni jest praktycznie stala (0.0639-0.0662 na 8
+# pozycjach w 4 scenach), a caly rozrzut siedzi w szumie (0.031-0.080, czyli 2.5x).
+# To uzasadnia adaptacyjne N: renderuj az szum spadnie ponizej sygnal/SNR_celu.
+#
+# Pytanie, ktore decyduje o KSZTALCIE tej reguly: czy szum jest wlasnoscia POZYCJI,
+# czy tez zmienia sie takze miedzy orientacjami w tym samym punkcie?
+#  - jesli jest wlasnoscia pozycji: N wyznaczamy RAZ na lokalizacje (1740 decyzji)
+#    i stosujemy do wszystkich 36 orientacji. Decyzja podejmowana na jednej probce
+#    i przenoszona na 36 praktycznie usuwa problem "optional stopping" (obciazenia
+#    od zatrzymywania sie wtedy, gdy oszacowanie szumu akurat wypadnie nisko).
+#  - jesli zmienia sie z orientacja: regula musi dzialac per probka (62 640 decyzji),
+#    a wtedy trzeba jawnego marginesu na to obciazenie.
+#
+# Mierzymy na dwoch skrajnosciach z Bloku 3: najgorszej zmierzonej pozycji
+# (hotel_0 id=76, wymagalo N=18) i najlepszej (frl_apartment_5 id=186, N=3).
+
+ORIENT_POSITIONS = (("hotel_0", 76), ("frl_apartment_5", 186))
+ORIENT_ANGLES = tuple(float(a) for a in range(0, 360, 10))
+ORIENT_N = 10               # renderow na polowke
+ORIENT_SIGNAL = 0.0644      # mediana sygnalu 10 st. z Bloku 3 (zakres 0.0639-0.0662)
+ORIENT_TARGET_SNR = 3.5
+
+
+def run_noise_floor_orientation():
+    print("\n=== Czy podloga szumu zalezy od orientacji, czy tylko od pozycji? ===")
+    import librosa
+
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    mc = str(REPLICA_MATERIAL_CONFIG)
+    result = {"positions": [{"scene": s, "point_id": p} for s, p in ORIENT_POSITIONS],
+              "angles": len(ORIENT_ANGLES), "n_per_half": ORIENT_N,
+              "signal_assumed": ORIENT_SIGNAL, "target_snr": ORIENT_TARGET_SNR,
+              "sensor_height": PRODUCTION_SENSOR_HEIGHT, "rays": 500, "threads": 1}
+
+    rows = []
+    for scene, pid in ORIENT_POSITIONS:
+        sim = build_sim(scene_name=scene, indirect_ray_count=500, thread_count=1,
+                        material_config=REPLICA_MATERIAL_CONFIG,
+                        sensor_height=PRODUCTION_SENSOR_HEIGHT)
+        try:
+            pos = load_point_position(sim, scene, pid)
+            per_angle = []
+            for ang in ORIENT_ANGLES:
+                specs = [_get_spec(sim, pos, ang, mc, chirp) for _ in range(2 * ORIENT_N)]
+                a = np.mean(specs[:ORIENT_N], axis=0)
+                b = np.mean(specs[ORIENT_N:], axis=0)
+                noise_ab = _rmse(a, b)                       # sqrt(2)*sigma_N
+                sigma_1 = noise_ab / np.sqrt(2.0) * np.sqrt(ORIENT_N)
+                n_req = int(np.ceil((ORIENT_TARGET_SNR * sigma_1 / ORIENT_SIGNAL) ** 2))
+                per_angle.append({"angle": ang, "noise_halfsplit": noise_ab,
+                                  "sigma_single_render": sigma_1, "n_required": n_req})
+        finally:
+            sim.close()
+
+        s1 = np.array([p["sigma_single_render"] for p in per_angle])
+        nr = np.array([p["n_required"] for p in per_angle])
+        row = {"scene": scene, "point_id": pid, "per_angle": per_angle,
+               "sigma_median": float(np.median(s1)), "sigma_min": float(s1.min()),
+               "sigma_max": float(s1.max()), "sigma_cv": float(s1.std() / s1.mean()),
+               "n_median": int(np.median(nr)), "n_min": int(nr.min()), "n_max": int(nr.max())}
+        rows.append(row)
+        print(f"\n--- {scene} id={pid} ---")
+        print(f"  szum 1 renderu po 36 orientacjach: mediana {np.median(s1):.5f}, "
+              f"zakres {s1.min():.5f}-{s1.max():.5f} (rozrzut wzgledny {s1.std() / s1.mean() * 100:.1f}%)")
+        print(f"  wymagane N po 36 orientacjach: mediana {int(np.median(nr))}, "
+              f"zakres {int(nr.min())}-{int(nr.max())}")
+
+    result["per_position"] = rows
+
+    # Porownanie dwoch zrodel zmiennosci: WEWNATRZ pozycji (po orientacjach) vs
+    # MIEDZY pozycjami. Jesli to pierwsze jest duzo mniejsze, szum jest wlasnoscia
+    # pozycji i N mozna wyznaczac raz na lokalizacje.
+    within = float(np.mean([r["sigma_cv"] for r in rows]))
+    med = [r["sigma_median"] for r in rows]
+    between = float(abs(med[0] - med[1]) / np.mean(med))
+    result["cv_within_position"] = within
+    result["relative_gap_between_positions"] = between
+
+    print("\n--- WERDYKT ---")
+    print(f"  rozrzut szumu WEWNATRZ pozycji (po 36 orientacjach): {within * 100:.1f}%")
+    print(f"  roznica szumu MIEDZY dwiema pozycjami:               {between * 100:.1f}%")
+    if within < 0.25 * between:
+        verdict = ("SZUM JEST WLASNOSCIA POZYCJI - rozrzut po orientacjach jest o rzad wielkosci mniejszy "
+                   "niz roznica miedzy pozycjami. N mozna wyznaczyc RAZ na lokalizacje (1740 decyzji "
+                   "zamiast 62 640) i zastosowac do wszystkich 36 orientacji.")
+    else:
+        verdict = ("SZUM ZALEZY TAKZE OD ORIENTACJI - rozrzut wewnatrz pozycji jest porownywalny z roznica "
+                   "miedzy pozycjami, wiec regula stopu musi dzialac per probka, z jawnym marginesem na "
+                   "obciazenie od optional stopping.")
+    result["verdict"] = verdict
+    print(f"  {verdict}")
+    return result
+
+
 EXPERIMENTS = {
     "p0": run_p0,
+    "noise_floor_orientation": run_noise_floor_orientation,
+    "materials_verify": run_materials_verify,
+    "signal_noise_recheck": run_signal_noise_recheck,
+    "e2_thread_estimator": run_e2_thread_estimator,
+    "e2_thread_effective_rays": run_e2_thread_effective_rays,
+    "e2_thread_budget_confirm": run_e2_thread_budget_confirm,
+    "gpu_memory_scale": run_gpu_memory_scale,
+    "noise_floor_scenes": run_noise_floor_scenes,
     "e1": run_e1,
     "e2_rays_vs_renders": run_e2_rays_vs_renders,
     "e2_ray_bias": run_e2_ray_bias,
+    "e2_bias_orientation": run_e2_bias_orientation,
     "e3_averaging_domain": run_e3_averaging_domain,
     "e4_ir_length": run_e4_ir_length,
     "listener_height": run_listener_height,
