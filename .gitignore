@@ -25,10 +25,7 @@ habitat-sim/build/
 habitat-lab/build/
 
 # Habitat generated data
-my-operations/Replica/
 scenes_ve_metadata_locations/
-my-operations/rlr_test_out/
-my-operations/audio_sim_output/
 
 # Logs
 *.log

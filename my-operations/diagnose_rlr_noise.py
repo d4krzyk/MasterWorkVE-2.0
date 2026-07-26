@@ -47,7 +47,7 @@ POINTS_PATH = REPO_ROOT / "my-operations/metadata/replica/room_0/points.txt"
 # ze dokladnosc przypisania materialu jest tu nieistotna dla celu tego skryptu
 # (determinizm/binauralnosc szumu), a nie sprawdzana.
 MATERIAL_CONFIG_PATH = REPO_ROOT / "sound-spaces/data/mp3d_material_config.json"
-OUT_DIR = REPO_ROOT / "my-operations/Replica/diagnose_rlr_noise_out"  # gitignored, patrz .gitignore
+OUT_DIR = REPO_ROOT / "outputs/diagnose_rlr_noise_out"  # gitignored, patrz .gitignore
 REPORT_PATH = OUT_DIR / "diagnostics_report.json"
 
 # enableMaterials=True jest bezpieczne na tym buildzie - zweryfikowane w Zadaniu 0

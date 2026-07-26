@@ -30,7 +30,7 @@ audio_sensor_spec.uuid = "audio_sensor"
 # Domyślny outputDirectory to "/home/AudioSimulation<N>" - katalog wprost pod
 # /home, do którego zwykły użytkownik nie ma prawa zapisu. Ustawiamy własny,
 # zapisywalny katalog.
-audio_sensor_spec.outputDirectory = str(repo_root / "my-operations/audio_sim_output")
+audio_sensor_spec.outputDirectory = str(repo_root / "outputs/audio_sim_output")
 audio_sensor_spec.acousticsConfig.enableMaterials = False
 audio_sensor_spec.channelLayout.channelType = (
     habitat_sim.sensor.RLRAudioPropagationChannelLayoutType.Binaural

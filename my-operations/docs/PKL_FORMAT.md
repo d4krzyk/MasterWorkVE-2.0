@@ -14,7 +14,7 @@ poniżej na tyle dokładnie, żeby dało się je powtórzyć.
 Plik ma datę modyfikacji **2020-08-20** i **nie jest śledzony przez gita** — nie powstał w tym repozytorium.
 To pobrany artefakt z oryginalnego wydania **VisualEchoes (Gao et al., ECCV 2020)**. Przeszukanie historii gita
 oraz całego repo (poza katalogami vendored) nie ujawniło żadnego skryptu, który by go generował — jedyne
-odwołanie to komórka wczytująca w `my-operations/check_data.ipynb`.
+odwołanie to komórka wczytująca w `my-operations/notebooks/check_data.ipynb`.
 
 Najbliższym krewnym jest `sound-spaces/scripts/cache_observations.py` (ten sam ekosystem FAIR, ta sama siatka
 punktów Replica), ale **nie jest to skrypt źródłowy**: zapisuje on obserwacje przepuszczone przez

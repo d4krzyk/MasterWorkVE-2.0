@@ -75,7 +75,8 @@ def parse_args():
         help="Opcjonalna sciezka do JSON z materialami akustycznymi "
         "(wlacza acousticsConfig.enableMaterials + semantic mesh).",
     )
-    p.add_argument("--out-dir", default="./rlr_test_out", help="Katalog na artefakty (domyslnie ./rlr_test_out).")
+    p.add_argument("--out-dir", default=str(Path(__file__).resolve().parent.parent / "outputs/rlr_test_out"),
+                   help="Katalog na artefakty (domyslnie <repo>/outputs/rlr_test_out).")
     p.add_argument(
         "--chirp",
         required=True,
