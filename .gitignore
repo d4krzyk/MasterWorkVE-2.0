@@ -27,6 +27,26 @@ habitat-lab/build/
 # Habitat generated data
 scenes_ve_metadata_locations/
 
+# Wszystko, co generuja skrypty w czasie dzialania (diagnostyki, dataset echo).
+# CLAUDE.md od dawna opisywal ten katalog jako gitignored, ale wpisu tu nie bylo
+# - wykryte 2026-07-28, przed wygenerowaniem ~19 GB HDF5 do outputs/echoes_36deg/.
+#
+# WYJATEK: diagnostics_report.json i wykresy z fazy charakteryzacji MUSZA byc
+# wersjonowane. To na nich opiera sie kazde twierdzenie metodologiczne pracy
+# (determinizm RNG, checkpoint-boundary R=16, bias katowy, podloga szumu,
+# uzasadnienie float16) - kilkaset KB, bez ktorych cala faza charakteryzacji
+# jest nie do odtworzenia.
+#
+# Uwaga na skladnie: git NIE wchodzi do zignorowanego katalogu, wiec sama
+# negacja "!outputs/diagnose_rlr_noise_out/*.json" przy zignorowanym "outputs/"
+# nie zadziala. Dlatego ignorujemy ZAWARTOSC ("outputs/*"), a katalog
+# diagnostyk odblokowujemy, zeby git mial do czego zajrzec.
+outputs/*
+!outputs/diagnose_rlr_noise_out/
+outputs/diagnose_rlr_noise_out/*
+!outputs/diagnose_rlr_noise_out/*.json
+!outputs/diagnose_rlr_noise_out/*.png
+
 # Logs
 *.log
 

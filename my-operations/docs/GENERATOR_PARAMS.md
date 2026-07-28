@@ -23,8 +23,9 @@ Konteksty: `docs/PKL_FORMAT.md` (kamera i zbiór lokalizacji), `docs/REPLICA_MAT
 | `simulator_rotation` | **nie dotyczy** — brak wycieku | `gpu_memory_scale` |
 | `spectrogram_dtype` | **`float16`** na dysku, akumulacja w `float32` | §4.1 |
 | `depth_dtype` | **`float32`** (celowo nie float16) | §4.1 |
-| `est_time_total` | **≈ 45 h** (+ dorenderowanie, §3.4) | §4 |
-| `est_disk` | **≈ 19 GB** | §4 |
+| `audio_sims_per_render` | **1** (było 2 — zdublowana, nieodczytywana symulacja) | §4.3 |
+| `est_time_total` | **20–41 h, oczekiwane ≈ 24 h** (rewizja 2026-07-28) | §4 |
+| `est_disk` | **≈ 14 GB** (zmierzone po gzip) | §4 |
 
 ---
 
@@ -67,9 +68,30 @@ spektrogram: (2, 257, 166)  -- float32 w pamieci, float16 na dysku (patrz 4.1)
 
 - **Lokalizacje: 1740** — klucze `scene_observations_128.pkl`, nie `points.txt` w całości. To zbiór
   odpowiadający próbkowaniu z pracy Gao (VisualEchoes, ECCV 2020), więc tylko on daje porównywalność.
-- Współrzędne z `points.txt`: `x = a`, `z = -b`, `y` z `pathfinder.snap_point([x, y_guess, z])`.
+- Współrzędne z `points.txt`: `x = a`, `z = -b`; `y` — **z `graph.pkl`** (`node["point"][1]`, pełna precyzja
+  `float32`), a dla 8 lokalizacji spoza grafu ta sama stała sceny (`PKL_FORMAT.md`, tabela wysokości).
   `location_id` w pkl **jest** kolumną `id` z `points.txt`, a współrzędne obu źródeł są identyczne co do bitu
   (`PKL_FORMAT.md`).
+
+  > **Poprawka 2026-07-28.** Do tej daty stało tu `y` z `pathfinder.snap_point([x, y_guess, z])` — kalka
+  > z `diagnose_rlr_noise.py:102 load_point_position()`, czyli z kodu diagnostyk, nie z `PKL_FORMAT.md`.
+  > Jest to **błędne**: `snap_point()` zwraca wysokość powierzchni navmesha, a nie podłogi. Navmesh Repliki
+  > nie ma zapisanych `NavMeshSettings`, więc recast odtwarza go z domyślną kwantyzacją i leży
+  > **~0.21 m nad `y` z grafu** — mediana 0.2125 m, maksimum 0.4901 m, na **1738 z 1740** lokalizacji
+  > (zmierzone na wszystkich 18 scenach). Nie zależy to od `y_guess`: podanie `y` z grafu jako punktu
+  > startowego daje wynik co do bitu identyczny, bo `snap_point` rzutuje na navmesh niezależnie od startu.
+  >
+  > Rozstrzygnięcie jest pomiarowe, nie interpretacyjne. `office_1`, 16 lokalizacji × 4 kąty = 64 porównania
+  > piksel-po-pikselu z `scene_observations_128.pkl` (rendering wizualny jest deterministyczny, więc test ma
+  > moc rozstrzygającą — por. kontrola negatywna w `PKL_FORMAT.md`):
+  >
+  > | wariant `y` | RGB RMSE śr. / max | % pikseli bit-identycznych | depth RMSE śr. / max |
+  > |---|---|---|---|
+  > | `graph.pkl` | **0.0125 / 0.0214** | **99.982 %** | **9·10⁻⁶ / 2.2·10⁻⁵ m** |
+  > | `snap_point` | 50.05 / 75.28 | 36.02 % | 0.150 / 0.423 m |
+  >
+  > Replikuje to wynik `PKL_FORMAT.md` (0.0077 / 99.99 % na `room_0`) na scenie tam nietestowanej.
+  > Konsekwencja dla interpretacji pomiarów szumu — patrz §5 ograniczenie 8.
 - **Orientacje: 36**, co 10°, `quat_from_angle_axis(deg2rad(kąt), [0, 1, 0])`.
 - **Razem 62 640 próbek** (1740 × 36).
 
@@ -108,6 +130,10 @@ Rozkład wymaganego `N_raw` po 12 zmierzonych pozycjach — **4, 6, 7, 7, 9, 9, 
 
 Adaptacyjne jest **2.14× tańsze niż stałe N o tej samej gwarancji**. Jest też odporne na to, że rozkład znamy
 z 12 z 1740 lokalizacji — samo dostosuje się do pozycji, których nie zmierzyliśmy. Stałe N nie jest.
+
+> Bezwzględne godziny w tej tabeli pochodzą sprzed zmiany z §4.3 (0.2606 s/render, stara ścieżka z podwójną
+> symulacją) i **nie są aktualnym budżetem** — ten jest w §4. Stosunek 2.14× pozostaje ważny, bo obie kolumny
+> skalują się tym samym czynnikiem; to on jest treścią tego porównania.
 
 ### 3.2 Kryterium
 
@@ -255,17 +281,45 @@ stwierdzone pomiarem, nie założeniem.
 - **Checkpoint na granicy próbki jest BEZPIECZNY** (`e1_checkpoint_boundary_merge`, R=16: mediana |r| 0.0222
   vs 0.0205, przekroczenia 22/128 vs 22/128, Wilcoxon p=0.949). Wznawianie po awarii nie koreluje szumu.
 
-Tempo: **0.2606 s/render**, średnia ważona liczbą próbek po 18 scenach. Rozmiar sceny prawie nie wpływa —
-cały rozrzut to 1.6× (`apartment_0` 0.3531 s, `frl_apartment_5` 0.2205 s).
+Tempo: **0.1456 s/render** (zmierzone 2026-07-28 na `office_1` po usunięciu zdublowanej symulacji audio,
+§4.3). Poprzednia wartość **0.2606 s/render** — średnia ważona liczbą próbek po 18 scenach — dotyczy starej
+ścieżki i pozostaje właściwym odniesieniem dla wszystkich pomiarów charakteryzacji. Rozmiar sceny prawie nie
+wpływa: cały rozrzut to 1.6× (`apartment_0` 0.3531 s, `frl_apartment_5` 0.2205 s — wartości sprzed zmiany).
 
-Budżet:
+### Budżet (zrewidowany 2026-07-28)
+
+Stary szacunek 45 h opierał się na dwóch założeniach, z których **oba okazały się nietrafione**: średnie
+`N = 9.83` (zmierzone na 12 pozycjach) i 0.2606 s/render. Pierwsze zaniża koszt na scenach głośnych
+(`office_1`, jedyna zmierzona w całości, dała **19.75**), drugie zawyża go dwukrotnie (§4.3). Efekty częściowo
+się znoszą.
+
+Realistyczny budżet podajemy jako **widełki**, bo dominującą niepewnością jest to, że **11 z 18 scen
+(1227 z 1740 lokalizacji, 71 % zbioru) nie ma żadnego pomiaru szumu**, a zmierzone sceny rozjeżdżają się 3.6×:
+
+| scena | średnie `N` | podstawa |
+|---|---|---|
+| `frl_apartment_5` | 5.50 | 2 pozycje |
+| `room_0` | 6.00 | 3 pozycje |
+| `office_0` | 9.00 | 1 pozycja |
+| `apartment_2` | 9.50 | 2 pozycje |
+| `office_4` | 10.50 | 2 pozycje |
+| `hotel_0` | 15.00 | 2 pozycje |
+| `office_1` | **19.75** | **pełna scena, 16 lokalizacji** |
+
+| scenariusz | `N` dla 11 niezmierzonych scen | czas |
+|---|---|---|
+| optymistyczny | 7.5 (jak cichsza połowa zmierzonych) | **19.8 h** |
+| **oczekiwany** | 9.83 (założenie §3.1) | **23.8 h** |
+| pesymistyczny | 19.75 (jak `office_1`) | **41.2 h** |
 
 ```
-czas  = 62 640 probek x 9.83 renderu (srednia po clamp [6,40]) x 0.2606 s  ~ 44.6 h
-        + dorenderowanie z 3.4 + ogon N_MAX (~0.2-0.7 h, patrz 3.2)        ~ 45 h
-dysk  = 10.7 GB spektrogramow float16 (2,257,166)
-      +  8.2 GB RGB uint8 + depth float32 (128x128)
-      = 18.9 GB                                  (wolne na /home: 282 GB)
+WIDELKI: 20-41 h, najbardziej prawdopodobne ~24 h
+  (ta sama niepewnosc na starej sciezce dalaby 38-79 h, oczekiwane 46 h)
+uwzglednione: narzut petli weryfikacyjnej 1.051x (zmierzony na pelnej office_1)
+              oraz 8 renderow sondy na lokalizacje
+
+dysk = 62 640 probek x 236.8 KiB (ZMIERZONE po gzip -4 na office_1) = 14.1 GiB
+       (spec zakladala 18.9 GB bez kompresji; gzip scina ~20 %)
 ```
 
 ### 4.1 Format zapisu: `float16` dla spektrogramów
@@ -306,6 +360,93 @@ formatu.
 
 ---
 
+### 4.2 Kolejność generowania scen (dopisane 2026-07-28)
+
+Sceny idą **jedna po drugiej, każda w osobnym procesie OS**, uruchamiane ręcznie. Kolejność nie jest
+alfabetyczna ani losowa — jest **harmonogramowa**:
+
+1. **`office_1`** (16 lok.) — scena walidacyjna generatora. Najmniejsza, ~25 min, robiona pierwsza po to,
+   żeby `--verify` przeszło na kompletnym pliku, zanim ruszy cokolwiek długiego.
+2. **Trzy sceny held-out**: `apartment_2` (142), `frl_apartment_5` (148), `office_4` (76). Mając komplet
+   held-out można zacząć budować dataloader i pipeline treningowy, kiedy pozostałe sceny jeszcze się mielą —
+   przy ~45 h generacji to około tygodnia różnicy w harmonogramie. To także sceny, z których pochodzą finalne
+   liczby pracy, więc jeśli cokolwiek w formacie okaże się złe, chcemy to wiedzieć na nich najwcześniej.
+3. **Trzy treningowe, po jednej z każdej rodziny**: `room_0` (57, charakteryzowana od początku projektu),
+   `office_0` (26, najgorsze pokrycie materiałowe — 11.5 % powierzchni `class_id: -1`, `REPLICA_MATERIALS.md §5`),
+   `hotel_0` (48, osobna kategoria sceny, czwarta scena Bloku 3). Razem 131 lokalizacji ≈ 3.3 h — po nich
+   dataloader ma już dane treningowe ze wszystkich trzech rodzin scen.
+4. **Reszta rosnąco po liczbie lokalizacji**: `room_1` (35), `office_2` (37), `room_2` (47), `office_3` (62),
+   `frl_apartment_2` (125), `frl_apartment_4` (127), `frl_apartment_0` (130), `frl_apartment_1` (130),
+   `frl_apartment_3` (147), `apartment_1` (176), `apartment_0` (211). Rosnąco, bo wtedy liczba **ukończonych**
+   scen rośnie szybciej — a jednostką użyteczności jest gotowa scena, nie gotowa próbka.
+
+Razem 1740 lokalizacji. `--status` wypisuje sceny w tej kolejności.
+
+### 4.3 Jedna symulacja akustyczna na render zamiast dwóch (zmiana 2026-07-28)
+
+**Co było źle.** `test_rlr_audio.phase3_echolocation()` wywoływało
+`audio_sensor.runSimulation(sim)` jawnie, a następnie `sim.get_sensor_observations()`. To drugie dla sensora
+typu `AUDIO` wchodzi w `Sensor._get_audio_observation()`
+(`habitat-sim/src_python/habitat_sim/simulator.py:763-777`), które **samo** ustawia transform słuchacza,
+wywołuje `runSimulation()` **po raz drugi** i dopiero jego wynik zwraca przez `getIR()`. Jawne wywołanie
+liczyło więc pełną symulację Monte Carlo, której wyniku nikt nie odczytywał. `AudioSensor::runSimulation()`
+nie ma cache'u — flagi `newInitialization_`/`newSource_` sterują tylko uploadem geometrii i źródła, sama
+symulacja idzie bezwarunkowo (`AudioSensor.cpp:164`).
+
+Zmierzone: **283.8 ms → 143.2 ms** na `office_1`, **217.0 ms → 108.4 ms** na `frl_apartment_5` — dokładnie 2×.
+
+**Co usunięto.** Wyłącznie jawne `runSimulation()`. **`setAudioSourceTransform()` zostaje** —
+`_get_audio_observation()` ustawia wyłącznie transform *słuchacza*, więc bez tamtej linii źródło dźwięku nigdy
+nie zostałoby ustawione i echolokacja (źródło współlokowane z odbiornikiem) przestałaby działać. Ustawienie
+pozy agenta, materiałów i transformu słuchacza również zostaje. `phase3_echolocation()` przyjmuje teraz
+`run_simulation=True` domyślnie, żeby `diagnose_rlr_noise.py` odtwarzał swoje historyczne liczby co do bitu;
+generator podaje jawnie `False`, a plik HDF5 zapisuje to w atrybucie `audio_sims_per_render`.
+
+**Dlaczego wymagało to walidacji.** Zmiana przesuwa sekwencję RNG: ścieżka podwójna zużywała 2 losowania na
+render i używała co drugiego (#2, #4, #6…), pojedyncza zużywa 1 i używa każdego. Jest też różnica
+mechanistyczna, nie tylko sekwencyjna — w ścieżce podwójnej obserwowana symulacja biegła z
+`newSource_ == false`, w pojedynczej z `true` (źródło jest ponownie dodawane). Cała charakterystyka szumu
+(`SIGNAL_10DEG`, rozkład `N`, 0.2606 s/render) była skalibrowana na ścieżce podwójnej.
+
+**Pomiar równoważności (2026-07-28).** Dwie pozycje pokrywające zmierzony zakres szumu: `office_1/33`
+(najgłośniejsza, `sigma_1 ≈ 0.10`) i `frl_apartment_5/186` (najcichsza, `sigma_1 ≈ 0.034`). Dla każdej:
+kąty 0° i 10°, M = 40 renderów na kąt, ścieżki **nieprzeplatane** (komplet jedną instancją Simulatora, potem
+komplet drugą). Niepewność z replikatów — każdy kąt dzielony na dwie rozłączne połówki po 20 renderów.
+
+| pozycja | metryka | podwójna | pojedyncza | różnica | wynik |
+|---|---|---|---|---|---|
+| `office_1/33` | energia spektrogramu | 0.220816 | 0.221185 | +0.167 % | **0.72 SE**, Mann-Whitney p = 0.462 |
+| | sygnał 10° | 0.06650 | 0.06538 | −1.7 % | **1.28 SE** |
+| | `sigma_1` | 0.10048 | 0.10181 | +1.3 % | **0.51 SE** |
+| `frl_apartment_5/186` | energia spektrogramu | 0.091763 | 0.091768 | +0.005 % | **0.02 SE**, p = 0.877 |
+| | sygnał 10° | 0.06424 | 0.06426 | +0.0 % | **0.07 SE** |
+| | `sigma_1` | 0.03375 | 0.03476 | +3.0 % | **0.75 SE** |
+
+Wszystkie sześć porównań poniżej 2 SE (maksimum 1.28 SE). Oba pomiary sygnału 10° mieszczą się
+w udokumentowanym zakresie 0.0639–0.0662, więc **`SIGNAL_10DEG = 0.0644` pozostaje ważne**. Wpływ na `N`
+z reguły: 30 → 31 i 4 → 4. **Werdykt: RÓWNOWAŻNE.**
+
+**Czego pomiar nie wyklucza.** Przy progu 2 SE czułość wynosi: energia ~0.2–0.5 %, sygnał 10° ~1.3–2.6 %,
+`sigma_1` ~5–8 %. Różnicy `sigma_1` mniejszej niż ~5 % nie da się tą próbą wykryć. Nawet gdyby była realna,
+oznaczałaby ~10 % więcej renderów, czyli przyspieszenie netto 1.8× zamiast 2.0× — i tak byłaby automatycznie
+skompensowana, bo reguła adaptacyjna mierzy `sigma_1` **na miejscu**, a `snr_final ≥ 3.5` jest weryfikowane
+po fakcie per próbka (§3.4). Gwarancja jakości zbioru nie zależy więc od tej różnicy.
+
+**Uwaga metodologiczna o estymatorze.** Pierwsze podejście, estymatorem połówkowym z §3.2, dało pozornie
+niepokojące +7.2 % i +18.4 % na `sigma_1`. Okazało się to artefaktem: estymator połówkowy ma na 40 renderach
+SD rzędu 11–17 %, a dodatkowo jest skrajnie czuły na **rozgrzewkę** — pierwsze ~10 renderów po konstrukcji
+`Simulator` jest wyraźnie głośniejsze (`office_1`: 0.10628 → 0.09930 → 0.09847 → 0.09814 w blokach po 10),
+i to, w której połówce wylądują, przesuwa wynik o kilkanaście procent. Ta sama wielkość policzona wariancją
+po wszystkich renderach (`sigma_1² = średnia po komórkach z Var_po_renderach`, M−1 stopni swobody zamiast ~1)
+daje wartości w tabeli wyżej. **Do porównań o dokładności lepszej niż ~10 % nie używać estymatora
+połówkowego** — generator liczy nim dalej, ale tam chodzi o zgodność z regułą na `N`, a nie o maksymalną
+precyzję.
+
+**Konsekwencja dla `office_1`.** Scena została wygenerowana **starą ścieżką** (`audio_sims_per_render = 2`),
+zanim zmianę wprowadzono. Pozostałe 17 scen pójdzie nową. Rozkłady są równoważne (wyżej), a wartość jest
+zapisana w atrybutach każdego pliku, więc różnica jest jawna i wykrywalna — ale dla pełnej jednorodności
+zbioru `office_1` warto wygenerować od nowa (`--force`, ok. 35 min).
+
 ## 5. Ograniczenia do wypunktowania w pracy
 
 1. **Echa pochodzą z innego silnika niż wszystkie opublikowane baseline'y** (SoundSpaces 2.0 on-the-fly vs 1.0
@@ -342,6 +483,21 @@ formatu.
    poniżej podłogi szumu, ale nie jest zerem — przy analizach porównujących różnice rzędu 10⁻⁴ trzeba o nim
    pamiętać. Osiągnięty SNR (`snr_probe`, `snr_final`) liczyć **przed** rzutowaniem.
 
+8. **Charakterystykę szumu zmierzono 0.21 m wyżej, niż idzie produkcja** (wykryte 2026-07-28, patrz §2).
+   Wszystkie eksperymenty w `diagnose_rlr_noise.py` ustawiały pozycję agenta przez
+   `pathfinder.snap_point()`, czyli na powierzchni navmesha, a produkcja stawia agenta na `y` z `graph.pkl`
+   — o medianę 0.2125 m niżej. Dotyczy to `SIGNAL_10DEG = 0.0644`, rozkładu `N_raw` (mediana 9.83) i tempa
+   0.2606 s/render. Jest to ten sam rodzaj zastrzeżenia co ograniczenie 5 (pomiary na 1.5 m, produkcja na
+   1.25 m), z tą różnicą, że tu przesunięty jest **węzeł agenta**, a nie offset sensora — więc oba składają
+   się na łączne ~0.46 m między historyczną a produkcyjną wysokością słuchacza nad podłogą.
+
+   Przesłanki, że to nie unieważnia reguły adaptacyjnej: sygnał 10° okazał się niezależny od sceny
+   **i** od orientacji (0.0639–0.0662 na 8 pozycjach w 4 scenach), a wielkością, która faktycznie się waha —
+   szumem — reguła steruje adaptacyjnie, mierząc go **na miejscu**, przy produkcyjnej geometrii. Błąd
+   w `SIGNAL_10DEG` przenosi się na `N` kwadratowo, ale weryfikacja po fakcie (§3.4) i tak koryguje próbki,
+   które nie dobiją progu. Mimo to: jeśli `SIGNAL_10DEG` trafia do pracy jako liczba, należy go przemierzyć
+   na produkcyjnej geometrii — jest to ~40 renderów na pozycję.
+
 ---
 
 ## 6. Otwarte, świadomie odłożone
@@ -352,3 +508,15 @@ formatu.
 2. **Walidacja wobec publicznych pomiarów rzeczywistych apartamentu FRL** (SoundSpaces 2.0, Sek. 5.2). To nasza
    rodzina scen; dałoby obiektywne kryterium doboru liczby promieni zamiast samoodniesienia do 5000.
 3. E5 — mapa przestrzenna.
+
+4. ~~**Symulacja audio wykonuje się DWA RAZY na render**~~ — **ZAMKNIĘTE 2026-07-28**, patrz §4.3.
+   Zdublowane wywołanie usunięte po pomiarowym potwierdzeniu równoważności obu ścieżek; tempo spadło
+   z 0.2606 do 0.1456 s/render, budżet z ~45 h do ~24 h (widełki 20–41 h).
+
+   Warta zapamiętania obserwacja poboczna z tamtego pomiaru: **RGB i depth są w tym potoku darmowe** —
+   0.2 ms wobec 143 ms na samo audio, czyli 700×. Rozdzielanie obserwacji wizualnych od audio (renderowanie
+   ich raz na orientację zamiast N razy) nie daje nic mierzalnego, mimo że rendering wizualny jest
+   deterministyczny. Sprawdzono przy okazji, że takie rozdzielenie **nie zmieniłoby sekwencji RNG audio**:
+   wywołanie `sensor.get_observation()` tylko dla sensora audio, z pominięciem `draw_observation()` kamer,
+   daje IR identyczne co do bitu przez 5 kolejnych renderów w dwóch świeżo skonstruowanych instancjach
+   `Simulator`. Nie ma to jednak zastosowania praktycznego.

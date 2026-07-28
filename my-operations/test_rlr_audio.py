@@ -164,6 +164,12 @@ def build_simulator(args):
     # ogole dojdzie do audio - create_renderer=True jest wiec wymagane nawet
     # jesli interesuje nas tylko dzwiek.
     cfg.create_renderer = True
+    # Jawnie, mimo ze 0 jest wartoscia domyslna: generate_echo_dataset.py zapisuje
+    # ten parametr do atrybutow HDF5 jako czesc opisu reprodukowalnosci, wiec nie
+    # moze zalezec od domyslnej wartosci biblioteki (por. blad 1.25 vs 1.5 m
+    # opisany w PKL_FORMAT.md, gdzie poleganie na domyslnej wysokosci kamery
+    # rozjechalo odtworzenie datasetu).
+    cfg.gpu_device_id = int(getattr(args, "gpu_device_id", None) or 0)
 
     use_materials = args.material_config is not None
     if use_materials:
@@ -184,17 +190,24 @@ def build_simulator(args):
     # eksperyment listener_height).
     sensor_height = float(getattr(args, "sensor_height", None) or 1.5)
 
+    # hfov jawnie, z tego samego powodu co gpu_device_id wyzej: 90 stopni to
+    # wartosc odtworzona wstecznie z scene_observations_128.pkl (PKL_FORMAT.md,
+    # kontrola negatywna przy 70 stopniach: RGB RMSE 33.59 zamiast 0.0077), a nie
+    # dowolna. Rowna sie akurat domyslnej CameraSensorSpec, wiec nic to nie zmienia
+    # dla wczesniejszych pomiarow.
     rgb_spec = habitat_sim.CameraSensorSpec()
     rgb_spec.uuid = "rgb"
     rgb_spec.sensor_type = habitat_sim.SensorType.COLOR
     rgb_spec.resolution = [128, 128]
     rgb_spec.position = [0.0, sensor_height, 0.0]
+    rgb_spec.hfov = 90.0
 
     depth_spec = habitat_sim.CameraSensorSpec()
     depth_spec.uuid = "depth"
     depth_spec.sensor_type = habitat_sim.SensorType.DEPTH
     depth_spec.resolution = [128, 128]
     depth_spec.position = [0.0, sensor_height, 0.0]
+    depth_spec.hfov = 90.0
 
     audio_spec = habitat_sim.AudioSensorSpec()
     audio_spec.uuid = "audio_sensor"
@@ -244,7 +257,31 @@ def phase2_position(sim):
 # --- Faza 3: echolokacja ---------------------------------------------------
 
 
-def phase3_echolocation(sim, position, angle_deg, material_config):
+def phase3_echolocation(sim, position, angle_deg, material_config, run_simulation=True):
+    """Echolokacja: ustawia poze, zrodlo i sluchacza, zwraca obserwacje.
+
+    `run_simulation` steruje JEDNA linia (jawnym `audio_sensor.runSimulation()`)
+    i istnieje, bo ta linia jest zbedna:
+
+    `sim.get_sensor_observations()` dla sensora typu AUDIO wchodzi w
+    `Sensor._get_audio_observation()` (habitat-sim/src_python/habitat_sim/
+    simulator.py:763-777), ktore samo ustawia transform sluchacza, wola
+    `runSimulation()` i dopiero jego wynik zwraca przez `getIR()`. Jawne
+    wywolanie wyzej liczy wiec CALA symulacje akustyczna, ktorej wynik nikt nie
+    odczytuje — 50 % czasu renderu idzie do kosza (zmierzone: 283.8 ms wobec
+    143.2 ms na `office_1`, dokladnie 2x).
+
+    Domyslne `True` zachowuje zachowanie historyczne, na ktorym oparta jest CALA
+    charakterystyka szumu (`diagnose_rlr_noise.py` wola te funkcje przez
+    `render_raw()`), zeby tamte pomiary pozostaly odtwarzalne co do bitu.
+    Generator datasetu podaje jawnie `False` — rownowaznosc obu sciezek
+    zweryfikowano pomiarowo 2026-07-28, patrz GENERATOR_PARAMS.md §4.3.
+
+    NIE usuwamy `setAudioSourceTransform()` (nizej): `_get_audio_observation()`
+    ustawia wylacznie transform SLUCHACZA, wiec bez tamtej linii zrodlo dzwieku
+    nigdy nie zostaloby ustawione i echolokacja (zrodlo wspollokowane
+    z odbiornikiem) przestalaby dzialac.
+    """
     agent_state = habitat_sim.AgentState()
     agent_state.position = position
     agent_state.rotation = habitat_sim.utils.common.quat_from_angle_axis(
@@ -265,7 +302,10 @@ def phase3_echolocation(sim, position, angle_deg, material_config):
 
     audio_sensor.setAudioSourceTransform(listener_pos)
     audio_sensor.setAudioListenerTransform(listener_pos, quat_arr)
-    audio_sensor.runSimulation(sim)
+    if run_simulation:
+        # Zbedne — get_sensor_observations() nizej i tak uruchomi symulacje
+        # i to JEJ wynik zwroci. Patrz docstring.
+        audio_sensor.runSimulation(sim)
 
     obs = sim.get_sensor_observations()
     return obs, listener_pos, agent_state.rotation
