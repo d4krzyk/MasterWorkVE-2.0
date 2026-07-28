@@ -3982,5 +3982,306 @@
     "cv_within_position": 0.055280940205551354,
     "relative_gap_between_positions": 0.8440280960544587,
     "verdict": "SZUM JEST WLASNOSCIA POZYCJI - rozrzut po orientacjach jest o rzad wielkosci mniejszy niz roznica miedzy pozycjami. N mozna wyznaczyc RAZ na lokalizacje (1740 decyzji zamiast 62 640) i zastosowac do wszystkich 36 orientacji."
+  },
+  "noise_floor_remaining": {
+    "scenes": [
+      "room_1",
+      "office_2",
+      "room_2",
+      "office_3",
+      "frl_apartment_2",
+      "frl_apartment_4",
+      "frl_apartment_0",
+      "frl_apartment_1",
+      "frl_apartment_3",
+      "apartment_1",
+      "apartment_0"
+    ],
+    "angle": 0.0,
+    "m_per_position": 20,
+    "fractions": [
+      0.2,
+      0.75
+    ],
+    "rays": 500,
+    "threads": 1,
+    "sensor_height": 1.25,
+    "warmup_discard": 20,
+    "audio_sims_per_render": 1,
+    "estimator": "variance (sigma^2 = mean over cells of Var across renders)",
+    "y_source": "graph.pkl (produkcyjna), NIE snap_point",
+    "signal_10deg": 0.0644,
+    "target_snr": 3.5,
+    "n_max": 40,
+    "material_config": "/home/d4krzyk/Dokumenty/MasterWorkVE/my-operations/replica_material_config.json",
+    "per_position": [
+      {
+        "scene": "room_1",
+        "point_id": 12,
+        "n_locations": 35,
+        "sigma_single_render": 0.06816360019089217,
+        "n_raw": 14,
+        "energy": 0.16220377385616302
+      },
+      {
+        "scene": "room_1",
+        "point_id": 63,
+        "n_locations": 35,
+        "sigma_single_render": 0.07629673735215942,
+        "n_raw": 18,
+        "energy": 0.16273748874664307
+      },
+      {
+        "scene": "office_2",
+        "point_id": 39,
+        "n_locations": 37,
+        "sigma_single_render": 0.06197784673630633,
+        "n_raw": 12,
+        "energy": 0.1617390662431717
+      },
+      {
+        "scene": "office_2",
+        "point_id": 92,
+        "n_locations": 37,
+        "sigma_single_render": 0.06825467747779321,
+        "n_raw": 14,
+        "energy": 0.16378121078014374
+      },
+      {
+        "scene": "room_2",
+        "point_id": 19,
+        "n_locations": 47,
+        "sigma_single_render": 0.0718847471990465,
+        "n_raw": 16,
+        "energy": 0.16484932601451874
+      },
+      {
+        "scene": "room_2",
+        "point_id": 70,
+        "n_locations": 47,
+        "sigma_single_render": 0.06549692525622333,
+        "n_raw": 13,
+        "energy": 0.14838887751102448
+      },
+      {
+        "scene": "office_3",
+        "point_id": 14,
+        "n_locations": 62,
+        "sigma_single_render": 0.06704071537459644,
+        "n_raw": 14,
+        "energy": 0.16081534326076508
+      },
+      {
+        "scene": "office_3",
+        "point_id": 88,
+        "n_locations": 62,
+        "sigma_single_render": 0.07964919348704086,
+        "n_raw": 19,
+        "energy": 0.16729864478111267
+      },
+      {
+        "scene": "frl_apartment_2",
+        "point_id": 63,
+        "n_locations": 125,
+        "sigma_single_render": 0.04840688093348152,
+        "n_raw": 7,
+        "energy": 0.1244761124253273
+      },
+      {
+        "scene": "frl_apartment_2",
+        "point_id": 177,
+        "n_locations": 125,
+        "sigma_single_render": 0.08137483184014396,
+        "n_raw": 20,
+        "energy": 0.1575646847486496
+      },
+      {
+        "scene": "frl_apartment_4",
+        "point_id": 35,
+        "n_locations": 127,
+        "sigma_single_render": 0.054798464296929444,
+        "n_raw": 9,
+        "energy": 0.12532348930835724
+      },
+      {
+        "scene": "frl_apartment_4",
+        "point_id": 164,
+        "n_locations": 127,
+        "sigma_single_render": 0.0336151636635114,
+        "n_raw": 4,
+        "energy": 0.09447720646858215
+      },
+      {
+        "scene": "frl_apartment_0",
+        "point_id": 44,
+        "n_locations": 130,
+        "sigma_single_render": 0.05111117285031604,
+        "n_raw": 8,
+        "energy": 0.1212976723909378
+      },
+      {
+        "scene": "frl_apartment_0",
+        "point_id": 152,
+        "n_locations": 130,
+        "sigma_single_render": 0.03199737916259356,
+        "n_raw": 4,
+        "energy": 0.09220064431428909
+      },
+      {
+        "scene": "frl_apartment_1",
+        "point_id": 68,
+        "n_locations": 130,
+        "sigma_single_render": 0.04943567724676698,
+        "n_raw": 8,
+        "energy": 0.11087062954902649
+      },
+      {
+        "scene": "frl_apartment_1",
+        "point_id": 184,
+        "n_locations": 130,
+        "sigma_single_render": 0.03426436051390091,
+        "n_raw": 4,
+        "energy": 0.0936276987195015
+      },
+      {
+        "scene": "frl_apartment_3",
+        "point_id": 66,
+        "n_locations": 147,
+        "sigma_single_render": 0.0512257762137756,
+        "n_raw": 8,
+        "energy": 0.12120989710092545
+      },
+      {
+        "scene": "frl_apartment_3",
+        "point_id": 178,
+        "n_locations": 147,
+        "sigma_single_render": 0.09113072949781297,
+        "n_raw": 25,
+        "energy": 0.1974450945854187
+      },
+      {
+        "scene": "apartment_1",
+        "point_id": 69,
+        "n_locations": 176,
+        "sigma_single_render": 0.058297958703844736,
+        "n_raw": 11,
+        "energy": 0.13769501447677612
+      },
+      {
+        "scene": "apartment_1",
+        "point_id": 190,
+        "n_locations": 176,
+        "sigma_single_render": 0.06805772156440025,
+        "n_raw": 14,
+        "energy": 0.15152032673358917
+      },
+      {
+        "scene": "apartment_0",
+        "point_id": 78,
+        "n_locations": 211,
+        "sigma_single_render": 0.06373202360173288,
+        "n_raw": 12,
+        "energy": 0.1396687924861908
+      },
+      {
+        "scene": "apartment_0",
+        "point_id": 252,
+        "n_locations": 211,
+        "sigma_single_render": 0.08307610568021957,
+        "n_raw": 21,
+        "energy": 0.18264372646808624
+      }
+    ],
+    "n_simulator_constructions": 11,
+    "per_scene": {
+      "room_1": {
+        "sigma_median": 0.0722301687715258,
+        "sigma_min": 0.06816360019089217,
+        "sigma_max": 0.07629673735215942,
+        "n_raw_median": 16.0,
+        "n_raw_max": 18
+      },
+      "office_2": {
+        "sigma_median": 0.06511626210704977,
+        "sigma_min": 0.06197784673630633,
+        "sigma_max": 0.06825467747779321,
+        "n_raw_median": 13.0,
+        "n_raw_max": 14
+      },
+      "room_2": {
+        "sigma_median": 0.06869083622763492,
+        "sigma_min": 0.06549692525622333,
+        "sigma_max": 0.0718847471990465,
+        "n_raw_median": 14.5,
+        "n_raw_max": 16
+      },
+      "office_3": {
+        "sigma_median": 0.07334495443081865,
+        "sigma_min": 0.06704071537459644,
+        "sigma_max": 0.07964919348704086,
+        "n_raw_median": 16.5,
+        "n_raw_max": 19
+      },
+      "frl_apartment_2": {
+        "sigma_median": 0.06489085638681275,
+        "sigma_min": 0.04840688093348152,
+        "sigma_max": 0.08137483184014396,
+        "n_raw_median": 13.5,
+        "n_raw_max": 20
+      },
+      "frl_apartment_4": {
+        "sigma_median": 0.04420681398022042,
+        "sigma_min": 0.0336151636635114,
+        "sigma_max": 0.054798464296929444,
+        "n_raw_median": 6.5,
+        "n_raw_max": 9
+      },
+      "frl_apartment_0": {
+        "sigma_median": 0.0415542760064548,
+        "sigma_min": 0.03199737916259356,
+        "sigma_max": 0.05111117285031604,
+        "n_raw_median": 6.0,
+        "n_raw_max": 8
+      },
+      "frl_apartment_1": {
+        "sigma_median": 0.04185001888033395,
+        "sigma_min": 0.03426436051390091,
+        "sigma_max": 0.04943567724676698,
+        "n_raw_median": 6.0,
+        "n_raw_max": 8
+      },
+      "frl_apartment_3": {
+        "sigma_median": 0.07117825285579428,
+        "sigma_min": 0.0512257762137756,
+        "sigma_max": 0.09113072949781297,
+        "n_raw_median": 16.5,
+        "n_raw_max": 25
+      },
+      "apartment_1": {
+        "sigma_median": 0.06317784013412249,
+        "sigma_min": 0.058297958703844736,
+        "sigma_max": 0.06805772156440025,
+        "n_raw_median": 12.5,
+        "n_raw_max": 14
+      },
+      "apartment_0": {
+        "sigma_median": 0.07340406464097624,
+        "sigma_min": 0.06373202360173288,
+        "sigma_max": 0.08307610568021957,
+        "n_raw_median": 16.5,
+        "n_raw_max": 21
+      }
+    },
+    "summary": {
+      "n_positions": 22,
+      "sigma_median": 0.06461447442897811,
+      "sigma_max": 0.09113072949781297,
+      "sigma_min": 0.03199737916259356,
+      "n_raw_max": 25,
+      "sigma_threshold_at_n_max": 0.11637181789419637,
+      "positions_above_n_max": 0,
+      "positions_above_24": 1
+    },
+    "verdict_n_max_sufficient": true
   }
 }

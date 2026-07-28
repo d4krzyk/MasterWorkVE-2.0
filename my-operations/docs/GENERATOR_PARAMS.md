@@ -25,7 +25,7 @@ Konteksty: `docs/PKL_FORMAT.md` (kamera i zbiór lokalizacji), `docs/REPLICA_MAT
 | `depth_dtype` | **`float32`** (celowo nie float16) | §4.1 |
 | `audio_sims_per_render` | **1** (było 2 — zdublowana, nieodczytywana symulacja) | §4.3 |
 | `warmup_discard` | **20** renderów odrzucanych po konstrukcji `Simulator` | §2 |
-| `est_time_total` | **21–43 h, oczekiwane ≈ 25 h** (rewizja 2026-07-29) | §4 |
+| `est_time_total` | **≈ 29 h** (przedział 21–38 h), rewizja 2026-07-29 | §4 |
 | `est_disk` | **≈ 14 GB** (zmierzone po gzip) | §4 |
 
 ---
@@ -221,6 +221,72 @@ progu 40; dopasowanie normalne odpowiednio 0.18 % i 0.00 %. Przy 0 przekroczenia
 formalnie zgodne z ogonem sięgającym 22 % (górna granica ufności 95 %), więc żadnej z tych liczb nie należy
 traktować jako twierdzenia — stąd decyzja oparta na udokumentowanym zakresie szumu, a nie na ekstrapolacji.
 
+#### Potwierdzenie pomiarem na wszystkich 18 scenach (2026-07-29)
+
+Powyższe uzasadnienie opierało się na 12 pozycjach z 4 scen i na udokumentowanym zakresie szumu, a **11 z 18
+scen (1227 z 1740 lokalizacji, 71 %) nie miało żadnego pomiaru**. Ponieważ pierwsza próbka przy limicie
+pojawiła się realnie (`office_1`, §5 ogr. 6), próg został zweryfikowany bezpośrednio: eksperyment
+`noise_floor_remaining` zmierzył po 2 pozycje (ułamki 0.20 i 0.75 listy lokalizacji) we wszystkich 11
+brakujących scenach, w **konfiguracji dokładnie produkcyjnej** — `y` z `graph.pkl`, sensor 1.25 m, 500 promieni,
+1 wątek, materiały Repliki, 1 symulacja audio na render, `WARMUP_DISCARD = 20` — estymatorem wariancyjnym,
+M = 20 renderów na pozycję, 11 konstrukcji `Simulator`.
+
+Mediana `sigma_1` per scena, wszystkie 18 scen, 52 pozycje łącznie (posortowane malejąco):
+
+| scena | mediana `sigma_1` | `N` z reguły | zapas do progu 0.11637 |
+|---|---|---|---|
+| `hotel_0` | 0.07961 | 19 | 1.46× |
+| `office_1` | 0.07659 | 18 | 1.52× |
+| `apartment_0` | 0.07340 | 16 | 1.59× |
+| `office_3` | 0.07334 | 16 | 1.59× |
+| `room_1` | 0.07223 | 16 | 1.61× |
+| `frl_apartment_3` | 0.07118 | 15 | 1.63× |
+| `room_2` | 0.06869 | 14 | 1.69× |
+| `office_2` | 0.06512 | 13 | 1.79× |
+| `frl_apartment_2` | 0.06489 | 13 | 1.79× |
+| `office_0` | 0.06343 | 12 | 1.83× |
+| `apartment_1` | 0.06318 | 12 | 1.84× |
+| `office_4` | 0.05860 | 11 | 1.99× |
+| `apartment_2` | 0.05567 | 10 | 2.09× |
+| `room_0` | 0.05313 | 9 | 2.19× |
+| `frl_apartment_4` | 0.04421 | 6 | 2.63× |
+| `frl_apartment_1` | 0.04185 | 6 | 2.78× |
+| `frl_apartment_0` | 0.04155 | 6 | 2.80× |
+| `frl_apartment_5` | 0.03387 | 4 | 3.44× |
+
+**Wynik: `N_MAX = 40` wystarcza.**
+
+- **0 z 52** zmierzonych pozycji przekracza `N_MAX`; **3 z 52** przekraczają porzucony próg 24 — co
+  potwierdza, że rewizja `N_MAX` 24 → 40 była konieczna, a nie ostrożnościowa.
+- Najwyższe zaobserwowane `sigma_1` = **0.10091** (`office_1`, pełny pomiar 16 lokalizacji) → `N_raw` = 31,
+  zapas do progu **1.15×**. Wśród 22 nowych pozycji maksimum to 0.09113 (`frl_apartment_3`) → `N_raw` = 25.
+- Żadna scena nie ma mediany `sigma_1` powyżej 0.10. Najgłośniejszy jest `hotel_0` (0.07961), nieznacznie
+  przed `office_1` (0.07659) — różnica mieści się w niepewności estymaty z 3 pozycji.
+
+Przewidywany odsetek próbek, które dobiją do `N_MAX` i **nie** osiągną progu, liczony przez zastosowanie
+empirycznego rozkładu względnego `sigma_1` wewnątrz sceny (z 576 próbek `office_1`, `sigma` per próbka
+z nieocenzurowanego `snr_probe`; p95 = 1.263, p99 = 1.387, max = 1.734) do mediany każdej sceny:
+
+| scena | % próbek przy limicie | sztuk |
+|---|---|---|
+| `hotel_0` | 0.52 % | 9.0 |
+| `apartment_0` | 0.17 % | 13.2 |
+| `frl_apartment_3` | 0.17 % | 9.2 |
+| `office_3` | 0.17 % | 3.9 |
+| `room_2` | 0.17 % | 2.9 |
+| `room_1` | 0.17 % | 2.2 |
+| `office_1` | 0.17 % | 1.0 |
+| pozostałe 11 scen | 0.00 % | 0 |
+| **razem** | **0.066 %** | **≈ 41 z 62 640** |
+
+Model jest skalibrowany: dla `office_1` przewiduje 0.17 %, a zaobserwowano dokładnie 1 próbkę na 576 = 0.17 %.
+
+Ekstrapolacja parametryczna na poziomie *lokalizacji* (dopasowanie do 52 zmierzonych `sigma_1`) daje 1.79 %
+przy rozkładzie lognormalnym i 0.14 % przy normalnym. **Żadnej z tych liczb nie należy traktować jako
+twierdzenia** — próbka jest mała i **nie dobrana losowo** (pozycje wybrane po ustalonych ułamkach listy),
+a zaobserwowano 0 przekroczeń na 52. Podana wyżej liczba 0.066 % jest lepiej ugruntowana, bo jedyny model
+kalibrowany na pełnej scenie.
+
 **Clamp nie jest narzędziem kontroli budżetu, tylko bezpiecznikiem** przed patologiczną geometrią. Każde jego
 zadziałanie musi zostawić ślad — patrz `clamped` w §3.4.1 i ograniczenie 6 w §5.
 
@@ -367,49 +433,37 @@ usunięciu zdublowanej symulacji audio — §4.3; mikrobenchmark na dwóch lokal
 ścieżki i pozostaje właściwym odniesieniem dla wszystkich pomiarów charakteryzacji. Rozmiar sceny prawie nie
 wpływa: cały rozrzut to 1.6× (`apartment_0` 0.3531 s, `frl_apartment_5` 0.2205 s — wartości sprzed zmiany).
 
-### Budżet (zrewidowany 2026-07-28)
+### Budżet (zrewidowany 2026-07-29)
 
 Stary szacunek 45 h opierał się na dwóch założeniach, z których **oba okazały się nietrafione**: średnie
-`N = 9.83` (zmierzone na 12 pozycjach) i 0.2606 s/render. Pierwsze zaniża koszt na scenach głośnych
-(`office_1`, jedyna zmierzona w całości, dała **19.75**), drugie zawyża go dwukrotnie (§4.3). Efekty częściowo
-się znoszą.
+`N = 9.83` (zmierzone na 12 pozycjach) i 0.2606 s/render. Pierwsze zaniża koszt na scenach głośnych,
+drugie zawyża go dwukrotnie (§4.3). Efekty częściowo się znoszą.
 
-Realistyczny budżet podajemy jako **widełki**, bo dominującą niepewnością jest to, że **11 z 18 scen
-(1227 z 1740 lokalizacji, 71 % zbioru) nie ma żadnego pomiaru szumu**, a zmierzone sceny rozjeżdżają się 3.6×:
-
-| scena | średnie `N` | podstawa |
-|---|---|---|
-| `frl_apartment_5` | 5.50 | 2 pozycje |
-| `room_0` | 6.00 | 3 pozycje |
-| `office_0` | 9.00 | 1 pozycja |
-| `apartment_2` | 9.50 | 2 pozycje |
-| `office_4` | 10.50 | 2 pozycje |
-| `hotel_0` | 15.00 | 2 pozycje |
-| `office_1` | **19.75** | **pełna scena, 16 lokalizacji** |
-
-| scenariusz | `N` dla 11 niezmierzonych scen | czas |
-|---|---|---|
-| optymistyczny | 7.5 (jak cichsza połowa zmierzonych) | **20.6 h** |
-| **oczekiwany** | 9.83 (założenie §3.1) | **24.9 h** |
-| pesymistyczny | 19.62 (jak `office_1`) | **42.8 h** |
+Po pomiarze `noise_floor_remaining` (§3.2) **wszystkie 18 scen ma zmierzoną podłogę szumu**, więc zamiast
+trzech scenariuszy podajemy **jedną projekcję z przedziałem niepewności**. Projekcja centralna bierze medianę
+`sigma_1` każdej sceny; przedział — najcichszą i najgłośniejszą zmierzoną w niej pozycję.
 
 ```
-WIDELKI: 21-43 h, najbardziej prawdopodobne ~25 h
-  (ta sama niepewnosc na starej sciezce dalaby ok. 41-85 h, oczekiwane ~49 h)
+PROJEKCJA:  29 h    (przedzial 21-38 h)
 
-wszystko zmierzone na PELNEJ scenie office_1 nowa sciezka (2026-07-29):
+skladniki, wszystkie ZMIERZONE na pelnej scenie office_1 nowa sciezka:
   tempo                         0.1412 s/render
   narzut petli weryfikacyjnej   1.0578x   (sum(n_total)/sum(n_planned))   <- UWZGLEDNIONY
   sonda                         8 renderow / lokalizacje                  <- UWZGLEDNIONA
-  rozgrzewka                    20 renderow / scene                       <- UWZGLEDNIONA (52 s lacznie)
+  rozgrzewka                    20 renderow / scene                       <- UWZGLEDNIONA (51 s lacznie)
 
 dysk = 62 640 probek x 234.8 KiB (ZMIERZONE po gzip -4) = 14.0 GiB
        (spec zakladala 18.9 GB bez kompresji; gzip scina ~20 %)
 ```
 
-Widełki są szerokie **wyłącznie** z powodu 11 scen bez pomiaru szumu. Gdyby zmierzyć po dwie pozycje w każdej
-z nich (2 × 11 × ~40 renderów ≈ 15 min GPU), przedział zwęziłby się do kilku godzin. Nie zrobiono tego, bo
-reguła adaptacyjna i tak dobierze `N` na miejscu — niepewność dotyczy harmonogramu, nie jakości zbioru.
+**Na czym oparta i czego nie obejmuje.** Podstawa to 2 pozycje na scenę dla 11 scen zmierzonych 2026-07-29,
+2–3 pozycje dla 6 scen z wcześniejszej charakteryzacji i **pełny pomiar 16 lokalizacji dla `office_1`**.
+Dwie pozycje nie oddają rozrzutu wewnątrz sceny: w `office_1`, jedynej zmierzonej w całości, `sigma_1` waha się
+między lokalizacjami 0.0694–0.1009, czyli **1.45×**, co przekłada się na `N` od 15 do 31. Przedział 21–38 h
+odzwierciedla właśnie tę niepewność, nie rozrzut samego tempa.
+
+Najdłuższe pojedyncze sceny przy projekcji centralnej: `apartment_0` ≈ 5.0 h (211 lokalizacji, `N` ≈ 16),
+`frl_apartment_3` ≈ 3.3 h, `apartment_1` ≈ 3.2 h. Reszta poniżej 3 h.
 
 ### 4.1 Format zapisu: `float16` dla spektrogramów
 
@@ -470,6 +524,26 @@ alfabetyczna ani losowa — jest **harmonogramowa**:
    scen rośnie szybciej — a jednostką użyteczności jest gotowa scena, nie gotowa próbka.
 
 Razem 1740 lokalizacji. `--status` wypisuje sceny w tej kolejności.
+
+**Weryfikacja kolejności po pomiarze szumu (2026-07-29).** Powodem, dla którego warto by przestawić kolejność,
+byłaby scena wyraźnie głośniejsza od reszty — zostawiona na koniec byłaby niespodzianką harmonogramową.
+Pomiar `noise_floor_remaining` (§3.2) wyklucza taki przypadek: mediany `sigma_1` wszystkich 18 scen mieszczą się
+w przedziale 0.034–0.080, czyli `N` od 4 do 19, bez wartości odstających. **Kolejność zostaje bez zmian.**
+
+Dla przewidywalności warto jednak odnotować, ile trwają najdłuższe sceny przy projekcji centralnej:
+
+| scena | lokalizacji | `N` | czas | pozycja w kolejności |
+|---|---|---|---|---|
+| `apartment_0` | 211 | 16 | **≈ 5.0 h** | 18 (ostatnia) |
+| `frl_apartment_3` | 147 | 15 | ≈ 3.3 h | 16 |
+| `apartment_1` | 176 | 12 | ≈ 3.2 h | 17 |
+| `frl_apartment_5` | 148 | 4 | ≈ 1.0 h | 3 (held-out) |
+
+`apartment_0` jest jednocześnie największa i trzecia pod względem szumu, więc to najdłuższy pojedynczy przebieg
+w całym zbiorze — ale jest już **zmierzona**, więc nie jest ryzykiem, tylko znaną pozycją harmonogramu.
+Trzy sceny held-out (pozycje 2–4) zajmą łącznie **≈ 4.3 h** (`apartment_2` 2.12 h, `frl_apartment_5` 0.91 h,
+`office_4` 1.25 h) — komplet danych testowych jest więc dostępny po niespełna pięciu godzinach, co jest
+istotą argumentu o wczesnym starcie dataloadera.
 
 ### 4.3 Jedna symulacja akustyczna na render zamiast dwóch (zmiana 2026-07-28)
 
@@ -658,7 +732,7 @@ Artefakty poprzedniej wersji sceny (np. `office_1` wygenerowany starą ścieżk�
 
 4. ~~**Symulacja audio wykonuje się DWA RAZY na render**~~ — **ZAMKNIĘTE 2026-07-28**, patrz §4.3.
    Zdublowane wywołanie usunięte po pomiarowym potwierdzeniu równoważności obu ścieżek; tempo spadło
-   z 0.2606 do 0.1412 s/render, budżet z ~45 h do ~25 h (widełki 21–43 h).
+   z 0.2606 do 0.1412 s/render, budżet z ~45 h do **≈ 29 h** (przedział 21–38 h, §4).
 
    Warta zapamiętania obserwacja poboczna z tamtego pomiaru: **RGB i depth są w tym potoku darmowe** —
    0.2 ms wobec 143 ms na samo audio, czyli 700×. Rozdzielanie obserwacji wizualnych od audio (renderowanie

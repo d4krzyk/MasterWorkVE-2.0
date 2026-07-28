@@ -2733,7 +2733,156 @@ def run_noise_floor_orientation():
     return result
 
 
+# --- Podloga szumu w scenach, ktorych nigdy nie zmierzono ---------------------
+#
+# Po co: N_MAX = 40 odpowiada progowi sigma_1 = sqrt(40)*0.0644/3.5 = 0.1164.
+# Powyzej tego progu regula adaptacyjna zazada wiecej niz 40 renderow, zostanie
+# obcieta i probka moze nie osiagnac SNR 3.5 (GENERATOR_PARAMS.md §5 ogr. 6).
+# Prog wybrano na podstawie udokumentowanego zakresu do sigma_1 = 0.1131, ale
+# CLAUDE.md notuje szum render-do-renderu do 0.16 RMSE, czyli sigma_1 do 0.1131
+# przy dwoch renderach — a 11 z 18 scen (1227 z 1740 lokalizacji, 71 %) nie ma
+# ZADNEGO pomiaru. Na office_1 (mediana sigma_1 = 0.0766) juz jedna probka na 576
+# dobila do limitu i nie dobila do progu. Scena z mediana 0.12 dawalaby
+# wiekszosc probek przy limicie. To pytanie o poprawnosc zbioru, nie o harmonogram.
+#
+# Konfiguracja jest DOKLADNIE produkcyjna, inaczej pomiar nie odpowiadalby temu,
+# co zobaczy generator:
+#   - pozycja z generate_echo_dataset.load_scene_locations(): x,z z points.txt,
+#     y z graph.pkl (NIE snap_point — ten daje ~0.21 m wyzej, patrz
+#     GENERATOR_PARAMS.md §2 poprawka 2026-07-28)
+#   - sensor 1.25 m, 500 promieni, 1 watek, materialy Repliki
+#   - run_simulation=False (1 symulacja audio na render, §4.3)
+#   - WARMUP_DISCARD renderow odrzuconych po konstrukcji Simulatora (§2)
+#
+# sigma_1 liczymy estymatorem WARIANCYJNYM po wszystkich renderach, nie
+# polowkowym: tu chodzi o dokladnosc referencji, a polowkowy ma SD ~5 % z sufitem
+# niezaleznym od liczby renderow (GENERATOR_PARAMS.md §3.4).
+
+REMAINING_FRACTIONS = (0.20, 0.75)   # ta sama konwencja co NOISEFLOOR_FRACTIONS
+REMAINING_M = 20                     # renderow na pozycje
+REMAINING_ANGLE = 0.0
+
+
+def _sigma_variance(specs):
+    """sigma_1 = sqrt(srednia po komorkach z Var po renderach). n-1 st. swobody."""
+    arr = np.stack(specs).astype(np.float64)
+    return float(np.sqrt(np.var(arr, axis=0, ddof=1).mean()))
+
+
+def run_noise_floor_remaining():
+    print("\n=== Podloga szumu w scenach bez pomiaru (rozstrzygniecie o N_MAX) ===")
+    import librosa
+    sys.path.insert(0, str(REPO_ROOT / "my-operations"))
+    import generate_echo_dataset as G
+
+    # Ktore sceny nie maja jeszcze zadnego sigma_1 — czytane z RAPORTU, nie zgadywane.
+    report = {}
+    if REPORT_PATH.exists():
+        with open(REPORT_PATH) as f:
+            report = json.load(f)
+    measured = set()
+    for blk in report.values():
+        if not isinstance(blk, dict):
+            continue
+        for sub in ("per_position", "rows"):
+            for r in (blk.get(sub) or []):
+                if isinstance(r, dict) and "scene" in r and (
+                        r.get("sigma_single_render") or r.get("sigma_median")):
+                    measured.add(r["scene"])
+    if G.scene_h5("office_1").exists():
+        measured.add("office_1")          # pelna scena zmierzona w HDF5
+    todo = [s for s in G.SCENE_ORDER if s not in measured]
+
+    print(f"  sceny z pomiarem ({len(measured)}): {', '.join(sorted(measured))}")
+    print(f"  DO ZMIERZENIA ({len(todo)}): {', '.join(todo)}")
+
+    chirp, _sr = librosa.load(str(CHIRP_PATH), sr=tra.SAMPLE_RATE, mono=True)
+    mc = str(REPLICA_MATERIAL_CONFIG)
+    result = {"scenes": todo, "angle": REMAINING_ANGLE, "m_per_position": REMAINING_M,
+              "fractions": list(REMAINING_FRACTIONS), "rays": 500, "threads": 1,
+              "sensor_height": PRODUCTION_SENSOR_HEIGHT,
+              "warmup_discard": G.WARMUP_DISCARD, "audio_sims_per_render": 1,
+              "estimator": "variance (sigma^2 = mean over cells of Var across renders)",
+              "y_source": "graph.pkl (produkcyjna), NIE snap_point",
+              "signal_10deg": G.SIGNAL_10DEG, "target_snr": G.TARGET_SNR,
+              "n_max": G.N_MAX, "material_config": mc}
+
+    rows, n_sims = [], 0
+    for scene in todo:
+        loc_ids, positions = G.load_scene_locations(scene)
+        pids = [loc_ids[int(f * len(loc_ids))] for f in REMAINING_FRACTIONS]
+        sim = build_sim(scene_name=scene, indirect_ray_count=500, thread_count=1,
+                        material_config=REPLICA_MATERIAL_CONFIG,
+                        sensor_height=PRODUCTION_SENSOR_HEIGHT)
+        n_sims += 1
+        print(f"\n  [{n_sims}/{len(todo)}] {scene} ({len(loc_ids)} lokalizacji, "
+              f"pozycje {pids})", flush=True)
+        try:
+            # Rozgrzewka: pierwsze ~10 renderow instancji ma szum wyzszy o 10-20 %
+            # (GENERATOR_PARAMS.md §2). Bez tego pomiar pierwszej pozycji bylby zawyzony.
+            for _ in range(G.WARMUP_DISCARD):
+                tra.phase3_echolocation(sim, positions[pids[0]], REMAINING_ANGLE, mc,
+                                        run_simulation=False)
+            first = True
+            for pid in pids:
+                specs = []
+                for _ in range(REMAINING_M):
+                    obs, _lp, _rot = tra.phase3_echolocation(
+                        sim, positions[pid], REMAINING_ANGLE, mc if first else None,
+                        run_simulation=False)
+                    first = False
+                    _echo, spec = tra.render_spectrogram(
+                        np.transpose(np.array(obs["audio_sensor"])), chirp)
+                    specs.append(spec)
+                sigma_1 = _sigma_variance(specs)
+                n_raw = int(np.ceil((G.TARGET_SNR * sigma_1 / G.SIGNAL_10DEG) ** 2))
+                rows.append({"scene": scene, "point_id": int(pid),
+                             "n_locations": len(loc_ids),
+                             "sigma_single_render": sigma_1, "n_raw": n_raw,
+                             "energy": float(np.mean(specs[0]))})
+                print(f"    id={pid:<4} sigma_1={sigma_1:.5f}  N_raw={n_raw:<3}"
+                      f"{'  <-- POWYZEJ N_MAX' if n_raw > G.N_MAX else ''}")
+        finally:
+            sim.close()
+
+    result["per_position"] = rows
+    result["n_simulator_constructions"] = n_sims
+
+    per_scene = {}
+    for scene in todo:
+        sub = [r["sigma_single_render"] for r in rows if r["scene"] == scene]
+        nr = [r["n_raw"] for r in rows if r["scene"] == scene]
+        per_scene[scene] = {"sigma_median": float(np.median(sub)),
+                            "sigma_min": float(min(sub)), "sigma_max": float(max(sub)),
+                            "n_raw_median": float(np.median(nr)), "n_raw_max": int(max(nr))}
+    result["per_scene"] = per_scene
+
+    s1 = np.array([r["sigma_single_render"] for r in rows])
+    nr = np.array([r["n_raw"] for r in rows])
+    sigma_at_nmax = float(np.sqrt(G.N_MAX) * G.SIGNAL_10DEG / G.TARGET_SNR)
+    result["summary"] = {
+        "n_positions": len(rows),
+        "sigma_median": float(np.median(s1)), "sigma_max": float(s1.max()),
+        "sigma_min": float(s1.min()),
+        "n_raw_max": int(nr.max()),
+        "sigma_threshold_at_n_max": sigma_at_nmax,
+        "positions_above_n_max": int((nr > G.N_MAX).sum()),
+        "positions_above_24": int((nr > 24).sum()),
+    }
+
+    print(f"\n  --- WERDYKT ---")
+    print(f"  prog sigma_1 przy N_MAX={G.N_MAX}: {sigma_at_nmax:.5f}")
+    print(f"  zmierzone pozycje: {len(rows)}")
+    print(f"  sigma_1: mediana {np.median(s1):.5f}, zakres {s1.min():.5f}-{s1.max():.5f}")
+    print(f"  N_raw:   mediana {int(np.median(nr))}, MAKSIMUM {int(nr.max())}")
+    print(f"  pozycji z N_raw > {G.N_MAX}: {int((nr > G.N_MAX).sum())} / {len(rows)}")
+    print(f"  pozycji z N_raw > 24:       {int((nr > 24).sum())} / {len(rows)}")
+    result["verdict_n_max_sufficient"] = bool((nr > G.N_MAX).sum() == 0)
+    return result
+
+
 EXPERIMENTS = {
+    "noise_floor_remaining": run_noise_floor_remaining,
     "p0": run_p0,
     "noise_floor_orientation": run_noise_floor_orientation,
     "materials_verify": run_materials_verify,
