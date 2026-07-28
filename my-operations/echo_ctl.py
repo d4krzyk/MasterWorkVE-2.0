@@ -317,8 +317,11 @@ def start(scene, states=None):
     if partial:
         cmd.append("--resume")
 
-    G.OUT_ROOT.mkdir(parents=True, exist_ok=True)
-    stdout_path = G.OUT_ROOT / f"{scene}.stdout"
+    # Katalog sceny tworzymy TU, przed startem procesu — dzieki temu --status
+    # w drugim terminalu widzi scene od pierwszej sekundy, a nie dopiero po
+    # pierwszym flushu HDF5.
+    G.scene_dir(scene).mkdir(parents=True, exist_ok=True)
+    stdout_path = G.scene_stdout(scene)
     # setsid odcina proces od sesji terminala: zerwanie SSH wysyla SIGHUP do
     # grupy procesow terminala, do ktorej generator po tym wywolaniu nie nalezy.
     with open(stdout_path, "ab") as fh:

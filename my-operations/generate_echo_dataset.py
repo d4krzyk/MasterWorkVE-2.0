@@ -80,23 +80,57 @@ def graph_pkl(scene):
     return METADATA_ROOT / scene / "graph.pkl"
 
 
+# --- uklad katalogu wyjsciowego --------------------------------------------
+# Kazda scena dostaje wlasny podkatalog:
+#
+#   outputs/echoes_36deg/<scena>/
+#       <scena>.h5          dataset
+#       generate.log        log czytelny
+#       decisions.jsonl     jedna linia na lokalizacje
+#       progress.json       sidecar dla --status
+#       verify/             PNG-i z --verify
+#
+# Plaska struktura przy 18 scenach dawalaby kilkadziesiat plikow w jednym
+# katalogu — latwo pomylic scene, trudno skopiowac albo skasowac jedna bez
+# ryzyka. Nazwa pliku HDF5 celowo powtarza nazwe katalogu: ten jeden plik
+# opuszcza katalog sceny (kopia na maszyne treningowa, backup), wiec sama jego
+# nazwa musi mowic, co to jest. Pozostale pliki maja nazwy generyczne, bo nigdy
+# nie sa ogladane poza swoim katalogiem.
+#
+# WSZYSTKIE sciezki wyjsciowe wyprowadzamy z scene_dir() — kolejna zmiana ukladu
+# ma wymagac edycji w jednym miejscu.
+def scene_dir(scene):
+    return OUT_ROOT / scene
+
+
 def scene_h5(scene):
-    return OUT_ROOT / f"{scene}.h5"
+    return scene_dir(scene) / f"{scene}.h5"
 
 
 def scene_log(scene):
-    return OUT_ROOT / f"{scene}.log"
+    return scene_dir(scene) / "generate.log"
 
 
 def scene_decisions(scene):
-    return OUT_ROOT / f"{scene}_decisions.jsonl"
+    return scene_dir(scene) / "decisions.jsonl"
 
 
 def scene_progress(scene):
     # Sidecar czytany przez --status w trakcie generacji: plik HDF5 jest wtedy
     # otwarty do zapisu przez inny proces, a maly JSON zapisywany atomowo
     # (tmp + rename) zawsze da sie przeczytac bez ryzyka.
-    return OUT_ROOT / f"{scene}.progress.json"
+    return scene_dir(scene) / "progress.json"
+
+
+def scene_verify_dir(scene):
+    return scene_dir(scene) / "verify"
+
+
+def scene_stdout(scene):
+    # Surowe stdout/stderr procesu odpalonego przez echo_ctl.py — inne niz
+    # generate.log, bo lapie takze komunikaty habitat-sim i ewentualny traceback
+    # z momentu, gdy logger jeszcze nie istnieje.
+    return scene_dir(scene) / "stdout.txt"
 
 
 # ---------------------------------------------------------------------------
@@ -108,6 +142,33 @@ INDIRECT_RAY_COUNT = 500       # §1, e2_bias_orientation / e2_rays_vs_renders
 THREAD_COUNT = 1               # §1, e2_thread_budget_confirm (watki DZIELA budzet promieni)
 SENSOR_HEIGHT = 1.25           # §1, listener_height + PKL_FORMAT.md (kamera i audio w jednym punkcie)
 AVERAGING_DOMAIN = "mag"       # §1, e3_averaging_domain: estymata = (1/N) * suma |STFT|
+
+# Rendery odrzucane zaraz po konstrukcji Simulatora, zanim ruszy pierwsza
+# lokalizacja. DLACZEGO: pierwsze ~10 renderow w swiezej instancji ma
+# systematycznie WYZSZY szum — zmierzone 2026-07-29 na trzech scenach
+# (estymator wariancyjny, bloki po 10 renderow, N=100 na pozycje):
+#
+#   office_1/33        blok 1 = 0.11286 wobec 0.10130 w stanie ustalonym  (+11.4 %, +4.4 SD)
+#   frl_apartment_5/186 blok 1 = 0.03945 wobec 0.03289                     (+19.9 %, +16.1 SD)
+#   room_0/43          blok 1 = 0.06984 wobec 0.06329                      (+10.4 %, +7.3 SD)
+#
+# Efekt jest per KONSTRUKCJA Simulatora, nie per pozycja: po przeniesieniu
+# agenta na druga pozycje W TEJ SAMEJ instancji pierwszy blok NIE jest
+# podwyzszony (stosunek pierwszy/pozostale = 1.004, 0.999, 0.993 wobec 1.114,
+# 1.199, 1.104 na pozycji pierwszej). Dotyczy wiec 18 lokalizacji — po jednej
+# na scene — a nie wszystkich 1740.
+#
+# Dlaczego to naprawiamy, skoro kierunek bledu jest "bezpieczny": sonda pierwszej
+# lokalizacji kazdej sceny wypada w calosci w rozgrzewce, wiec zawyza sigma_1,
+# a przez N ~ sigma_1^2 zawyza N o ~20-45 %. Te lokalizacje dostalyby WIECEJ
+# renderow niz potrzeba, czyli SNR wyzszy od pozostalych — jednorodnosc szumu
+# w zbiorze zepsulaby sie dokladnie tak samo, jak przy nieodrzucaniu nadmiaru
+# sondy dla orientacji 0 stopni (patrz komentarz w petli po orientacjach).
+# Koszt usuniecia problemu: 18 scen x 20 renderow x 0.1456 s = 52 s na caly zbior.
+#
+# 20, a nie 10, bo w `frl_apartment_5` podwyzszony byl takze blok drugi
+# (+5.0 %, +4.1 SD); bloki 3+ sa juz w granicach rozrzutu stanu ustalonego.
+WARMUP_DISCARD = 20
 
 N_PROBE = 8                    # §3.3 pkt 1: sonda 8 renderow przy 0 stopni, podzial 4+4
 N_MIN, N_MAX = 6, 40           # §3.2 (N_MAX podniesione z 24 do 40, rewizja 2026-07-26)
@@ -181,7 +242,7 @@ def setup_logging(scene=None):
     log.addHandler(sh)
 
     if scene is not None:
-        OUT_ROOT.mkdir(parents=True, exist_ok=True)
+        scene_dir(scene).mkdir(parents=True, exist_ok=True)
         fh = logging.FileHandler(scene_log(scene), encoding="utf-8")
         fh.setFormatter(fmt)
         log.addHandler(fh)
@@ -427,6 +488,7 @@ def build_file_attrs(scene, loc_ids):
         "n_min": N_MIN,
         "n_max": N_MAX,
         "n_probe": N_PROBE,
+        "warmup_discard": WARMUP_DISCARD,
         "angles_deg": list(ANGLES_DEG),
         # format zapisu, §4.1
         "echo_dtype": "float16",
@@ -699,7 +761,25 @@ class Renderer:
         # renderze — zachowanie symulatora identyczne, log krotszy o ~600 tys. linii.
         self._materials_pending = True
         self.n_renders = 0
+        self.n_warmup = 0
         self.render_seconds = 0.0
+
+    def warmup(self, position, n=WARMUP_DISCARD):
+        """Rendery rozgrzewkowe — wykonane i ODRZUCONE, patrz WARMUP_DISCARD.
+
+        Wykonujemy je na pozycji pierwszej lokalizacji, bo i tak trzeba gdzies
+        stanac, a rozgrzewka jest wlasnoscia instancji Simulatora, nie pozycji
+        (zmierzone: po przeniesieniu agenta efekt sie NIE powtarza).
+        """
+        if n <= 0:
+            return
+        t0 = time.perf_counter()
+        for _ in range(n):
+            self.render(position, 0.0)
+        self.n_warmup = n
+        self.log.info("Rozgrzewka: %d renderow odrzuconych w %.1f s "
+                      "(pierwsze ~10 renderow instancji ma szum wyzszy o 10-20 %%)",
+                      n, time.perf_counter() - t0)
 
     def render(self, position, angle_deg):
         """-> (spec float32 (2,257,166), rgb uint8, depth float32)"""
@@ -804,6 +884,10 @@ def generate(scene, limit=None, resume=False, force=False, flush_every=36):
             log.info("Nic do zrobienia — wszystkie zadane lokalizacje sa kompletne.")
         else:
             renderer = Renderer(scene, log)
+            # Rozgrzewka PRZED pierwsza lokalizacja: inaczej cala 8-renderowa
+            # sonda pierwszej lokalizacji wypadlaby w okresie podwyzszonego szumu
+            # i zawyzylaby N tej jednej lokalizacji o ~20-45 %.
+            renderer.warmup(positions[todo[0]])
 
         for pos_in_todo, loc_id in enumerate(todo, start=1):
             if _INTERRUPTED:
@@ -988,6 +1072,7 @@ def generate(scene, limit=None, resume=False, force=False, flush_every=36):
             "ended_utc": datetime.now(timezone.utc).isoformat(),
             "wall_seconds": round(time.time() - t_start, 1),
             "renders": n_renders,
+            "warmup_renders": (renderer.n_warmup if renderer else 0),
             "locations": n_locations_done,
             "interrupted": bool(interrupted),
             "limit": limit,
@@ -1371,7 +1456,7 @@ def verify(scene, n_plots=3, seed=0):
 
         # ---------------- INSPEKCJA WZROKOWA ----------------------------
         if n_plots > 0 and n_written > 0:
-            out_dir = OUT_ROOT / "verify"
+            out_dir = scene_verify_dir(scene)
             out_dir.mkdir(parents=True, exist_ok=True)
             rng = np.random.default_rng(seed)
             pick = rng.choice(idx, size=min(n_plots, idx.size), replace=False)
@@ -1426,7 +1511,9 @@ def _plot_samples(f, indices, out_dir, scene):
         fig.suptitle(f"{scene}  lok={lid}  kat={ang} st.  "
                      f"N={int(f['n_total'][i])}  snr_final={float(f['snr_final'][i]):.2f}")
         fig.tight_layout()
-        p = out_dir / f"{scene}_loc{lid}_ang{ang}.png"
+        # Nazwa generyczna — plik nie opuszcza katalogu sceny, wiec nazwa sceny
+        # w nazwie pliku bylaby redundancja (inaczej niz w przypadku .h5).
+        p = out_dir / f"loc{lid}_ang{ang}.png"
         fig.savefig(p, dpi=120)
         plt.close(fig)
         made.append(p)

@@ -24,7 +24,8 @@ Konteksty: `docs/PKL_FORMAT.md` (kamera i zbiór lokalizacji), `docs/REPLICA_MAT
 | `spectrogram_dtype` | **`float16`** na dysku, akumulacja w `float32` | §4.1 |
 | `depth_dtype` | **`float32`** (celowo nie float16) | §4.1 |
 | `audio_sims_per_render` | **1** (było 2 — zdublowana, nieodczytywana symulacja) | §4.3 |
-| `est_time_total` | **20–41 h, oczekiwane ≈ 24 h** (rewizja 2026-07-28) | §4 |
+| `warmup_discard` | **20** renderów odrzucanych po konstrukcji `Simulator` | §2 |
+| `est_time_total` | **21–43 h, oczekiwane ≈ 25 h** (rewizja 2026-07-29) | §4 |
 | `est_disk` | **≈ 14 GB** (zmierzone po gzip) | §4 |
 
 ---
@@ -50,10 +51,43 @@ AudioSensorSpec   audio  : position [0, 1.25, 0]
   channelLayout.channelCount        = 2
 
 setAudioMaterialsJSON(my-operations/replica_material_config.json)
+
+WARMUP_DISCARD = 20    # renderow wykonanych i odrzuconych zaraz po konstrukcji
+                       # Simulatora, przed pierwsza lokalizacja (patrz nizej)
 ```
 
 Obserwacje wizualne zapisywać **surowe** z `get_sensor_observations()` — bez normalizacji i bez klipowania
 głębi (`PKL_FORMAT.md`: pkl trzyma RGBA uint8 i głębię w surowych metrach).
+
+### Rozgrzewka Simulatora (dodane 2026-07-29)
+
+Pierwsze ~10 renderów w świeżej instancji `Simulator` ma systematycznie **wyższy szum**. Zmierzone
+estymatorem wariancyjnym w blokach po 10 renderów, po 100 renderów na pozycję, na trzech scenach:
+
+| pozycja | blok 1 (r0–9) | stan ustalony (r40–99) | nadwyżka |
+|---|---|---|---|
+| `office_1/33` | 0.11286 | 0.10130 ± 0.00266 | **+11.4 %** (+4.4 SD) |
+| `frl_apartment_5/186` | 0.03945 | 0.03289 ± 0.00041 | **+19.9 %** (+16.1 SD) |
+| `room_0/43` | 0.06984 | 0.06329 ± 0.00090 | **+10.4 %** (+7.3 SD) |
+
+**Efekt jest własnością KONSTRUKCJI Simulatora, nie pozycji agenta.** Rozstrzygnięte bezpośrednio: po
+przeniesieniu agenta na drugą pozycję **w tej samej instancji** (po 100 renderach) pierwszy blok już **nie**
+jest podwyższony — stosunek „pierwszy blok / pozostałe" wynosi 1.004, 0.999 i 0.993, wobec 1.114, 1.199
+i 1.104 na pozycji pierwszej. Skala problemu to więc **18 lokalizacji** (po jednej na scenę), a nie 1740.
+
+Dotyczy **wyłącznie szumu, nie średniej**: energia spektrogramu w pierwszych 10 renderach różni się od stanu
+ustalonego o −0.88 %, −0.77 % i −0.68 %, czyli 1.75, 1.36 i 1.14 SE — poniżej progu istotności, choć wszystkie
+trzy tym samym znakiem. Odrzucenie rozgrzewki usuwa oba zastrzeżenia naraz.
+
+Dlaczego to naprawiamy, skoro kierunek błędu jest „bezpieczny": sonda pierwszej lokalizacji każdej sceny
+wypada w całości w okresie rozgrzewki, więc zawyża `sigma_1`, a przez `N ∝ sigma_1²` zawyża `N` o ~20–45 %.
+Te lokalizacje dostałyby **więcej** renderów, niż trzeba, czyli SNR wyższy od reszty zbioru — jednorodność
+szumu psułaby się dokładnie tak samo jak przy niedrzucaniu nadmiaru sondy dla orientacji 0° (§3.3 pkt 2),
+i tak samo byłaby skorelowana z czymś, co nie ma nic wspólnego z badanym efektem.
+
+`WARMUP_DISCARD = 20`, a nie 10, bo w `frl_apartment_5` podwyższony był również blok drugi (+5.0 %, +4.1 SD);
+bloki 3+ mieszczą się w rozrzucie stanu ustalonego. Koszt: 18 scen × 20 renderów × 0.1412 s = **51 s** na cały
+zbiór. Wykres: `outputs/diagnose_rlr_noise_out/warmup_simulator.png`.
 
 ### Potok spektrogramu (bez zmian, `test_rlr_audio.render_spectrogram`)
 
@@ -212,9 +246,56 @@ Po zakończeniu każdej próbki policzyć **osiągnięty** SNR z finalnego podzi
 wszystkie `N` renderów są w pamięci. Zapisać go w metadanych próbki i **dorenderować te, które nie dobiły**
 do 3.5.
 
-To jest lepsze niż ślepe zawyżanie `N` „na wszelki wypadek": oszacowanie `sigma_1` z 8 renderów ma ~10 % błędu,
-co przekłada się na ~20 % błędu `N`, a margines pokrywający to zjadłby przewagę czasową. Weryfikacja po fakcie
-jest dokładna i kosztuje tylko dorenderowanie nielicznych przypadków.
+To jest lepsze niż ślepe zawyżanie `N` „na wszelki wypadek": oszacowanie `sigma_1` z sondy jest niedokładne,
+a margines pokrywający tę niedokładność zjadłby przewagę czasową. Weryfikacja po fakcie jest dokładna
+i kosztuje tylko dorenderowanie części przypadków.
+
+#### Zmierzona dokładność sondy (2026-07-29)
+
+Wcześniejsza wersja tego akapitu podawała „~10 % błędu `sigma_1`, ~20 % błędu `N`" — liczby **oszacowane,
+nigdy niezmierzone**. Pomiar (bootstrap 4000×, 80 renderów stanu ustalonego na pozycję, referencja
+z estymatora wariancyjnego po wszystkich 80):
+
+| pozycja | `sigma_1` ref. | SD sondy n=8 | obciążenie | percentyle 5/50/95 | SD `N` |
+|---|---|---|---|---|---|
+| `office_1/33` | 0.10050 | **5.5 %** | −0.1 % | 0.917 / 0.994 / 1.093 | **11.1 %** |
+| `frl_apartment_5/186` | 0.03312 | **4.2 %** | −0.1 % | 0.937 / 0.996 / 1.077 | **8.5 %** |
+| `room_0/43` | 0.06348 | **4.5 %** | −0.1 % | 0.934 / 0.996 / 1.076 | **9.0 %** |
+
+Sonda jest więc **dwukrotnie dokładniejsza, niż zakładano** (4–6 %, nie 10 %), i praktycznie nieobciążona.
+
+**Zaskakujące i warte odnotowania: dokładność estymatora połówkowego nie zależy od `n`.** Zmierzone SD wynosi
+5.5 % / 4.2 % / 4.5 % jednakowo przy `n` = 8, 20 i 40. Powód jest strukturalny: estymator liczy RMSE po
+~85 000 komórkach spektrogramu, a `RMSE²·h/2` jest estymatorem `σ²` o **jednym stopniu swobody na komórkę,
+niezależnie od `h`**. Zwiększanie liczby renderów zmniejsza amplitudę różnicy `A−B`, ale nie jej względną
+precyzję — tę ogranicza efektywna liczba niezależnych komórek (rzędu 600–1200 z 85 324, czyli silna korelacja
+przestrzenna). Estymator wariancyjny (`σ² = średnia po komórkach z Var po renderach`) ma `n−1` stopni swobody
+na komórkę i **poprawia się z `n`** — jego niepewność przy 80 renderach to 0.1–1.1 %.
+
+Praktyczny wniosek: do porównań dokładniejszych niż ~5 % nie używać estymatora połówkowego, niezależnie od
+tego, ile renderów mu się poda. Generator liczy nim dalej, bo `snr_probe`/`snr_final` muszą być spójne
+z regułą wyznaczającą `N` — nie dlatego, że jest najlepszy.
+
+#### Dlaczego dorenderowanie dotyczy ~40 % próbek, a nie „nielicznych"
+
+Na `office_1` dorenderowania wymagało **41.0 %** próbek. To nie jest usterka ani objaw złej sondy — to
+konsekwencja tego, że reguła celuje **dokładnie** w próg `SNR = 3.5`. Symulacja Monte Carlo całej reguły
+odtworzona na prawdziwych renderach (4000 powtórzeń: losuj 8 renderów → `N` → losuj `N` renderów →
+`snr_probe`) przewiduje:
+
+| pozycja | mediana `N` | przewidywany odsetek dorenderowań |
+|---|---|---|
+| `office_1/33` | 30 | **46.2 %** (zaobserwowane na pełnej scenie: **41.0 %**) |
+| `room_0/43` | 12 | 37.5 % |
+| `frl_apartment_5/186` | 6 (clamp `N_MIN`) | **0.0 %** |
+
+Mechanizm: `snr_probe < 3.5` zachodzi w przybliżeniu wtedy, gdy `sigma_1` zmierzone z `N` renderów wypadnie
+**wyżej** niż `sigma_1` zmierzone z sondy. Oba estymatory są nieobciążone i mają podobny rozrzut, więc
+zdarza się to w około połowie przypadków **z konstrukcji**. Odsetek spada do zera tam, gdzie `N` zostaje
+obcięte przez `N_MIN` (scena na tyle cicha, że 6 renderów mocno przekracza próg) — stąd zależność od sceny.
+
+Zgodność 46.2 % przewidywane wobec 41.0 % zaobserwowanych (przewidywanie liczone na jednej, najgłośniejszej
+pozycji sceny) potwierdza, że reguła zachowuje się dokładnie tak, jak wynika z jej konstrukcji.
 
 Efekt uboczny wart osobnego zdania w pracy: dostajesz **zmierzony rozkład osiągniętego SNR** per próbka zamiast
 deklaracji.
@@ -281,8 +362,8 @@ stwierdzone pomiarem, nie założeniem.
 - **Checkpoint na granicy próbki jest BEZPIECZNY** (`e1_checkpoint_boundary_merge`, R=16: mediana |r| 0.0222
   vs 0.0205, przekroczenia 22/128 vs 22/128, Wilcoxon p=0.949). Wznawianie po awarii nie koreluje szumu.
 
-Tempo: **0.1456 s/render** (zmierzone 2026-07-28 na `office_1` po usunięciu zdublowanej symulacji audio,
-§4.3). Poprzednia wartość **0.2606 s/render** — średnia ważona liczbą próbek po 18 scenach — dotyczy starej
+Tempo: **0.1412 s/render** (zmierzone 2026-07-29 na **pełnej** scenie `office_1`, 11 957 renderów, po
+usunięciu zdublowanej symulacji audio — §4.3; mikrobenchmark na dwóch lokalizacjach dawał 0.1456). Poprzednia wartość **0.2606 s/render** — średnia ważona liczbą próbek po 18 scenach — dotyczy starej
 ścieżki i pozostaje właściwym odniesieniem dla wszystkich pomiarów charakteryzacji. Rozmiar sceny prawie nie
 wpływa: cały rozrzut to 1.6× (`apartment_0` 0.3531 s, `frl_apartment_5` 0.2205 s — wartości sprzed zmiany).
 
@@ -308,19 +389,27 @@ Realistyczny budżet podajemy jako **widełki**, bo dominującą niepewnością 
 
 | scenariusz | `N` dla 11 niezmierzonych scen | czas |
 |---|---|---|
-| optymistyczny | 7.5 (jak cichsza połowa zmierzonych) | **19.8 h** |
-| **oczekiwany** | 9.83 (założenie §3.1) | **23.8 h** |
-| pesymistyczny | 19.75 (jak `office_1`) | **41.2 h** |
+| optymistyczny | 7.5 (jak cichsza połowa zmierzonych) | **20.6 h** |
+| **oczekiwany** | 9.83 (założenie §3.1) | **24.9 h** |
+| pesymistyczny | 19.62 (jak `office_1`) | **42.8 h** |
 
 ```
-WIDELKI: 20-41 h, najbardziej prawdopodobne ~24 h
-  (ta sama niepewnosc na starej sciezce dalaby 38-79 h, oczekiwane 46 h)
-uwzglednione: narzut petli weryfikacyjnej 1.051x (zmierzony na pelnej office_1)
-              oraz 8 renderow sondy na lokalizacje
+WIDELKI: 21-43 h, najbardziej prawdopodobne ~25 h
+  (ta sama niepewnosc na starej sciezce dalaby ok. 41-85 h, oczekiwane ~49 h)
 
-dysk = 62 640 probek x 236.8 KiB (ZMIERZONE po gzip -4 na office_1) = 14.1 GiB
+wszystko zmierzone na PELNEJ scenie office_1 nowa sciezka (2026-07-29):
+  tempo                         0.1412 s/render
+  narzut petli weryfikacyjnej   1.0578x   (sum(n_total)/sum(n_planned))   <- UWZGLEDNIONY
+  sonda                         8 renderow / lokalizacje                  <- UWZGLEDNIONA
+  rozgrzewka                    20 renderow / scene                       <- UWZGLEDNIONA (52 s lacznie)
+
+dysk = 62 640 probek x 234.8 KiB (ZMIERZONE po gzip -4) = 14.0 GiB
        (spec zakladala 18.9 GB bez kompresji; gzip scina ~20 %)
 ```
+
+Widełki są szerokie **wyłącznie** z powodu 11 scen bez pomiaru szumu. Gdyby zmierzyć po dwie pozycje w każdej
+z nich (2 × 11 × ~40 renderów ≈ 15 min GPU), przedział zwęziłby się do kilku godzin. Nie zrobiono tego, bo
+reguła adaptacyjna i tak dobierze `N` na miejscu — niepewność dotyczy harmonogramu, nie jakości zbioru.
 
 ### 4.1 Format zapisu: `float16` dla spektrogramów
 
@@ -447,6 +536,39 @@ zanim zmianę wprowadzono. Pozostałe 17 scen pójdzie nową. Rozkłady są rów
 zapisana w atrybutach każdego pliku, więc różnica jest jawna i wykrywalna — ale dla pełnej jednorodności
 zbioru `office_1` warto wygenerować od nowa (`--force`, ok. 35 min).
 
+### 4.4 Układ katalogu wyjściowego (dodane 2026-07-29)
+
+Każda scena dostaje własny podkatalog:
+
+```
+outputs/echoes_36deg/
+    <scena>/
+        <scena>.h5          dataset
+        generate.log        log czytelny
+        decisions.jsonl     jedna linia na lokalizację (sigma_1, n_raw, n_planned, clamped, czas)
+        progress.json       sidecar dla --status (zapisywany atomowo, tmp + rename)
+        verify/             PNG-i z --verify, nazwy generyczne locNN_angMMM.png
+    .scene_index.json       cache liczby lokalizacji per scena (dla echo_ctl.py)
+diagnose_rlr_noise_out/     bez zmian, WERSJONOWANY
+```
+
+Płaska struktura przy 18 scenach dawałaby kilkadziesiąt plików w jednym katalogu — łatwo pomylić scenę,
+trudno skopiować albo skasować jedną bez ryzyka.
+
+**Nazwa pliku HDF5 celowo powtarza nazwę katalogu** (`office_1/office_1.h5`, nie `office_1/echoes.h5`).
+Ten jeden plik opuszcza katalog sceny — trafia na maszynę treningową i do kopii zapasowych — więc sama jego
+nazwa musi mówić, co to jest. Pozostałe pliki mają nazwy generyczne, bo nigdy nie są oglądane poza swoim
+katalogiem.
+
+Wszystkie ścieżki wyjściowe wyprowadzane są z jednej funkcji `scene_dir()` w `generate_echo_dataset.py`
+(oraz pochodnych `scene_h5`, `scene_log`, `scene_decisions`, `scene_progress`, `scene_verify_dir`,
+`scene_stdout`); `echo_ctl.py` importuje je, nie skleja własnych. Kolejna zmiana układu wymaga edycji
+w jednym miejscu.
+
+Artefakty poprzedniej wersji sceny (np. `office_1` wygenerowany starą ścieżką z podwójną symulacją) zostają
+**w katalogu swojej sceny** z sufiksem opisującym różnicę: `office_1_2sims.h5`, `generate_2sims.log`,
+`decisions_2sims.jsonl`, `verify_2sims/`.
+
 ## 5. Ograniczenia do wypunktowania w pracy
 
 1. **Echa pochodzą z innego silnika niż wszystkie opublikowane baseline'y** (SoundSpaces 2.0 on-the-fly vs 1.0
@@ -475,10 +597,35 @@ zbioru `office_1` warto wygenerować od nowa (`--force`, ok. 35 min).
    ```
 
    Raportować w pracy: ich liczbę, udział w 62 640 próbkach, rozkład `snr_final` oraz `n_raw` (o ile clamp
-   zaniżył `N`). Oczekiwana liczba to zero — `N_MAX = 40` pokrywa cały udokumentowany zakres szumu
-   (`CLAUDE.md`: do `sigma_1 = 0.1131`) — ale to musi być **stwierdzone pomiarem**, nie założone. Jeśli
-   obcięte próbki się pojawią, można je uzupełnić bez powtarzania generacji: pętla weryfikacyjna z §3.4 już
-   je oznacza, więc wystarczy dorenderować je z podniesionym `N_MAX`.
+   zaniżył `N`). Jeśli obcięte próbki się pojawią, można je uzupełnić bez powtarzania generacji: pętla
+   weryfikacyjna z §3.4 już je oznacza, więc wystarczy dorenderować je z podniesionym `N_MAX`.
+
+   **Sprostowanie kryterium (2026-07-29).** Powyższy warunek `clamped == "max"` jest **za wąski** i przegapia
+   rzeczywiste przypadki. `clamped` opisuje wyłącznie clamp na etapie *planowania* (`n_raw` vs `N_MIN`/`N_MAX`),
+   tymczasem `N_MAX` jest także twardym limitem **całkowitej** liczby renderów próbki, więc wiąże również
+   w pętli dorenderowującej — przy `n_planned < 40`, ale `n_planned + n_rendered_extra` dobijającym do 40.
+   Poprawne kryterium to:
+
+   ```
+   n_total >= N_MAX  AND  snr_final < TARGET_SNR
+   ```
+
+   `--verify` stosuje to kryterium i wypisuje wszystkie próbki z `n_total >= N_MAX` z nazwy, także te, które
+   mimo limitu próg osiągnęły.
+
+   **Pierwszy zaobserwowany przypadek** (`office_1`, regeneracja 2026-07-29, 576 próbek): trzy próbki dobiły
+   do `N_MAX`, z czego **jedna nie osiągnęła progu**:
+
+   | lokalizacja | kąt | `n_planned` | `+extra` | `n_total` | `snr_probe` | `snr_final` |
+   |---|---|---|---|---|---|---|
+   | 5 | 160° | 25 | +15 | 40 | 2.758 | 3.851 ✓ |
+   | 33 | 290° | 31 | +9 | 40 | 2.660 | **3.461 ✗** |
+   | 35 | 170° | 21 | +19 | 40 | 2.555 | 4.750 ✓ |
+
+   Udział: **1 na 576 = 0.17 %** w tej scenie. Żadna z tych lokalizacji nie miała `clamped == "max"`
+   (`n_raw` = 25, 31, 21 — wszystkie poniżej 40), co potwierdza, że stare kryterium wykryłoby zero przypadków.
+   Poprzednia wersja `office_1` (stara ścieżka) miała jedną próbkę przy `N_MAX`, która próg osiągnęła —
+   różnica 1 vs 3 przy 576 próbkach nie jest rozróżnialna statystycznie.
 7. **Kwantyzacja do `float16`** wnosi błąd 7–8·10⁻⁵ RMSE do każdej zapisanej próbki (§4.1). Jest 112–240×
    poniżej podłogi szumu, ale nie jest zerem — przy analizach porównujących różnice rzędu 10⁻⁴ trzeba o nim
    pamiętać. Osiągnięty SNR (`snr_probe`, `snr_final`) liczyć **przed** rzutowaniem.
@@ -511,7 +658,7 @@ zbioru `office_1` warto wygenerować od nowa (`--force`, ok. 35 min).
 
 4. ~~**Symulacja audio wykonuje się DWA RAZY na render**~~ — **ZAMKNIĘTE 2026-07-28**, patrz §4.3.
    Zdublowane wywołanie usunięte po pomiarowym potwierdzeniu równoważności obu ścieżek; tempo spadło
-   z 0.2606 do 0.1456 s/render, budżet z ~45 h do ~24 h (widełki 20–41 h).
+   z 0.2606 do 0.1412 s/render, budżet z ~45 h do ~25 h (widełki 21–43 h).
 
    Warta zapamiętania obserwacja poboczna z tamtego pomiaru: **RGB i depth są w tym potoku darmowe** —
    0.2 ms wobec 143 ms na samo audio, czyli 700×. Rozdzielanie obserwacji wizualnych od audio (renderowanie
