@@ -208,7 +208,7 @@ istniejącymi 4.
 
 ## Konsekwencja dla sensora audio: wysokość 1.25 m
 
-Odtworzona wysokość kamery (1.25 m) wymusza decyzję po stronie akustyki. `test_rlr_audio.build_simulator()`
+Odtworzona wysokość kamery (1.25 m) wymusza decyzję po stronie akustyki. `build_simulator()` (dziś `echo_core/audio.py`)
 ustawiał dotąd `AudioSensorSpec.position = [0, 1.5, 0]` — wartość wziętą z konwencji SoundSpaces (por.
 `sound-spaces/soundspaces/continuous_simulator.py:341`). Powstawał więc **25 cm rozjazdu między punktem
 obserwacji wizualnej i akustycznej**, będący przypadkowym zbiegiem dwóch różnych wartości domyślnych.

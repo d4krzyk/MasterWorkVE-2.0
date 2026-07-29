@@ -47,6 +47,17 @@ outputs/diagnose_rlr_noise_out/*
 !outputs/diagnose_rlr_noise_out/*.json
 !outputs/diagnose_rlr_noise_out/*.png
 
+# Census sondy: 1740 wierszy CSV, ~120 KB. To jest podstawa rozstrzygniecia o
+# N_MAX (GENERATOR_PARAMS.md §3.2) i najcenniejszy pojedynczy pomiar projektu —
+# musi byc wersjonowany. Logi census juz nie (lapie je wzorzec *.log wyzej).
+!outputs/probe_census/
+outputs/probe_census/*
+!outputs/probe_census/*.csv
+
+# outputs/measurements/ zostaje ignorowany w calosci: to ~210 MiB posrednich
+# spektrogramow (.npz), z ktorych policzono liczby zapisane w dokumentach.
+# Skrypty, ktore je wytwarzaja i czytaja, sa w my-operations/measurements/.
+
 # Logs
 *.log
 

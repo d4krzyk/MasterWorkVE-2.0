@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
-"""Smoke test RLRAudioPropagation w tym buildzie habitat-sim (Visual Echoes 2.0).
+"""Smoke test potoku RLRAudioPropagation w tym buildzie habitat-sim.
 
-Uruchomienie (env `habitat` musi być aktywne, PYTHONPATH musi wskazywać na
-habitat-sim/src_python - patrz CLAUDE.md):
+Sprawdza po kolei: API audio, budowe Simulatora, pozycje na navmeshu, echolokacje,
+poprawnosc RIR, spektrogram, zapis artefaktow i porownanie katow. Kazda faza jest
+niezalezna i raportuje PASS/FAIL/SKIP.
+
+To NIE jest pytest — to recznie uruchamiany skrypt kontrolny:
 
     conda activate habitat
-    export PYTHONPATH=<repo>/habitat-sim/src_python:$PYTHONPATH
-    python my-operations/test_rlr_audio.py \
+    python my-operations/smoke_test_rlr_audio.py \
         --scene sound-spaces/data/scene_datasets/replica/room_0/habitat/mesh_semantic.ply \
-        --chirp <sciezka>/3ms_sweep.wav
+        --chirp my-operations/sweep_audio/3ms_sweep.wav
 
-Headless: na tej maszynie (Ubuntu 22.04, RTX 5070 Ti, sterownik NVIDIA 580.159+)
-habitat-sim renderuje bezekranowo przez EGL bez żadnych dodatkowych zmiennych
-srodowiskowych - sprawdzone empirycznie. Gdyby na innej maszynie zabraklo EGL
-(np. WSL bez GPU passthrough), fallback z CLAUDE.md to software rendering:
-    export GALLIUM_DRIVER=llvmpipe
-    export MESA_GL_VERSION_OVERRIDE=4.1
-Backend matplotlib jest ustawiony na "Agg" ponizej z tego samego powodu (brak
-X displaya w tym srodowisku).
+Wlasciwy potok (budowa Simulatora, echolokacja, spektrogram) mieszka w echo_core/
+i jest STAD importowany, nie duplikowany — to ten sam kod, ktorego uzywa generator
+i diagnostyka, wiec smoke test faktycznie testuje produkcje.
 """
 
 import argparse
@@ -32,31 +29,16 @@ matplotlib.use("Agg")  # brak X displaya w tym srodowisku (headless smoke test)
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-# Ta kolejnosc importow (quaternion przed habitat_sim) jest wymagana przez
-# lokalny patch tego repo - patrz habitat-sim/local_changes.patch /
-# CLAUDE.md, inaczej apka konczy sie "free(): invalid pointer" (upstream
-# habitat-sim#1747).
 import quaternion  # noqa: F401
 import habitat_sim
 import soundfile as sf
-from scipy.signal import fftconvolve
 
-# --- Stale echolokacji, wspoldzielone przez fazy 5 i 7 ---------------------
-SAMPLE_RATE = 44100
-ECHO_MS = 60
-ECHO_SAMPLES = int(round(SAMPLE_RATE * ECHO_MS / 1000))  # 2646 przy 44.1 kHz
-STFT_N_FFT = 512
-STFT_WIN_LENGTH = 64
-STFT_HOP_LENGTH = 16
-EXPECTED_SPEC_SHAPE = (2, 257, 166)
-N_CHANNELS = 2  # binaural = 2 uszy; patrz uwaga w build_simulator()
+from echo_core.audio import PhaseFailure, build_simulator, phase3_echolocation
+from echo_core.spectrogram import (ECHO_SAMPLES, EXPECTED_SPEC_SHAPE, N_CHANNELS, SAMPLE_RATE,
+                                   STFT_HOP_LENGTH, STFT_N_FFT, render_spectrogram)
+
 BONUS_ANGLES = (0.0, 10.0, 90.0)
 NAV_SEED = 42  # ustalony seed pathfindera dla powtarzalnosci wyniku
-
-
-class PhaseFailure(Exception):
-    """Blad konkretnej fazy - odrozniony od bledow programistycznych."""
 
 
 def parse_args():
@@ -112,9 +94,6 @@ def run_phase(results, name, fn, *fargs, required=True, **fkwargs):
         return None
 
 
-# --- Faza 0: introspekcja API ----------------------------------------------
-
-
 def phase0_introspect():
     print("habitat_sim.__version__:", getattr(habitat_sim, "__version__", "<brak atrybutu>"))
 
@@ -143,103 +122,6 @@ def phase0_introspect():
         raise PhaseFailure("Wariant 'Binaural' nie jest dostepny w tej wersji API channelLayout.")
 
 
-# --- Faza 1: konfiguracja ---------------------------------------------------
-
-
-def build_simulator(args):
-    scene_path = Path(args.scene)
-    if not scene_path.exists():
-        raise PhaseFailure(f"Plik sceny nie istnieje: {scene_path}")
-
-    cfg = habitat_sim.SimulatorConfiguration()
-    cfg.scene_id = str(scene_path)
-    # Scena bez semantic mesh (baseline) - AudioSensor::loadMesh() (branch
-    # nieuzywajacy materialow) i tak uzywa tylko geometrii render-mesha, nie
-    # semantycznej, wiec nie ma potrzeby ladowac osobnych semantic assetow
-    # tutaj. Jedyny wyjatek to --material-config, patrz nizej.
-    cfg.load_semantic_mesh = False
-    cfg.enable_physics = False
-    # Bez sensora habitat_sim.Simulator._sanitize_config() wylacza renderer i
-    # ladowanie PTex/mesh krysuje w PTexMeshData::getRenderingBuffer zanim w
-    # ogole dojdzie do audio - create_renderer=True jest wiec wymagane nawet
-    # jesli interesuje nas tylko dzwiek.
-    cfg.create_renderer = True
-    # Jawnie, mimo ze 0 jest wartoscia domyslna: generate_echo_dataset.py zapisuje
-    # ten parametr do atrybutow HDF5 jako czesc opisu reprodukowalnosci, wiec nie
-    # moze zalezec od domyslnej wartosci biblioteki (por. blad 1.25 vs 1.5 m
-    # opisany w PKL_FORMAT.md, gdzie poleganie na domyslnej wysokosci kamery
-    # rozjechalo odtworzenie datasetu).
-    cfg.gpu_device_id = int(getattr(args, "gpu_device_id", None) or 0)
-
-    use_materials = args.material_config is not None
-    if use_materials:
-        # setAudioMaterialsJSON() ma efekt TYLKO na sciezce loadSemanticMesh()
-        # (patrz habitat-sim/src/esp/sensor/AudioSensor.cpp:136-146), ktora
-        # wymaga jednoczesnie acousticsConfig.enableMaterials=True ORAZ
-        # zaladowanej semantycznej sceny (sim.semanticSceneExists()). Bez
-        # load_semantic_mesh=True material-config zostalby po cichu
-        # zignorowany.
-        cfg.load_semantic_mesh = True
-
-    # Wysokosc wszystkich sensorow nad wezlem agenta. Domyslne 1.5 m zachowane dla
-    # zgodnosci wstecznej ze WSZYSTKIMI wczesniejszymi pomiarami szumu (E1-E4,
-    # checkpoint-boundary, Blok A/B/C) - zmiana domyslnej rozspoinilaby je.
-    # Produkcja idzie na 1.25 m: tyle ma kamera odtworzona z scene_observations_128.pkl
-    # (patrz PKL_FORMAT.md), a agent ucielesniony musi widziec i slyszec z jednego
-    # punktu - roznica 25 cm zmienia echo mocniej niz obrot o 10 stopni (patrz
-    # eksperyment listener_height).
-    sensor_height = float(getattr(args, "sensor_height", None) or 1.5)
-
-    # hfov jawnie, z tego samego powodu co gpu_device_id wyzej: 90 stopni to
-    # wartosc odtworzona wstecznie z scene_observations_128.pkl (PKL_FORMAT.md,
-    # kontrola negatywna przy 70 stopniach: RGB RMSE 33.59 zamiast 0.0077), a nie
-    # dowolna. Rowna sie akurat domyslnej CameraSensorSpec, wiec nic to nie zmienia
-    # dla wczesniejszych pomiarow.
-    rgb_spec = habitat_sim.CameraSensorSpec()
-    rgb_spec.uuid = "rgb"
-    rgb_spec.sensor_type = habitat_sim.SensorType.COLOR
-    rgb_spec.resolution = [128, 128]
-    rgb_spec.position = [0.0, sensor_height, 0.0]
-    rgb_spec.hfov = 90.0
-
-    depth_spec = habitat_sim.CameraSensorSpec()
-    depth_spec.uuid = "depth"
-    depth_spec.sensor_type = habitat_sim.SensorType.DEPTH
-    depth_spec.resolution = [128, 128]
-    depth_spec.position = [0.0, sensor_height, 0.0]
-    depth_spec.hfov = 90.0
-
-    audio_spec = habitat_sim.AudioSensorSpec()
-    audio_spec.uuid = "audio_sensor"
-    audio_spec.outputDirectory = str(Path(args.out_dir) / "rlr_sim_output")
-    audio_spec.position = [0.0, sensor_height, 0.0]
-    audio_spec.acousticsConfig.sampleRate = SAMPLE_RATE
-    audio_spec.acousticsConfig.enableMaterials = use_materials
-    # Domyslnie 500 promieni na jednym watku - taka konfiguracja stoi za CALA
-    # dotychczasowa charakteryzacja szumu (E1/E3/E4, checkpoint-boundary), wiec
-    # zmiana domyslnej wartosci rozspoinilaby te pomiary. Oba parametry mozna
-    # jednak nadpisac przez args, bo E2 porownuje wlasnie "wiecej promieni" z
-    # "wiecej renderow", a to wymaga przemiatania indirectRayCount.
-    # UWAGA: swiezy AudioSensorSpec() raportuje indirectRayCount=5000 - to
-    # domyslna wartosc biblioteki, NIE ta uzywana tutaj.
-    audio_spec.acousticsConfig.indirectRayCount = getattr(args, "indirect_ray_count", None) or 500
-    audio_spec.acousticsConfig.threadCount = getattr(args, "thread_count", None) or 1
-    audio_spec.channelLayout.channelType = habitat_sim.sensor.RLRAudioPropagationChannelLayoutType.Binaural
-    # Binaural = 2 kanaly (lewe/prawe ucho) z definicji - channelCount=1
-    # bylby niespojny z tym layoutem i dalby zly ksztalt na wejsciu do
-    # spektrogramu (faza 5 zaklada dokladnie 2 kanaly).
-    audio_spec.channelLayout.channelCount = N_CHANNELS
-
-    agent_cfg = habitat_sim.AgentConfiguration()
-    agent_cfg.sensor_specifications = [rgb_spec, depth_spec, audio_spec]
-
-    sim = habitat_sim.Simulator(habitat_sim.Configuration(cfg, [agent_cfg]))
-    return sim
-
-
-# --- Faza 2: pozycja ---------------------------------------------------
-
-
 def phase2_position(sim):
     if not sim.pathfinder.is_loaded:
         raise PhaseFailure(
@@ -252,66 +134,6 @@ def phase2_position(sim):
     point = sim.pathfinder.get_random_navigable_point()
     print("Losowy punkt nawigowalny (seed =", NAV_SEED, "):", point)
     return point
-
-
-# --- Faza 3: echolokacja ---------------------------------------------------
-
-
-def phase3_echolocation(sim, position, angle_deg, material_config, run_simulation=True):
-    """Echolokacja: ustawia poze, zrodlo i sluchacza, zwraca obserwacje.
-
-    `run_simulation` steruje JEDNA linia (jawnym `audio_sensor.runSimulation()`)
-    i istnieje, bo ta linia jest zbedna:
-
-    `sim.get_sensor_observations()` dla sensora typu AUDIO wchodzi w
-    `Sensor._get_audio_observation()` (habitat-sim/src_python/habitat_sim/
-    simulator.py:763-777), ktore samo ustawia transform sluchacza, wola
-    `runSimulation()` i dopiero jego wynik zwraca przez `getIR()`. Jawne
-    wywolanie wyzej liczy wiec CALA symulacje akustyczna, ktorej wynik nikt nie
-    odczytuje — 50 % czasu renderu idzie do kosza (zmierzone: 283.8 ms wobec
-    143.2 ms na `office_1`, dokladnie 2x).
-
-    Domyslne `True` zachowuje zachowanie historyczne, na ktorym oparta jest CALA
-    charakterystyka szumu (`diagnose_rlr_noise.py` wola te funkcje przez
-    `render_raw()`), zeby tamte pomiary pozostaly odtwarzalne co do bitu.
-    Generator datasetu podaje jawnie `False` — rownowaznosc obu sciezek
-    zweryfikowano pomiarowo 2026-07-28, patrz GENERATOR_PARAMS.md §4.3.
-
-    NIE usuwamy `setAudioSourceTransform()` (nizej): `_get_audio_observation()`
-    ustawia wylacznie transform SLUCHACZA, wiec bez tamtej linii zrodlo dzwieku
-    nigdy nie zostaloby ustawione i echolokacja (zrodlo wspollokowane
-    z odbiornikiem) przestalaby dzialac.
-    """
-    agent_state = habitat_sim.AgentState()
-    agent_state.position = position
-    agent_state.rotation = habitat_sim.utils.common.quat_from_angle_axis(
-        np.deg2rad(angle_deg), np.array([0.0, 1.0, 0.0])
-    )
-    sim.get_agent(0).set_state(agent_state)
-
-    audio_sensor = sim.get_agent(0)._sensors["audio_sensor"]
-
-    if material_config is not None:
-        audio_sensor.setAudioMaterialsJSON(material_config)
-
-    # Echolokacja: zrodlo dzwieku WSPOLLOKOWANE z odbiornikiem - agent emituje
-    # chirp z wlasnej pozycji (na wysokosci uszu, stad node.absolute_translation
-    # zamiast surowego position agenta) i nasluchuje wlasnego echa.
-    listener_pos = np.array(audio_sensor.node.absolute_translation)
-    quat_arr = quaternion.as_float_array(agent_state.rotation)  # [w, x, y, z]
-
-    audio_sensor.setAudioSourceTransform(listener_pos)
-    audio_sensor.setAudioListenerTransform(listener_pos, quat_arr)
-    if run_simulation:
-        # Zbedne — get_sensor_observations() nizej i tak uruchomi symulacje
-        # i to JEJ wynik zwroci. Patrz docstring.
-        audio_sensor.runSimulation(sim)
-
-    obs = sim.get_sensor_observations()
-    return obs, listener_pos, agent_state.rotation
-
-
-# --- Faza 4: walidacja RIR ---------------------------------------------------
 
 
 def phase4_validate_rir(obs):
@@ -363,46 +185,6 @@ def phase4_validate_rir(obs):
     return rir, metrics
 
 
-# --- Faza 5: pelna sciezka do spektrogramu ---------------------------------
-
-
-def render_spectrogram(rir, chirp):
-    """RIR (n_samples, kanaly) x chirp (mono) -> magnituda STFT (kanaly, F, T).
-
-    Wspoldzielone przez faze 5 (raport) i faze 7 (porownanie katow), zeby oba
-    miejsca liczyly dokladnie to samo.
-    """
-    import librosa
-
-    n_channels = rir.shape[1]
-    echo = np.zeros((n_channels, ECHO_SAMPLES), dtype=np.float64)
-    for ch in range(n_channels):
-        convolved = fftconvolve(rir[:, ch], chirp, mode="full")
-        n = min(ECHO_SAMPLES, convolved.shape[0])
-        echo[ch, :n] = convolved[:n]
-        # convolved krotszy niz 60ms zdarzyc sie moze tylko przy bardzo
-        # krotkim RIR/chirpie - zerowy pad na koncu jest wtedy poprawnym,
-        # cichym "brakiem echa" w tym oknie, nie artefaktem.
-
-    spec = np.stack(
-        [
-            np.abs(
-                librosa.stft(
-                    echo[ch].astype(np.float32),
-                    n_fft=STFT_N_FFT,
-                    win_length=STFT_WIN_LENGTH,
-                    hop_length=STFT_HOP_LENGTH,
-                )
-            )
-            for ch in range(n_channels)
-        ],
-        axis=0,
-    )
-    # Uwaga: magnituda bez log1p - to wariant dla predykcji glebi (EchoNet),
-    # nie wariant nawigacyjny z soundspaces/tasks/nav.py.
-    return echo, spec
-
-
 def phase5_spectrogram(rir, chirp_path):
     chirp_file = Path(chirp_path)
     if not chirp_file.exists():
@@ -437,9 +219,6 @@ def phase5_spectrogram(rir, chirp_path):
         )
 
     return echo, spec, chirp
-
-
-# --- Faza 6: artefakty ---------------------------------------------------
 
 
 def phase6_artifacts(out_dir, rir, echo, spec, obs, metrics):
@@ -499,9 +278,6 @@ def phase6_artifacts(out_dir, rir, echo, spec, obs, metrics):
     print("Artefakty zapisane w:", out_dir)
 
 
-# --- Faza 7 (bonus): porownanie katow ---------------------------------------
-
-
 def phase7_angle_comparison(sim, position, material_config, chirp):
     specs = {}
     for angle in BONUS_ANGLES:
@@ -542,9 +318,6 @@ def phase7_angle_comparison(sim, position, material_config, chirp):
         print("UWAGA (problem metodologiczny):", warning)
 
     return {"angles": list(BONUS_ANGLES), "rmse_matrix": rmse.tolist(), "warning": warning}
-
-
-# --- main --------------------------------------------------------------
 
 
 def main():

@@ -16,7 +16,7 @@ Konteksty: `docs/PKL_FORMAT.md` (kamera i zbiór lokalizacji), `docs/REPLICA_MAT
 |---|---|---|
 | `indirect_ray_count` | **500** | `e2_bias_orientation`, `e2_rays_vs_renders` |
 | `thread_count` | **1** | `e2_thread_budget_confirm` |
-| `n_renders` | **adaptacyjne per lokalizacja**, `N ∈ [6, 40]`, patrz §3 | `noise_floor_scenes`, `noise_floor_orientation` |
+| `n_renders` | **adaptacyjne per lokalizacja**, `N ∈ [6, 64]`, patrz §3 | `noise_floor_scenes`, `probe_census` |
 | `averaging_domain` | **`"mag"`** = (1/N)Σ\|STFT\| | `e3_averaging_domain` |
 | `material_config` | **`my-operations/replica_material_config.json`** | `materials_verify` |
 | `listener_height` | **1.25 m** (kamera i audio) | `listener_height`, `PKL_FORMAT.md` |
@@ -24,8 +24,8 @@ Konteksty: `docs/PKL_FORMAT.md` (kamera i zbiór lokalizacji), `docs/REPLICA_MAT
 | `spectrogram_dtype` | **`float16`** na dysku, akumulacja w `float32` | §4.1 |
 | `depth_dtype` | **`float32`** (celowo nie float16) | §4.1 |
 | `audio_sims_per_render` | **1** (było 2 — zdublowana, nieodczytywana symulacja) | §4.3 |
-| `warmup_discard` | **20** renderów odrzucanych po konstrukcji `Simulator` | §2 |
-| `est_time_total` | **≈ 29 h** (przedział 21–38 h), rewizja 2026-07-29 | §4 |
+| `warmup_discard` | **500** renderów odrzucanych po konstrukcji `Simulator` | §2 |
+| `est_time_total` | **≈ 31.9 h** (z pełnego census, nie z ekstrapolacji) | §4 |
 | `est_disk` | **≈ 14 GB** (zmierzone po gzip) | §4 |
 
 ---
@@ -52,7 +52,7 @@ AudioSensorSpec   audio  : position [0, 1.25, 0]
 
 setAudioMaterialsJSON(my-operations/replica_material_config.json)
 
-WARMUP_DISCARD = 20    # renderow wykonanych i odrzuconych zaraz po konstrukcji
+WARMUP_DISCARD = 500   # renderow wykonanych i odrzuconych zaraz po konstrukcji
                        # Simulatora, przed pierwsza lokalizacja (patrz nizej)
 ```
 
@@ -85,11 +85,26 @@ Te lokalizacje dostałyby **więcej** renderów, niż trzeba, czyli SNR wyższy 
 szumu psułaby się dokładnie tak samo jak przy niedrzucaniu nadmiaru sondy dla orientacji 0° (§3.3 pkt 2),
 i tak samo byłaby skorelowana z czymś, co nie ma nic wspólnego z badanym efektem.
 
-`WARMUP_DISCARD = 20`, a nie 10, bo w `frl_apartment_5` podwyższony był również blok drugi (+5.0 %, +4.1 SD);
-bloki 3+ mieszczą się w rozrzucie stanu ustalonego. Koszt: 18 scen × 20 renderów × 0.1412 s = **51 s** na cały
-zbiór. Wykres: `outputs/diagnose_rlr_noise_out/warmup_simulator.png`.
+**Wartość: `WARMUP_DISCARD = 500`** (rewizja 2026-07-29). Zmierzony punkt osiadania jest znacznie niższy —
+w blokach po 5 renderów nadwyżka spada z +16…19 % (r0–4) poniżej rozrzutu blokowego już od r20, a estymata
+skumulowana od renderu 20 do końca leży 0.35–0.75 % od odniesienia (r50–99). Wybrano jednak 500, bo:
 
-### Potok spektrogramu (bez zmian, `test_rlr_audio.render_spectrogram`)
+- `gpu_memory_scale` udokumentował **500 renderów** jako koniec fazy rozgrzewki dla RSS, pamięci GPU i czasu
+  renderu — spójność z tamtym pomiarem;
+- to **25× zmierzony punkt osiadania**, więc żaden realny transient się w nim nie zmieści;
+- kosztuje 500 × 0.1412 s = 71 s na scenę, czyli **21 min** na cały zbiór (+1.1 %) — cena znikoma wobec
+  ryzyka systematycznego biasu.
+
+Że 20 nie wystarczało, pokazał dopiero pełny census sondy (§3.2): pierwsza sondowana lokalizacja każdej sceny
+wypadała systematycznie wyżej (mediana percentyla **92 %**, Wilcoxon **p = 0.001**). Domiar w stanie ustalonym
+wykazał, że to w większości efekt **przestrzenny** — `loc_id` rośnie wzdłuż siatki punktów, więc id 0 to róg
+sceny, często przy ścianach (`frl_apartment_3/0`: 0.09444 w stanie ustalonym przy medianie sceny 0.04550) —
+ale rozgrzewka dokładała do tego kilka procent. Bezpośredni test: `office_1/5` daje `sigma_1` = 0.0918 (N=25)
+przy `WARMUP_DISCARD = 20` i **0.0817 (N=20)** przy 500.
+
+Wykres: `outputs/diagnose_rlr_noise_out/warmup_simulator.png`.
+
+### Potok spektrogramu (bez zmian, `echo_core/spectrogram.py`)
 
 ```
 SAMPLE_RATE = 44100 ;  ECHO_MS = 60  ->  ECHO_SAMPLES = 2646
@@ -180,13 +195,13 @@ N       = clamp( ceil( (TARGET_SNR * sigma_1 / SIGNAL_10DEG)^2 ), N_MIN, N_MAX )
 
 TARGET_SNR   = 3.5
 SIGNAL_10DEG = 0.0644      # mediana z noise_floor_scenes, stała między scenami
-N_MIN, N_MAX = 6, 40
+N_MIN, N_MAX = 6, 64
 ```
 
 `RMSE(A, B) = sqrt(2)·sigma_N` — stąd dzielenie przez `sqrt(2)`. Nigdy nie porównywać surowych RMSE dwóch
 zaszumionych estymat bez tej dekompozycji (błąd popełniony raz w Bloku B).
 
-#### Dlaczego `N_MAX = 40`, a nie 24 (rewizja 2026-07-26)
+#### Dlaczego `N_MAX = 40`, a nie 24 (rewizja 2026-07-26 — HISTORYCZNE, patrz niżej)
 
 Pierwotne `N_MAX = 24` odpowiada progowi `sigma_1 = sqrt(24)·0.0644/3.5 = 0.09014`. Przegląd wszystkich
 dotychczasowych pomiarów pokazał, że ten próg jest ustawiony **dokładnie na krawędzi zmierzonych danych**:
@@ -221,7 +236,7 @@ progu 40; dopasowanie normalne odpowiednio 0.18 % i 0.00 %. Przy 0 przekroczenia
 formalnie zgodne z ogonem sięgającym 22 % (górna granica ufności 95 %), więc żadnej z tych liczb nie należy
 traktować jako twierdzenia — stąd decyzja oparta na udokumentowanym zakresie szumu, a nie na ekstrapolacji.
 
-#### Potwierdzenie pomiarem na wszystkich 18 scenach (2026-07-29)
+#### Potwierdzenie na próbce 52 pozycji (2026-07-29 — HISTORYCZNE, zastąpione przez census niżej)
 
 Powyższe uzasadnienie opierało się na 12 pozycjach z 4 scen i na udokumentowanym zakresie szumu, a **11 z 18
 scen (1227 z 1740 lokalizacji, 71 %) nie miało żadnego pomiaru**. Ponieważ pierwsza próbka przy limicie
@@ -286,6 +301,64 @@ przy rozkładzie lognormalnym i 0.14 % przy normalnym. **Żadnej z tych liczb ni
 twierdzenia** — próbka jest mała i **nie dobrana losowo** (pozycje wybrane po ustalonych ułamkach listy),
 a zaobserwowano 0 przekroczeń na 52. Podana wyżej liczba 0.066 % jest lepiej ugruntowana, bo jedyny model
 kalibrowany na pełnej scenie.
+
+#### `N_MAX = 64` — rozstrzygnięte pełnym census sondy (2026-07-29)
+
+Wszystkie dotychczasowe uzasadnienia progu opierały się na **próbce** pozycji (12, potem 52), dobranej po
+ustalonych ułamkach listy lokalizacji. Zamiast ekstrapolować dalej, policzono **rzeczywisty rozkład dla
+wszystkich 1740 lokalizacji**: sonda 8-renderowa jest i tak pierwszym krokiem generatora, więc da się ją
+wykonać osobno bez renderowania 36 orientacji. Koszt: 14 300 renderów, **35 min**
+(`generate_echo_dataset.py --probe-only`, wyniki w `outputs/probe_census/`).
+
+`sigma_1`: mediana 0.05830, zakres **0.02530–0.13451**. `N_raw`: mediana 11, średnia 11.80, zakres **2–54**.
+
+| `N_raw` | lokalizacji | udział |
+|---|---|---|
+| 1–5 | 319 | 18.33 % |
+| 6–8 | 333 | 19.14 % |
+| 9–12 | 436 | 25.06 % |
+| 13–16 | 314 | 18.05 % |
+| 17–20 | 149 | 8.56 % |
+| 21–24 | 85 | 4.89 % |
+| 25–30 | 69 | 3.97 % |
+| 31–40 | 28 | 1.61 % |
+| 41–48 | 6 | 0.34 % |
+| 49–64 | 1 | 0.06 % |
+| **> 64** | **0** | **0.00 %** |
+
+**Ekstrapolacja z 52 pozycji chybiła.** Przewidywała zero przekroczeń `N_MAX = 40`; census znalazł **7
+lokalizacji (0.402 %)**. Powód jest pouczający: gorące miejsce akustyczne w `apartment_0` siedzi przy
+`loc_id` 285–310, czyli w okolicy ułamka 0.9 listy, a próbkowano ułamki 0.20 i 0.75. To dokładnie ten rodzaj
+błędu, przed którym zastrzegano („próbka nie dobrana losowo") — tylko że tym razem się zmaterializował.
+
+Wszystkie 7 przekroczeń domierzono estymatorem wariancyjnym (M = 40, SD ~1 %), **głęboko w stanie ustalonym**:
+
+| scena | lok | census (sonda n=8) | domiar (M=40) | `N` | |
+|---|---|---|---|---|---|
+| `frl_apartment_2` | 0 | 0.13451 | **0.10703** | 54 → 34 | artefakt sondy |
+| `apartment_0` | 285 | 0.12432 | **0.12799** | 46 → **49** | potwierdzony, **maksimum** |
+| `apartment_0` | 307 | 0.12652 | 0.12632 | 48 → **48** | potwierdzony |
+| `apartment_0` | 308 | 0.12390 | 0.12449 | 46 → **46** | potwierdzony |
+| `apartment_0` | 310 | 0.12030 | 0.11799 | 43 → **42** | potwierdzony |
+| `hotel_0` | 101 | 0.12136 | 0.11305 | 44 → 38 | spadł poniżej |
+| `hotel_0` | 95 | 0.11693 | 0.10959 | 41 → 36 | spadł poniżej |
+
+Cztery potwierdzone przekroczenia, wszystkie w `apartment_0` i w sąsiadujących `loc_id` — jedno realne
+gorące miejsce, nie rozproszony szum. **Prawdziwe maksimum: `sigma_1` = 0.12799 → `N_raw` = 49.**
+
+| `N_MAX` | pokrywa `sigma_1` do | lokalizacji obciętych | koszt |
+|---|---|---|---|
+| 40 (poprzednie) | 0.11637 | 7 | — |
+| 48 | 0.12748 | 1 | +0.05 h |
+| **64 (przyjęte)** | **0.14720** | **0** | **+0.06 h** |
+
+`N_MAX = 48` odpadło, bo pokrywa do 0.12748 — **poniżej** potwierdzonego maksimum 0.12799, czyli obcinałoby
+dokładnie tę lokalizację, którą zmierzono najdokładniej. Margines jest potrzebny również dlatego, że
+produkcyjna sonda zmierzy każdą lokalizację **na nowo, raz, z SD ~5 %**: lokalizacja z census `N_raw` = 38
+może w produkcji wypaść 45. Przy `N_MAX = 64` **żadna z 1740 lokalizacji nie jest obcinana**, a koszt to
+3.6 min na 31.9 h (0.2 %).
+
+Wykres: `outputs/diagnose_rlr_noise_out/probe_census.png`.
 
 **Clamp nie jest narzędziem kontroli budżetu, tylko bezpiecznikiem** przed patologiczną geometrią. Każde jego
 zadziałanie musi zostawić ślad — patrz `clamped` w §3.4.1 i ograniczenie 6 w §5.
@@ -433,37 +506,37 @@ usunięciu zdublowanej symulacji audio — §4.3; mikrobenchmark na dwóch lokal
 ścieżki i pozostaje właściwym odniesieniem dla wszystkich pomiarów charakteryzacji. Rozmiar sceny prawie nie
 wpływa: cały rozrzut to 1.6× (`apartment_0` 0.3531 s, `frl_apartment_5` 0.2205 s — wartości sprzed zmiany).
 
-### Budżet (zrewidowany 2026-07-29)
+### Budżet (z pełnego census, 2026-07-29)
 
-Stary szacunek 45 h opierał się na dwóch założeniach, z których **oba okazały się nietrafione**: średnie
-`N = 9.83` (zmierzone na 12 pozycjach) i 0.2606 s/render. Pierwsze zaniża koszt na scenach głośnych,
-drugie zawyża go dwukrotnie (§4.3). Efekty częściowo się znoszą.
-
-Po pomiarze `noise_floor_remaining` (§3.2) **wszystkie 18 scen ma zmierzoną podłogę szumu**, więc zamiast
-trzech scenariuszy podajemy **jedną projekcję z przedziałem niepewności**. Projekcja centralna bierze medianę
-`sigma_1` każdej sceny; przedział — najcichszą i najgłośniejszą zmierzoną w niej pozycję.
+Poprzednie szacunki opierały się na próbce pozycji. Po census (§3.2) znany jest **rzeczywisty rozkład `N`
+dla wszystkich 1740 lokalizacji**, więc budżet nie jest już projekcją z przedziałem, tylko sumą:
 
 ```
-PROJEKCJA:  29 h    (przedzial 21-38 h)
+srednie N po clamp [6, 64]     12.11
+renderow probek + narzut       803 273   (narzut petli weryfikacyjnej 1.0578x)
+renderow rozgrzewki             9 000   (18 scen x 500, czyli 21.2 min)
+RAZEM                          812 273
 
-skladniki, wszystkie ZMIERZONE na pelnej scenie office_1 nowa sciezka:
-  tempo                         0.1412 s/render
-  narzut petli weryfikacyjnej   1.0578x   (sum(n_total)/sum(n_planned))   <- UWZGLEDNIONY
-  sonda                         8 renderow / lokalizacje                  <- UWZGLEDNIONA
-  rozgrzewka                    20 renderow / scene                       <- UWZGLEDNIONA (51 s lacznie)
-
-dysk = 62 640 probek x 234.8 KiB (ZMIERZONE po gzip -4) = 14.0 GiB
-       (spec zakladala 18.9 GB bez kompresji; gzip scina ~20 %)
+CZAS  = 812 273 x 0.1412 s  =  31.9 h
+DYSK  = 62 640 probek x 234.8 KiB (zmierzone po gzip -4)  =  14.0 GiB
 ```
 
-**Na czym oparta i czego nie obejmuje.** Podstawa to 2 pozycje na scenę dla 11 scen zmierzonych 2026-07-29,
-2–3 pozycje dla 6 scen z wcześniejszej charakteryzacji i **pełny pomiar 16 lokalizacji dla `office_1`**.
-Dwie pozycje nie oddają rozrzutu wewnątrz sceny: w `office_1`, jedynej zmierzonej w całości, `sigma_1` waha się
-między lokalizacjami 0.0694–0.1009, czyli **1.45×**, co przekłada się na `N` od 15 do 31. Przedział 21–38 h
-odzwierciedla właśnie tę niepewność, nie rozrzut samego tempa.
+Wszystkie składniki zmierzone, żaden założony: tempo i narzut z pełnej sceny `office_1` wygenerowanej nową
+ścieżką, `N` z census wszystkich lokalizacji, rozgrzewka z `WARMUP_DISCARD`.
 
-Najdłuższe pojedyncze sceny przy projekcji centralnej: `apartment_0` ≈ 5.0 h (211 lokalizacji, `N` ≈ 16),
-`frl_apartment_3` ≈ 3.3 h, `apartment_1` ≈ 3.2 h. Reszta poniżej 3 h.
+Dla porównania: przed usunięciem zdublowanej symulacji audio (§4.3) ten sam zbiór kosztowałby ~63 h.
+
+Najdłuższe pojedyncze sceny (policzone z census, `N` po clamp):
+
+| scena | lokalizacji | średnie `N` | czas |
+|---|---|---|---|
+| `apartment_0` | 211 | 20.32 | **6.42 h** |
+| `apartment_1` | 176 | 11.56 | 3.06 h |
+| `apartment_2` | 142 | 12.45 | 2.66 h |
+| `frl_apartment_5` | 148 | 8.93 | 2.00 h |
+
+Trzy sceny held-out (`apartment_2`, `frl_apartment_5`, `office_4`) łącznie **6.16 h** — komplet danych
+testowych jest dostępny po ok. sześciu godzinach.
 
 ### 4.1 Format zapisu: `float16` dla spektrogramów
 
@@ -547,7 +620,7 @@ istotą argumentu o wczesnym starcie dataloadera.
 
 ### 4.3 Jedna symulacja akustyczna na render zamiast dwóch (zmiana 2026-07-28)
 
-**Co było źle.** `test_rlr_audio.phase3_echolocation()` wywoływało
+**Co było źle.** `phase3_echolocation()` (dziś `echo_core/audio.py`) wywoływało
 `audio_sensor.runSimulation(sim)` jawnie, a następnie `sim.get_sensor_observations()`. To drugie dla sensora
 typu `AUDIO` wchodzi w `Sensor._get_audio_observation()`
 (`habitat-sim/src_python/habitat_sim/simulator.py:763-777`), które **samo** ustawia transform słuchacza,
@@ -704,7 +777,26 @@ Artefakty poprzedniej wersji sceny (np. `office_1` wygenerowany starą ścieżk�
    poniżej podłogi szumu, ale nie jest zerem — przy analizach porównujących różnice rzędu 10⁻⁴ trzeba o nim
    pamiętać. Osiągnięty SNR (`snr_probe`, `snr_final`) liczyć **przed** rzutowaniem.
 
-8. **Charakterystykę szumu zmierzono 0.21 m wyżej, niż idzie produkcja** (wykryte 2026-07-28, patrz §2).
+8. **Sześć scen Replica nie ma sufitu — 46 % lokalizacji jest akustycznie otwartych**
+   (zmierzone 2026-07-29, `measurements/rt60_vs_sabine.py`). Rodzina `frl_apartment_0..5` ma
+   pokrycie sufitem **5–7 %** rzutu, pozostałe 12 scen 87–100 %. Skoro sufitu nie ma w siatce,
+   nie ma go też w symulacji — energia ucieka górą i pogłos jest krótszy.
+
+   | grupa | sceny | pokrycie sufitem | lokalizacji | mediana `sigma_1` |
+   |---|---|---|---|---|
+   | otwarte | `frl_apartment_0..5` | 5–7 % | **807 (46 %)** | 0.04570 |
+   | zamknięte | pozostałe 12 | 87–100 % | 933 | 0.06322 |
+
+   Rozdzielenie podłogi szumu jest **zupełne**: `max(otwarte) = 0.04892 < min(zamknięte) =
+   0.05648`, Mann-Whitney **p = 0.00005**. Mechanizm: krótszy ogon pogłosowy → mniej odbić
+   stochastycznych w oknie 60 ms → mniejsza wariancja Monte Carlo → niższe `N`.
+
+   Konsekwencje: (a) echa z tych scen mają systematycznie inny charakter — to własność zbioru
+   Replica, nie generatora; (b) jedna z trzech scen held-out (`frl_apartment_5`) jest otwarta,
+   dwie zamknięte; (c) niższe `N` w tej rodzinie jest poprawną reakcją reguły adaptacyjnej,
+   nie artefaktem; (d) wzory Sabine'a i Eyringa nie stosują się do tych scen.
+
+9. **Charakterystykę szumu zmierzono 0.21 m wyżej, niż idzie produkcja** (wykryte 2026-07-28, patrz §2).
    Wszystkie eksperymenty w `diagnose_rlr_noise.py` ustawiały pozycję agenta przez
    `pathfinder.snap_point()`, czyli na powierzchni navmesha, a produkcja stawia agenta na `y` z `graph.pkl`
    — o medianę 0.2125 m niżej. Dotyczy to `SIGNAL_10DEG = 0.0644`, rozkładu `N_raw` (mediana 9.83) i tempa
@@ -732,7 +824,7 @@ Artefakty poprzedniej wersji sceny (np. `office_1` wygenerowany starą ścieżk�
 
 4. ~~**Symulacja audio wykonuje się DWA RAZY na render**~~ — **ZAMKNIĘTE 2026-07-28**, patrz §4.3.
    Zdublowane wywołanie usunięte po pomiarowym potwierdzeniu równoważności obu ścieżek; tempo spadło
-   z 0.2606 do 0.1412 s/render, budżet z ~45 h do **≈ 29 h** (przedział 21–38 h, §4).
+   z 0.2606 do 0.1412 s/render, budżet z ~45 h do **≈ 31.9 h** (§4, liczba z pełnego census).
 
    Warta zapamiętania obserwacja poboczna z tamtego pomiaru: **RGB i depth są w tym potoku darmowe** —
    0.2 ms wobec 143 ms na samo audio, czyli 700×. Rozdzielanie obserwacji wizualnych od audio (renderowanie

@@ -10,6 +10,7 @@ miejscu (bloku sciezek w generatorze).
     python my-operations/echo_ctl.py watch        # podglad na zywo
     python my-operations/echo_ctl.py next         # uruchom kolejna scene wg §4.2
     python my-operations/echo_ctl.py start <scena>
+    python my-operations/echo_ctl.py regen <scena>   # od zera, biezacymi parametrami
     python my-operations/echo_ctl.py stop
     python my-operations/echo_ctl.py verify <scena>
 
@@ -301,6 +302,89 @@ def next_scene(states):
     return None
 
 
+def scene_params(scene):
+    """Parametry, ktorymi wygenerowano istniejacy plik sceny. -> dict albo None.
+
+    Sluza porownaniu z parametrami BIEZACYMI: po zmianie N_MAX albo
+    WARMUP_DISCARD stare sceny przestaja byc jednorodne z nowymi, a plik HDF5
+    zapisuje uzyte wartosci w atrybutach — wiec da sie to wykryc, a nie zgadywac.
+    """
+    path = G.scene_h5(scene)
+    if not path.exists():
+        return None
+    try:
+        f = G._open_readonly(path)
+    except Exception:
+        return None
+    try:
+        return {k: (f.attrs[k].item() if hasattr(f.attrs[k], "item") else f.attrs[k])
+                for k in ("n_max", "n_min", "n_probe", "warmup_discard",
+                          "audio_sims_per_render", "signal_10deg", "target_snr")
+                if k in f.attrs}
+    finally:
+        f.close()
+
+
+CURRENT_PARAMS = {"n_max": G.N_MAX, "n_min": G.N_MIN, "n_probe": G.N_PROBE,
+                  "warmup_discard": G.WARMUP_DISCARD, "audio_sims_per_render": 1,
+                  "signal_10deg": G.SIGNAL_10DEG, "target_snr": G.TARGET_SNR}
+
+
+def stale_params(scene):
+    """-> lista (parametr, w pliku, teraz) dla roznic. Pusta = plik aktualny."""
+    old = scene_params(scene)
+    if old is None:
+        return []
+    out = []
+    for k, now in CURRENT_PARAMS.items():
+        if k in old and old[k] != now:
+            out.append((k, old[k], now))
+    return out
+
+
+def regenerate(scene):
+    """Generuje scene OD ZERA biezacymi parametrami (--force). NISZCZY stary plik."""
+    running = find_running()
+    if running:
+        pid, sc = running[0]
+        print(RED(f"  Generacja juz dziala: {sc} (pid {pid})."))
+        return 1
+    if scene not in G.SCENE_ORDER:
+        print(RED(f"  Nieznana scena: {scene}"))
+        return 1
+
+    path = G.scene_h5(scene)
+    diffs = stale_params(scene)
+    if path.exists():
+        st = scene_state(scene, scene_index(), {})
+        print(f"  Istniejacy plik: {st['written']}/{st['expected']} probek, "
+              f"{fmt_size(st['size'])}")
+        if diffs:
+            print(YELLOW("  Parametry w pliku ROZNIA SIE od biezacych:"))
+            for k, was, now in diffs:
+                print(f"    {k:<24} plik: {was!s:<12} teraz: {now}")
+        else:
+            print(DIM("  Parametry w pliku sa zgodne z biezacymi — regeneracja nic nie zmieni."))
+        print(RED(f"\n  --force NADPISZE ten plik od zera. Starego nie da sie odzyskac."))
+        ans = input("  Wpisz nazwe sceny, zeby potwierdzic: ").strip()
+        if ans != scene:
+            print(DIM("  Anulowane."))
+            return 1
+    else:
+        print(DIM(f"  {scene}: pliku nie ma, to bedzie zwykla generacja od zera."))
+
+    G.scene_dir(scene).mkdir(parents=True, exist_ok=True)
+    cmd = [sys.executable, str(GEN_SCRIPT), "--scene", scene, "--force"]
+    with open(G.scene_stdout(scene), "ab") as fh:
+        proc = subprocess.Popen(cmd, stdout=fh, stderr=subprocess.STDOUT,
+                                stdin=subprocess.DEVNULL, start_new_session=True,
+                                cwd=str(G.REPO_ROOT))
+    print(GREEN(f"  Regeneracja {scene} od zera, pid {proc.pid}"))
+    print(DIM(f"  log: {G.scene_log(scene)}"))
+    time.sleep(2)
+    return 0
+
+
 def start(scene, states=None):
     running = find_running()
     if running:
@@ -313,6 +397,14 @@ def start(scene, states=None):
         return 1
 
     partial = G.scene_h5(scene).exists()
+    if partial:
+        diffs = stale_params(scene)
+        if diffs:
+            print(YELLOW(f"  UWAGA: {scene} zaczeto innymi parametrami niz biezace:"))
+            for k, was, now in diffs:
+                print(f"    {k:<24} plik: {was!s:<12} teraz: {now}")
+            print(DIM("  --resume dopisze probki NOWYMI parametrami -> scena bedzie mieszana."))
+            print(DIM("  Dla jednorodnosci uzyj regeneracji: echo_ctl.py regen " + scene))
     cmd = [sys.executable, str(GEN_SCRIPT), "--scene", scene]
     if partial:
         cmd.append("--resume")
@@ -427,7 +519,8 @@ MENU = """
   {p} podgląd na żywo          {v} weryfikuj scenę
   {n} uruchom następną         {t} tabela wszystkich scen
   {s} uruchom wybraną          {d} próbny przebieg (dry-run)
-  {x} zatrzymaj generację      {q} wyjście
+  {x} zatrzymaj generację      {r} REGENERUJ scenę od zera
+  {q} wyjście
 """
 
 
@@ -443,8 +536,12 @@ def dashboard():
             action = "wznowi" if nxt["state"] == "przerwana" else "zacznie"
             print(DIM(f"  następna w kolejce: {BOLD(nxt['scene'])} "
                       f"({nxt['expected']//G.N_ANGLES} lok.) — [n] {action}"))
-        print(MENU.format(p=BOLD("p"), n=BOLD("n"), s=BOLD("s"), x=BOLD("x"),
-                          v=BOLD("v"), t=BOLD("t"), d=BOLD("d"), q=BOLD("q")))
+        stale = [s["scene"] for s in states if s["written"] and stale_params(s["scene"])]
+        if stale:
+            print(YELLOW(f"  sceny wygenerowane STARYMI parametrami: {', '.join(stale)}"
+                         "  — [r] regeneruje"))
+        print(MENU.format(p=BOLD("p"), n=BOLD("n"), s=BOLD("s"), x=BOLD("x"), v=BOLD("v"),
+                          t=BOLD("t"), d=BOLD("d"), r=BOLD("r"), q=BOLD("q")))
         try:
             ch = input("  > ").strip().lower()
         except (EOFError, KeyboardInterrupt):
@@ -470,6 +567,11 @@ def dashboard():
             input(DIM("  [Enter]"))
         elif ch == "x":
             stop()
+            input(DIM("  [Enter]"))
+        elif ch == "r":
+            sc = pick_scene(states, "  scena do REGENERACJI od zera (numer albo nazwa): ")
+            if sc:
+                regenerate(sc)
             input(DIM("  [Enter]"))
         elif ch == "v":
             sc = pick_scene(states)
@@ -513,6 +615,11 @@ def main():
             print(RED("  Podaj scene: echo_ctl.py start <scena>"))
             return 2
         return start(rest[0])
+    if cmd in ("regen", "regenerate"):
+        if not rest:
+            print(RED("  Podaj scene: echo_ctl.py regen <scena>"))
+            return 2
+        return regenerate(rest[0])
     if cmd == "stop":
         return stop(rest[0] if rest else None)
     if cmd == "verify":
