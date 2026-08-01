@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 
 # Ta kolejnosc importow (quaternion przed habitat_sim) jest wymagana przez
-# lokalny patch tego repo - patrz habitat-sim/local_changes.patch / CLAUDE.md,
+# lokalny patch tego repo - patrz habitat-sim/local_changes.patch,
 # inaczej apka konczy sie "free(): invalid pointer" (upstream habitat-sim#1747).
 import quaternion  # noqa: F401
 import habitat_sim

@@ -55,7 +55,7 @@ observations: defaultdict
 `location_id` to **wartość kolumny `id` z `points.txt`**, nie indeks wiersza i nie indeks porządkowy.
 Zweryfikowane: dla każdej sceny zbiór `location_id` z pkl zawiera się w zbiorze `id` z `points.txt`.
 
-Konwersja współrzędnych jest ta sama co zawsze w tym projekcie (patrz CLAUDE.md): `x = a`, `z = -b`.
+Konwersja współrzędnych jest ta sama co zawsze w tym projekcie: `x = a`, `z = -b`.
 Sprawdzone na **wszystkich 18 scenach i wszystkich węzłach grafu naraz**: maksymalna rozbieżność między
 `graph.pkl`'s `point[0] / point[2]` a `points.txt`'s `(a, -b)` wynosi **dokładnie 0.0** dla obu osi w każdej
 scenie — współrzędne są identyczne co do bitu. `points.txt` jest więc w pełni równoważnym (i szerszym) źródłem
@@ -84,7 +84,7 @@ minimalnie inną wartość i rozspójnić dane).
 ## Odtworzony config renderowania
 
 ```python
-import quaternion            # MUSI być przed habitat_sim (CLAUDE.md)
+import quaternion            # MUSI być przed habitat_sim (habitat-sim/local_changes.patch)
 import habitat_sim
 from habitat_sim.utils.common import quat_from_angle_axis
 

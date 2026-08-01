@@ -1,0 +1,16 @@
+{
+  "scene": "office_1",
+  "variant": "original",
+  "class": "szczelna",
+  "pairs": 40,
+  "renders_per_pair": 3,
+  "warmup": 50,
+  "dist_mean_m": 1.513,
+  "rir_s": 1.028,
+  "rt60": {
+    "250": 0.4524,
+    "500": 0.3987,
+    "1000": 0.3583,
+    "2000": 0.3682
+  }
+}

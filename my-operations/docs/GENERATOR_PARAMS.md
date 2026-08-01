@@ -5,8 +5,7 @@ To jest dokument referencyjny dla sesji, w której powstanie generator — **nie
 
 Każda pozycja ma odwołanie do eksperymentu, który ją rozstrzygnął. Surowe wyniki:
 `outputs/diagnose_rlr_noise_out/diagnostics_report.json` (klucz podany przy każdej pozycji).
-Konteksty: `docs/PKL_FORMAT.md` (kamera i zbiór lokalizacji), `docs/REPLICA_MATERIALS.md` (materiały akustyczne),
-`CLAUDE.md` (środowisko, pułapki GPU).
+Konteksty: `docs/PKL_FORMAT.md` (kamera i zbiór lokalizacji), `docs/REPLICA_MATERIALS.md` (materiały akustyczne).
 
 ---
 
@@ -201,6 +200,39 @@ N_MIN, N_MAX = 6, 64
 `RMSE(A, B) = sqrt(2)·sigma_N` — stąd dzielenie przez `sqrt(2)`. Nigdy nie porównywać surowych RMSE dwóch
 zaszumionych estymat bez tej dekompozycji (błąd popełniony raz w Bloku B).
 
+#### Skąd `TARGET_SNR = 3.5` — uczciwie: to wybór projektowy, nie wielkość wyprowadzona
+
+**Co ten próg znaczy:** `SIGNAL_10DEG` to RMSE między spektrogramami oddalonymi o 10°, czyli **najmniejsza
+różnica, jaką zbiór ma w ogóle reprezentować** (krok siatki 36 orientacji). `sigma_N = sigma_1/sqrt(N)` to
+resztkowy szum Monte Carlo po uśrednieniu. Warunek `SIGNAL_10DEG / sigma_N >= 3.5` mówi więc: *różnica
+między sąsiednimi orientacjami ma być 3.5× większa niż szum renderowania*.
+
+**Dlaczego próg musi być wyraźnie powyżej 1 — to jest twarda przesłanka.** Zmierzone `sigma_1` na
+lokalizację: **0.0258–0.1327** w wariancie `main` i **0.0383–0.1506** w `patched`, przy sygnale 10°
+równym 0.0644. Przy **pojedynczym** renderze szum w najgorszych lokalizacjach jest więc **2.06×
+(`main`) / 2.34× (`patched`) większy od sygnału**, który ma być mierzony. Bez uśredniania sąsiednie
+orientacje byłyby nierozróżnialne i zbiór 36-orientacyjny niósłby w dużej części szum zamiast
+informacji kątowej. **Jakieś** uśrednianie jest zatem konieczne, a nie opcjonalne.
+
+**Ale konkretna wartość 3.5 nie ma w tym repozytorium żadnego wyprowadzenia.** Dokument definiuje
+względem niej wszystko inne (progi `N_MAX`, budżet, sformułowanie z §3.5), sama liczba jest jednak
+przyjęta, a nie policzona. Przy pisaniu pracy należy ją opisać jako **wybór konserwatywny**, nie jako
+wynik. Koszt jest kwadratowy (`N ~ SNR^2`) — zmierzone na gotowym zbiorze średnie `N`:
+
+| `TARGET_SNR` | średnie `N` (main) | względem 3.5 |
+|---|---|---|
+| 2.0 | 6.35 | 0.52× |
+| **3.5** | **12.13** | **1.00×** |
+| 5.0 | 23.40 | 1.93× |
+
+**Jak wyszło w praktyce** (`snr_final` po dorenderowaniu, oba warianty): mediana 3.72 / 3.66, a **79 % / 94 %
+próbek leży w przedziale 3.5–4.0** i **0.0 % powyżej 6**. Reguła celuje dokładnie w próg i go nie
+przekracza — to zamierzone (§4), ale znaczy też, że zbiór **nie ma zapasu**: obniżenie progu wymagałoby
+regeneracji, a nie odrzucenia części renderów.
+
+Zastrzeżenie do samego pomiaru: `snr_final` liczy ten sam estymator połówkowy, który ma sufit dokładności
+4–6 % (§2.6 raportu). „≥ 3.5" znaczy więc „≥ 3.5 według estymatora o ~5 % rozrzutu".
+
 #### Dlaczego `N_MAX = 40`, a nie 24 (rewizja 2026-07-26 — HISTORYCZNE, patrz niżej)
 
 Pierwotne `N_MAX = 24` odpowiada progowi `sigma_1 = sqrt(24)·0.0644/3.5 = 0.09014`. Przegląd wszystkich
@@ -212,7 +244,7 @@ dotychczasowych pomiarów pokazał, że ten próg jest ustawiony **dokładnie na
 - ale na poziomie pojedynczych orientacji (`noise_floor_orientation`, 72 pomiary) najgorsza wypada przy
   `sigma_1 = 0.09006`, czyli **0.09 % poniżej progu obcięcia**. Margines jest zerowy.
 
-Rozstrzygający jest jednak argument spoza tej próbki: `CLAUDE.md` dokumentuje z charakteryzacji z 07-20
+Rozstrzygający jest jednak argument spoza tej próbki: charakteryzacja z 07-20 dokumentuje
 zakres szumu render-do-renderu **0.03–0.16** RMSE między dwoma pojedynczymi renderami, czyli
 `sigma_1` do `0.16/sqrt(2) = 0.1131` → **`N_raw` do 38**. `N_MAX = 24` obcinałby takie pozycje o ~40 %
 wymaganej liczby renderów, i to po cichu.
@@ -494,7 +526,8 @@ stwierdzone pomiarem, nie założeniem.
 - **Jeden długo żyjący `Simulator` na scenę.** Restart odtwarza identyczną sekwencję RNG, więc **nigdy nie
   restartować per render** (`e1`, `e1_extended`).
 - **Świeży proces OS na scenę** (18 procesów). Powyżej ~30 konstrukcji `Simulator` w jednym procesie karta
-  zawiesza się sprzętowo — procedura odzysku przez PCI FLR w `CLAUDE.md`.
+  zawiesza się sprzętowo. Odzysk wymaga prawdziwego resetu PCI (`echo 1 > /sys/bus/pci/devices/<id>/reset`
+  po wyładowaniu modułów `nvidia*`); `nvidia-smi -r` ani remove+rescan nie wystarczają.
 - **Bez rotacji instancji w obrębie sceny.** `gpu_memory_scale`: 3000 renderów w jednej instancji, RSS
   dokładnie płaskie (1268 MiB, +0.0 MiB/1000), GPU bez trendu (892–984 MiB przy rozrzucie pomiaru 19.5 MiB),
   czas renderu płaski ~0.29 s. Największa scena to `apartment_0` ≈ 76 tys. renderów w jednej instancji.
@@ -716,6 +749,51 @@ Artefakty poprzedniej wersji sceny (np. `office_1` wygenerowany starą ścieżk�
 **w katalogu swojej sceny** z sufiksem opisującym różnicę: `office_1_2sims.h5`, `generate_2sims.log`,
 `decisions_2sims.jsonl`, `verify_2sims/`.
 
+### 4.5 Dwa warianty datasetu: `main` i `patched` (dodane 2026-07-30)
+
+Generator i pulpit przyjmują `--variant`. Warianty różnią się **wyłącznie geometrią sceny** —
+wszystkie parametry z §1, reguła adaptacyjnego `N`, potok spektrogramu i zbiór lokalizacji są
+identyczne.
+
+| | `main` (domyślny) | `patched` |
+|---|---|---|
+| geometria | oryginalna Replica | dziury domknięte (`measurements/patch_scene_holes.py`) |
+| scen | **18** | **10** |
+| lokalizacji | 1740 | 1224 |
+| próbek | 62 640 | 44 064 |
+| katalog | `outputs/echoes_36deg/` | `outputs/echoes_36deg_patched/` |
+| porównywalność z VisualEchoes | **tak** (RGB/depth 99.98 % pikseli bit-identycznych) | nie |
+
+**Dlaczego `patched` ma tylko 10 scen.** Dziurę miało dokładnie 10 scen; pozostałe 8 jest
+akustycznie szczelnych (§5 ogr. 10), więc nie ma w nich czego domykać i ich siatka jest
+w obu wariantach **tym samym plikiem**. Przy `threadCount = 1` dałyby echa bit-identyczne,
+więc generowanie ich po raz drugi to czysta strata czasu GPU. **Do treningu wariant dodatkowy
+składa się z tych 10 scen plus 8 scen szczelnych z wariantu głównego.** `echo_ctl.py` odmawia
+uruchomienia sceny szczelnej w wariancie `patched` i mówi dlaczego.
+
+**Rozdzielenie wariantów.** Osobne katalogi wyjściowe, osobny cache indeksu scen, osobne
+statusy. Każdy plik HDF5 ma atrybut **`variant`**, a `scene_id` wskazuje faktycznie użytą
+siatkę — pliki obu wariantów mają te same nazwy i wymiary, więc bez tego atrybutu po
+skopiowaniu na maszynę treningową nie dałoby się ich rozróżnić. Pulpit ostrzega, jeśli
+generacja działa w innym wariancie niż oglądany (GPU jest jedno).
+
+**Po co wariant dodatkowy.** Żeby sprawdzić empirycznie, czy domknięcie scen poprawia uczenie
+predykcji głębi z echa. Uzasadnienie fizyczne łaty jest zmierzone i **niezależne od
+jakiegokolwiek baseline'u** (§5 ogr. 10, `RAPORT_SESJI` §2.13–§2.15): ucieczka promieni
+22 % → 0.00 %, zgodność z Eyringiem 0.41× → 1.00×, wysokość pomieszczenia zgodna ze scenami
+szczelnymi. **Zastrzeżenie, które musi iść razem z każdym wynikiem z tego wariantu:** sceny
+załatane są mierzalnie **bardziej wyidealizowane** niż nienaruszone skany (rozdzielenie
+zupełne wobec scen szczelnych, Mann-Whitney p = 0.0032), bo łata jest idealnie płaską,
+jednorodną płaszczyzną z jednego materiału — dokładnie tym, co zakłada model dyfuzyjny.
+
+**Wariant `patched` wymaga wcześniejszego wygenerowania siatek** (742 MB, poza gitem):
+
+```
+python my-operations/measurements/patch_scene_holes.py --all
+```
+
+---
+
 ## 5. Ograniczenia do wypunktowania w pracy
 
 1. **Echa pochodzą z innego silnika niż wszystkie opublikowane baseline'y** (SoundSpaces 2.0 on-the-fly vs 1.0
@@ -723,6 +801,22 @@ Artefakty poprzedniej wersji sceny (np. `office_1` wygenerowany starą ścieżk�
    porównanie to 36 vs 4 orientacje **wewnątrz naszego datasetu**, z baseline'em 4-orientacyjnym wygenerowanym
    z **naszych** renderów — nigdy odczytanym z tabeli Gao. Kąty 0/90/180/270 leżą w siatce co 10°, więc jedna
    generacja daje oba warunki.
+
+   **Zmierzone 2026-07-30 (`measurements/cross_engine_rt60.py`), nie już tylko ostrożność.** Na **6 scenach
+   Replica o całej geometrii** (gdzie nie ma czego łatać ani dobierać, więc pomiar nie ma wolnych parametrów)
+   RT60 z naszego SS 2.0 wobec prekomputowanych RIR-ów SS 1.0 daje:
+
+   | | wartość |
+   |---|---|
+   | średnia geometryczna | **0.95×** — silniki są nieobciążone względem siebie |
+   | geometryczne SD | **1.44×** — czyli ±44 % na pojedynczej scenie |
+   | zakres | 0.57× (`office_0`) – 1.65× (`hotel_0`) |
+
+   Rozrzut nie jest artefaktem estymatora: dla każdej scenie wszystkie 80 par SS 1.0 dało skończone RT60.
+   **Cytować to jako uzasadnienie porównania wewnętrznego** — jest mocniejsze niż argument z ostrożności.
+   Jednocześnie oznacza, że SS 1.0 **nie może służyć jako kryterium poprawności** dla pojedynczej scenie:
+   przy takim rozrzucie zarówno `frl_apartment_2` bez sufitu (0.49×), jak i załatana (1.36×) mieszczą się
+   w rozrzucie scen o nienaruszonej geometrii. Szczegóły: `RAPORT_SESJI_2026-07-26_29.md` §2.14.
 2. **Obciążenie od liczby promieni zależy od orientacji, ale nieistotnie**: 2.1 % sygnału 10°
    (`e2_bias_orientation`). Struktura jest realna (harmoniczna k=2, okres 180°, ta sama w dwóch scenach), tylko
    ~47× mniejsza od mierzonego efektu.
@@ -796,6 +890,11 @@ Artefakty poprzedniej wersji sceny (np. `office_1` wygenerowany starą ścieżk�
    dwie zamknięte; (c) niższe `N` w tej rodzinie jest poprawną reakcją reguły adaptacyjnej,
    nie artefaktem; (d) wzory Sabine'a i Eyringa nie stosują się do tych scen.
 
+   > **Uściślone przez ograniczenie 10.** Podział „6 otwartych / 12 zamkniętych" pochodzi
+   > z pokrycia sufitem — heurystyki geometrycznej. Bezpośredni pomiar ucieczki promieni
+   > pokazał, że grup jest **trzy**, a cztery ze scen nazwanych tu „zamkniętymi" nie są
+   > akustycznie szczelne. Punkt (b) jest w tej formie mylący.
+
 9. **Charakterystykę szumu zmierzono 0.21 m wyżej, niż idzie produkcja** (wykryte 2026-07-28, patrz §2).
    Wszystkie eksperymenty w `diagnose_rlr_noise.py` ustawiały pozycję agenta przez
    `pathfinder.snap_point()`, czyli na powierzchni navmesha, a produkcja stawia agenta na `y` z `graph.pkl`
@@ -810,6 +909,66 @@ Artefakty poprzedniej wersji sceny (np. `office_1` wygenerowany starą ścieżk�
    w `SIGNAL_10DEG` przenosi się na `N` kwadratowo, ale weryfikacja po fakcie (§3.4) i tak koryguje próbki,
    które nie dobiją progu. Mimo to: jeśli `SIGNAL_10DEG` trafia do pracy jako liczba, należy go przemierzyć
    na produkcyjnej geometrii — jest to ~40 renderów na pozycję.
+
+10. **Akustycznie szczelnych jest tylko 8 z 18 scen — 516 z 1740 lokalizacji (29.7 %)**
+    (zmierzone 2026-07-29, `measurements/ray_escape_survey.py`). Ograniczenie 8 opierało się
+    na pokryciu sufitem; ta liczba pochodzi z bezpośredniego pomiaru **ułamka promieni
+    uciekających ze sceny** — wielkości, którą autorzy silnika wskazują jako właściwą miarę
+    domknięcia (SoundSpaces 2.0, arXiv 2206.08312; API `RLRA_GetIndirectRayEfficiency()`
+    istnieje w naszej kopii biblioteki, ale habitat-sim go nie eksponuje). Metoda zastępcza:
+    równoprostokątny sensor głębi w punkcie słuchacza, 256 × 512 kierunków, udział kierunków
+    bez trafienia ważony kątem bryłowym. Kontrola negatywna wbudowana — sceny szczelne dają
+    ≤ 0.09 % w **każdej** lokalizacji.
+
+    **Sceny szczelne — te można generować bez zastrzeżeń akustycznych:**
+
+    | scena | lokalizacji | mediana ucieczki | max |
+    |---|---|---|---|
+    | `apartment_0` | 211 | 0.00 % | 0.01 % |
+    | `office_4` *(held-out)* | 76 | 0.00 % | 0.01 % |
+    | `room_0` | 57 | 0.00 % | 0.01 % |
+    | `hotel_0` | 48 | 0.00 % | 0.01 % |
+    | `room_2` | 47 | 0.00 % | 0.01 % |
+    | `room_1` | 35 | 0.00 % | 0.00 % |
+    | `office_0` | 26 | 0.02 % | 0.09 % |
+    | `office_1` *(walidacyjna)* | 16 | 0.00 % | 0.01 % |
+    | **razem** | **516** | | |
+
+    **Pozostałe 10 scen — dwa różne mechanizmy przecieku:**
+
+    | grupa | sceny | lokalizacji | mediana | max | lok. > 10 % | gdzie dziura |
+    |---|---|---|---|---|---|---|
+    | nieszczelne bokiem | `apartment_1`(176), `apartment_2`(142), `office_3`(62), `office_2`(37) | 417 (24.0 %) | 0.53–3.60 % | **48.3 %** | 0–36 % | horyzont i niżej |
+    | bez sufitu | `frl_apartment_0..5` | 807 (46.4 %) | 21.8–23.6 % | 29.0 % | 89–93 % | **tylko** nad horyzontem |
+
+    Rozkład kątowy rozdziela mechanizmy bezbłędnie: w `frl_apartment_*` pasmo > 60° elewacji
+    ucieka w 99–100 %, a przy horyzoncie w 0.0 %; w czterech pozostałych scenach dokładnie
+    odwrotnie (> 60°: 0.0 %; ucieczka w pasmach 10–30° i −10…10°, czyli przez przejścia, okna,
+    niezeskanowane fragmenty ścian).
+
+    **Najważniejsza korekta wobec ograniczenia 8:** `apartment_2` jest sceną **held-out**
+    i ma 100 % pokrycia sufitem, ale **36 % jej lokalizacji traci ponad 10 % kąta bryłowego**
+    (maksimum 41 %). Podobnie `apartment_1` (19 % lokalizacji > 10 %, maks. 48 %) i `office_2`
+    (16 %). Jedynie `office_3` jest graniczne i praktycznie nieszkodliwe (maks. 4.5 %).
+    `sigma_1` tego nie wykryło, bo przeciek boczny dotyka mniejszości lokalizacji w scenie
+    i nie przesuwa mediany sceny — rozdzielenie `sigma_1` z ograniczenia 8 pozostaje prawdziwe,
+    ale jest **grubsze**, niż zakładano.
+
+    Skład podzbiorów: held-out ma dokładnie po jednej scenie każdego typu (`office_4` /
+    `apartment_2` / `frl_apartment_5`), ale proporcje nie odpowiadają całości — sceny
+    nieszczelne bokiem to 38.8 % held-outu wobec 24.0 % zbioru.
+
+    Dane: `outputs/measurements/ray_escape/` (wersjonowane). Omówienie i konsekwencje dla
+    pracy: `OBSERWACJE_METODOLOGICZNE.md` §1 („Uściślenie 2026-07-29").
+
+    **Nieszczelność jest usuwalna — zmierzone, ale NIE stosowane w wariancie głównym.**
+    Każda z 10 nieszczelnych scen ma 1–2 dziury o polu > 1 m² (reszta to brzegi mebli);
+    `measurements/patch_scene_holes.py` domyka je wszystkie, sprowadzając ucieczkę promieni
+    do 0.00–0.24 %. Na `frl_apartment_2` podnosi to RT60 z 0.48× do 0.96× wartości
+    SoundSpaces 1.0 — ale przy **dopasowanym** materiale sufitu (semantycznie poprawny gips
+    daje 1.48×), więc nie jest to walidacja. **Generacja produkcyjna idzie na geometrii
+    ORYGINALNEJ**; łatanie jest opisane jako zmierzona opcja i ewentualny wariant dodatkowy.
+    Szczegóły: `RAPORT_SESJI_2026-07-26_29.md` §2.13.
 
 ---
 

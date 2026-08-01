@@ -20,6 +20,7 @@ from .params import (ANGLES_DEG, AVERAGING_DOMAIN, CAMERA_HFOV, CAMERA_RESOLUTIO
                      SENSOR_HEIGHT, SIGNAL_10DEG, TARGET_SNR, THREAD_COUNT, WARMUP_DISCARD)
 from .paths import (CHIRP_PATH, LOCATIONS_PKL, MATERIAL_CONFIG, REPO_ROOT, SCRIPT_PATH,
                     SPEC_DOC, scene_mesh, scene_progress)
+from . import paths
 
 SPEC_SHAPE = (2, 257, 166)
 CLAMPED_DTYPE = "S4"  # b"", b"min", b"max" — §3.4.1 definiuje `clamped` jako str
@@ -102,6 +103,11 @@ def build_file_attrs(scene, loc_ids):
         "camera_resolution": list(CAMERA_RESOLUTION),
         "camera_hfov_deg": CAMERA_HFOV,
         "scene_id": str(scene_mesh(scene).relative_to(REPO_ROOT)),
+        # Wariant datasetu zapisany JAWNIE, a nie tylko domyslnie przez sciezke
+        # w `scene_id`: pliki obu wariantow maja te same nazwy i te same wymiary,
+        # wiec bez tego atrybutu po skopiowaniu na maszyne treningowa nie da sie
+        # ich rozroznic. `main` = geometria oryginalna, `patched` = domknieta.
+        "variant": paths.VARIANT,
         "load_semantic_mesh": True,
         "create_renderer": True,
         "enable_physics": False,

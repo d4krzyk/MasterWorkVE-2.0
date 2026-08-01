@@ -57,7 +57,8 @@ import habitat_sim  # noqa: F401
 
 from echo_core import audio, spectrogram
 from echo_core.params import INDIRECT_RAY_COUNT, SENSOR_HEIGHT, THREAD_COUNT, WARMUP_DISCARD
-from echo_core.paths import MATERIAL_CONFIG, OUT_ROOT, SCENE_ROOT, scene_mesh
+from echo_core.paths import (MATERIAL_CONFIG, OUT_ROOT, REPO_ROOT, SCENE_ROOT,
+                             scene_mesh)
 from echo_core.scenes import load_scene_locations
 
 BANDS = (125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0)
@@ -84,14 +85,30 @@ def _header_counts(buf):
     return len(head), counts
 
 
-def scene_geometry(scene):
+def mesh_path(scene, patched=False):
+    """-> sciezka do siatki: oryginalnej albo ZALATANEJ (patch_scene_holes.py).
+
+    Wariant zalatany MUSI byc uzyty po obu stronach rownania: i do geometrii
+    (dolozone ~90 m2 sufitu wchodzi do S w Sabine), i do renderowania. Podanie go
+    tylko z jednej strony dawaloby wynik bez sensu.
+    """
+    if patched:
+        p = REPO_ROOT / "outputs/patched_scenes" / scene / "habitat/mesh_semantic.ply"
+        if not p.exists():
+            raise SystemExit(f"brak zalatanej sceny {p}\n"
+                             f"najpierw: patch_scene_holes.py --scene {scene}")
+        return p
+    return SCENE_ROOT / scene / "habitat/mesh_semantic.ply"
+
+
+def scene_geometry(scene, patched=False):
     """-> (pole per kategoria [m2], rzut [m2], wysokosc [m], pokrycie sufitem [0-1])
 
     Parser identyczny z tools/replica_semantic_area.py: Replica zapisuje same
     quady o stalej dlugosci rekordu, wiec da sie je wczytac jednym frombuffer.
     """
     sd = SCENE_ROOT / scene
-    buf = (sd / "habitat/mesh_semantic.ply").read_bytes()
+    buf = mesh_path(scene, patched).read_bytes()
     off, counts = _header_counts(buf)
     nv, nf = counts["vertex"], counts["face"]
     verts = np.frombuffer(buf, dtype=VERT_DTYPE, count=nv, offset=off)
@@ -240,8 +257,8 @@ def t60_from_band_energy(e, fs, lo_db=-25.0, hi_db=-45.0):
 
 
 class _Args:
-    def __init__(self, scene):
-        self.scene = str(scene_mesh(scene))
+    def __init__(self, scene, patched=False):
+        self.scene = str(mesh_path(scene, patched))
         self.sensor_height = SENSOR_HEIGHT
         self.material_config = str(MATERIAL_CONFIG)
         self.out_dir = str(OUT_ROOT / "_measurement_scratch")
@@ -250,7 +267,7 @@ class _Args:
         self.gpu_device_id = 0
 
 
-def measure_band_energy(scene, m, warmup):
+def measure_band_energy(scene, m, warmup, patched=False):
     """-> (energia per pasmo {fc: h_f^2(t) usrednione}, fs, liczba renderow, dlugosc)
 
     Kolejnosc operacji jest istotna: dla KAZDEGO renderu z osobna filtrujemy
@@ -264,7 +281,7 @@ def measure_band_energy(scene, m, warmup):
     mc = str(MATERIAL_CONFIG)
     fs = spectrogram.SAMPLE_RATE
     sos = {fc: octave_sos(fc, fs) for fc in BANDS}
-    sim = audio.build_simulator(_Args(scene))
+    sim = audio.build_simulator(_Args(scene, patched))
     try:
         for _ in range(warmup):
             audio.phase3_echolocation(sim, pos, 0.0, mc, run_simulation=False)
@@ -293,6 +310,8 @@ def main():
     # Rozgrzewka moze byc mala: wplywa na SZUM pojedynczego renderu, a tu
     # usredniamy energie z M renderow i mierzymy NACHYLENIE zaniku, nie wariancje.
     ap.add_argument("--warmup", type=int, default=50)
+    ap.add_argument("--patched", action="store_true",
+                    help="uzyj siatek zalatanych z outputs/patched_scenes/")
     args = ap.parse_args()
 
     table, default = absorption_table()
@@ -301,14 +320,15 @@ def main():
 
     summary = []
     for si, scene in enumerate(args.scenes, 1):
-        by_cat, floor_area, height, ceil_ratio = scene_geometry(scene)
+        by_cat, floor_area, height, ceil_ratio = scene_geometry(scene, args.patched)
         closed = ceil_ratio >= 0.85
         volume = floor_area * height
         rt_sab, rt_eyr, S, alpha_bar = sabine_eyring(by_cat, volume, table, default)
         rt_def, _, _, alpha_def = sabine_eyring(by_cat, volume, table, default,
                                                 force_default=True)
 
-        bands, fs, n, L = measure_band_energy(scene, args.renders, args.warmup)
+        bands, fs, n, L = measure_band_energy(scene, args.renders, args.warmup,
+                                              args.patched)
         meas, early, dyns = [], [], []
         for fc in BANDS:
             rt, dyn, ok = t60_from_band_energy(bands[fc], fs)            # pozne: -25..-45

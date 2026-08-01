@@ -1,0 +1,42 @@
+{
+  "scene": "office_1",
+  "control_only": true,
+  "pairs": 40,
+  "renders_per_pair": 5,
+  "warmup": 50,
+  "dist_mean_m": 1.513,
+  "dist_range_m": [
+    1.0,
+    2.693
+  ],
+  "indirect_ray_count": 500,
+  "bands": [
+    {
+      "band_hz": 250,
+      "orig": 0.4564,
+      "ss1": 0.418,
+      "ratio_orig_ss1": 1.092
+    },
+    {
+      "band_hz": 500,
+      "orig": 0.404,
+      "ss1": 0.417,
+      "ratio_orig_ss1": 0.9689
+    },
+    {
+      "band_hz": 1000,
+      "orig": 0.3565,
+      "ss1": 0.396,
+      "ratio_orig_ss1": 0.9002
+    },
+    {
+      "band_hz": 2000,
+      "orig": 0.3665,
+      "ss1": 0.39,
+      "ratio_orig_ss1": 0.9397
+    }
+  ],
+  "median_ratio_to_ss1_500_2k": {
+    "orig": 0.9397
+  }
+}

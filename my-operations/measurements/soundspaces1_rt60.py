@@ -82,23 +82,60 @@ def t60(h, fs, fc, lo_db=-5.0, hi_db=-25.0):
     return float(-60.0 / slope) if slope < 0 else np.nan
 
 
-def scene_rt60(scene, n_pairs, rng):
-    """-> (mediana RT60 per pasmo, liczba uzytych par, fs, dlugosc RIR [s])"""
+def node_xz(scene):
+    """loc_id -> (x, z) w metrach. Nazwy plikow SS1.0 to <odbiornik>_<zrodlo>."""
+    import pandas as pd
+    from echo_core.paths import points_txt
+    df = pd.read_csv(points_txt(scene), sep="\t", header=None, names=["id", "a", "b", "c"])
+    return {int(r.id): (float(r.a), -float(r.b)) for r in df.itertuples()}
+
+
+def scene_rt60(scene, n_pairs, rng, dmin=1.0, dmax=3.0):
+    """-> (mediana RT60 per pasmo, liczba par, fs, dlugosc RIR [s], plikow, staty odleglosci)
+
+    KLUCZOWE: pary sa filtrowane po ODLEGLOSCI zrodlo-odbiornik. Bez tego
+    porownanie miedzy scenami jest obciazone — w `office_1` (16 wezlow) losowe
+    pary maja mediane 1.12 m, w `frl_apartment_2` (125 wezlow) 4.03 m. Wieksza
+    odleglosc oslabia dzwiek bezposredni wzgledem pola poglosowego, wiec okno
+    dopasowania T20 (-5..-25 dB) trafia w INNA czesc krzywej zaniku. Mierzylibysmy
+    wtedy roznice geometrii probkowania, a nie roznice pogłosu.
+
+    Czasu dotarcia nie da sie do tego uzyc: RIR-y SS 1.0 sa WYROWNANE CZASOWO
+    (we wszystkich plikach `office_1` pierwszy impuls wypada w tej samej probce),
+    wiec odleglosc liczymy z wspolrzednych wezlow w points.txt.
+    """
     import soundfile as sf
+    import numpy as _np
     d = RIR_ROOT / scene
     if not d.is_dir():
         raise FileNotFoundError(
             f"brak danych SoundSpaces 1.0 dla sceny {scene}: {d}\n"
             f"  pobierz:  cd sound-spaces/data && wget "
             f"http://dl.fbaipublicfiles.com/SoundSpaces/binaural_rirs/replica/{scene}.tar.gz "
-            f"&& tar xzf {scene}.tar.gz")
+            f"&& tar xzf {scene}.tar.gz --strip-components=1")
     angle_dirs = sorted(p for p in d.iterdir() if p.is_dir())
     if not angle_dirs:
         raise FileNotFoundError(f"{d} nie zawiera podkatalogow katow")
-    files = sorted(angle_dirs[0].glob("*.wav"))
-    if not files:
+    all_files = sorted(angle_dirs[0].glob("*.wav"))
+    if not all_files:
         raise FileNotFoundError(f"{angle_dirs[0]} nie zawiera plikow .wav")
-    pick = rng.sample(files, min(n_pairs, len(files)))
+
+    P = node_xz(scene)
+    banded = []
+    for f in all_files:
+        try:
+            r_, s_ = f.stem.split("_")
+            (x1, z1), (x2, z2) = P[int(r_)], P[int(s_)]
+        except (ValueError, KeyError):
+            continue
+        dist = float(_np.hypot(x1 - x2, z1 - z2))
+        if dmin <= dist <= dmax:
+            banded.append((f, dist))
+    if not banded:
+        raise RuntimeError(f"{scene}: brak par w przedziale {dmin}-{dmax} m")
+    sel = rng.sample(banded, min(n_pairs, len(banded)))
+    pick = [f for f, _ in sel]
+    dstats = _np.array([dd for _, dd in sel])
 
     per_band, fs, lens = {fc: [] for fc in BANDS}, None, []
     for f in pick:
@@ -114,7 +151,8 @@ def scene_rt60(scene, n_pairs, rng):
                 per_band[fc].append(v)
     med = {fc: (float(np.median(per_band[fc])) if per_band[fc] else np.nan) for fc in BANDS}
     n_ok = max(len(per_band[fc]) for fc in BANDS)
-    return med, n_ok, fs, (float(np.median(lens)) if lens else 0.0), len(files)
+    return (med, n_ok, fs, (float(np.median(lens)) if lens else 0.0), len(all_files),
+            (float(dstats.mean()), float(dstats.min()), float(dstats.max()), len(banded)))
 
 
 def main():
@@ -123,12 +161,17 @@ def main():
     ap.add_argument("--scenes", nargs="+", default=list(DEFAULT_SCENES))
     ap.add_argument("--pairs", type=int, default=N_PAIRS)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--dmin", type=float, default=1.0, help="min. odleglosc zrodlo-odbiornik [m]")
+    ap.add_argument("--dmax", type=float, default=3.0, help="max. odleglosc [m]")
     args = ap.parse_args()
     rng = random.Random(args.seed)
 
     # nasze wartosci (SoundSpaces 2.0), do porownania KONTRASTU, nie liczb
-    OURS = {"office_1": (23, 0.401, "zamknieta"),
-            "frl_apartment_2": (191, 0.263, "OTWARTA"),
+    # RT60 zmierzone NASZYM silnikiem przy ZRODLE ODDALONYM O ~2 m, czyli
+    # w geometrii SoundSpaces 1.0 (kontrola: eliminuje wplyw wspollokowania
+    # zrodla z odbiornikiem, ktore w echolokacji tworzy wielonachyleniowy zanik).
+    OURS = {"office_1": (23, 0.358, "zamknieta"),
+            "frl_apartment_2": (191, 0.186, "OTWARTA"),
             "frl_apartment_0": (180, 0.195, "OTWARTA"),
             "apartment_0": (379, 0.771, "zamknieta"),
             "room_0": (83, 0.463, "zamknieta"),
@@ -139,15 +182,18 @@ def main():
     res = {}
     for s in args.scenes:
         try:
-            med, n_ok, fs, dur, n_files = scene_rt60(s, args.pairs, rng)
+            med, n_ok, fs, dur, n_files, dst = scene_rt60(
+                s, args.pairs, rng, args.dmin, args.dmax)
         except FileNotFoundError as e:
             print(f"  {s}: {e}\n")
             continue
         res[s] = med
         v, ours, typ = OURS.get(s, (None, None, "?"))
         print(f"  {s}  ({typ}, V = {v} m3)")
-        print(f"    plikow w katalogu: {n_files}, uzytych par: {n_ok}, "
-              f"fs = {fs} Hz, dlugosc RIR ~{dur:.2f} s")
+        print(f"    plikow w katalogu: {n_files}, par w przedziale "
+              f"{args.dmin}-{args.dmax} m: {dst[3]}, uzytych: {n_ok}")
+        print(f"    odleglosc zrodlo-odbiornik: srednia {dst[0]:.2f} m "
+              f"(zakres {dst[1]:.2f}-{dst[2]:.2f}),  fs = {fs} Hz, RIR ~{dur:.2f} s")
         print(f"    {'pasmo':>8}{'RT60 SS1.0':>13}")
         for fc in BANDS:
             m = f"{med[fc]:.3f} s" if np.isfinite(med[fc]) else "n/d"
@@ -181,14 +227,23 @@ def main():
     print(f"  stosunek objetosci otwarte/zamkniete: {vo/vc:.1f}x")
     if o1 < c1:
         print(f"\n  ==> SCENY OTWARTE MAJA KROTSZY POGLOS mimo {vo/vc:.0f}x wiekszej objetosci.")
-        print(f"      To ta sama sygnatura co w naszych danych. SoundSpaces 1.0 uzywal")
-        print(f"      WIEC TEJ SAMEJ, OTWARTEJ GEOMETRII — otwartosc scen jest wlasnoscia")
-        print(f"      zbioru Replica dzielona z literatura, nie osobliwoscia tej pracy.")
+        print(f"      To ta sama sygnatura co w naszych danych — SoundSpaces 1.0 uzywal")
+        print(f"      tej samej, otwartej geometrii.")
     else:
-        print(f"\n  ==> Sceny otwarte maja DLUZSZY poglos, zgodnie z objetoscia.")
-        print(f"      To sugeruje, ze potok SoundSpaces 1.0 DOMYKAL objetosc przed")
-        print(f"      symulacja. Nasze dane roznia sie wtedy strukturalnie od baseline'ow")
-        print(f"      i trzeba to opisac jako realna roznice, nie przypis.")
+        print(f"\n  ==> OBSERWACJA: w danych SoundSpaces 1.0 scena otwarta ma DLUZSZY")
+        print(f"      poglos, zgodnie z objetoscia — czyli NIE wykazuje sygnatury braku")
+        print(f"      sufitu. Nasze dane wykazuja ja nawet po odtworzeniu ich geometrii")
+        print(f"      zrodla (kontrola: zrodlo oddalone o ~2 m, nie wspollokowane).")
+        print(f"\n      Zestawienie (RT60 @ 1 kHz, ta sama geometria zrodlo-odbiornik):")
+        print(f"        {'scena':<20}{'nasze SS2.0':>13}{'SS 1.0':>10}")
+        for s in cl + op:
+            print(f"        {s:<20}{OURS[s][1]:>13.3f}{res[s][1000.0]:>10.3f}")
+        print(f"\n      Silniki zgadzaja sie na scenie ZAMKNIETEJ i rozjezdzaja sie")
+        print(f"      wylacznie na OTWARTEJ. Wiodaca hipoteza: potok SoundSpaces 1.0")
+        print(f"      domykal objetosc albo uzywal modelu nieczulego na otwarcie.")
+        print(f"      Dowodu wprost brak — kod renderujacy nie zostal opublikowany.")
+        print(f"      Dla pracy: to REALNA roznica strukturalna wobec baseline'ow,")
+        print(f"      dotyczaca 46 % lokalizacji, a nie przypis.")
     return 0
 
 

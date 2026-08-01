@@ -210,7 +210,7 @@ Uzasadnienia grup, które nie są oczywiste:
 **2.09 % powierzchni (491 obiektów) ma `class_id: -1`** i **zawsze** dostanie materiał domyślny,
 niezależnie od zawartości JSON-a. Te obiekty mają w habitat-sim niezerowy `SemanticObject`, ale
 **null `category()`** (to jest źródło SIGSEGV-a naprawionego lokalną modyfikacją (4) — patrz
-`CLAUDE.md`), więc do RLR nie trafia żadna nazwa kategorii.
+`habitat-sim/local_changes.patch`), więc do RLR nie trafia żadna nazwa kategorii.
 
 Rozkład jest bardzo nierówny między scenami — od 0.48 % (`frl_apartment_4`) do **11.53 %**
 (`office_0`), 9.35 % (`office_4`), 8.20 % (`office_1`), 5.12 % (`hotel_0`). W scenach biurowych
@@ -227,8 +227,8 @@ dwóch przyczyn strukturalnych. Zero kategorii spada na domyślny z powodu braku
 ## 6. Możliwe rozszerzenie: config per scena
 
 `setAudioMaterialsJSON()` jest ustawiane na instancji `AudioSensor`, a ustalona architektura
-generatora i tak buduje **jeden Simulator na scenę** (osobny proces OS na scenę — patrz `CLAUDE.md`
-i notatkę projektu). Config per scena **nie kosztuje więc nic**.
+generatora i tak buduje **jeden Simulator na scenę** (osobny proces OS na scenę — patrz
+`GENERATOR_PARAMS.md` §4). Config per scena **nie kosztuje więc nic**.
 
 Jedyna kategoria, dla której ma to realne znaczenie, to `floor`: podłogi drewniane w rodzinie
 apartamentów kontra szare (dywan albo beton) w `office_0..4`, `room_0`, `room_2`. Nie zrobiono

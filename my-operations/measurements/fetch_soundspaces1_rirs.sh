@@ -23,7 +23,10 @@ BASE="http://dl.fbaipublicfiles.com/SoundSpaces/binaural_rirs/replica"
 
 # Kolejnosc celowa: najpierw mala scena zamknieta (0.10 GB) — szybki wynik
 # czastkowy i wczesne wykrycie problemu z formatem, dopiero potem duza otwarta.
-SCENES=("office_1" "frl_apartment_2")
+# Mozna nadpisac lista scen z linii polecen, np.
+#   fetch_soundspaces1_rirs.sh --no-analyse office_0 room_1 hotel_0
+if [ "${1:-}" = "--no-analyse" ]; then RUN_ANALYSE=0; shift; else RUN_ANALYSE=1; fi
+if [ "$#" -gt 0 ]; then SCENES=("$@"); else SCENES=("office_1" "frl_apartment_2"); fi
 
 mkdir -p "$DATA" "$OUT"
 echo "=== START $(date '+%F %T') ==="
@@ -58,10 +61,12 @@ for s in "${SCENES[@]}"; do
     df -h "$REPO" | tail -1
 done
 
-echo
-echo "=== ANALIZA $(date '+%T') ==="
-cd "$REPO" || exit 1
-python my-operations/measurements/soundspaces1_rt60.py 2>&1 | tee "$OUT/ss1_verdict.txt"
+if [ "$RUN_ANALYSE" = "1" ]; then
+    echo
+    echo "=== ANALIZA $(date '+%T') ==="
+    cd "$REPO" || exit 1
+    python my-operations/measurements/soundspaces1_rt60.py 2>&1 | tee "$OUT/ss1_verdict.txt"
+fi
 echo
 echo "=== KONIEC $(date '+%F %T') ==="
 echo "  werdykt zapisany w: $OUT/ss1_verdict.txt"

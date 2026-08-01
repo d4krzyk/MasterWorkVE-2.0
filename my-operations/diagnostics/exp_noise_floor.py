@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 # Kolejnosc importow (quaternion przed habitat_sim) wymagana przez lokalny patch
-# tego repo - patrz habitat-sim/local_changes.patch / CLAUDE.md.
+# tego repo - patrz habitat-sim/local_changes.patch.
 import quaternion  # noqa: F401
 import habitat_sim
 

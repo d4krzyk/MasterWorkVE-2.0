@@ -24,7 +24,7 @@ mozna je odpalac w drugim terminalu w trakcie generacji.
 
 Jedna scena = jeden proces OS = jeden dlugo zyjacy Simulator. Powyzej ~30
 konstrukcji Simulatora w jednym procesie karta zawiesza sie sprzetowo (procedura
-odzysku przez PCI FLR w CLAUDE.md), dlatego generator NIGDY nie konstruuje
+odzysku wymaga prawdziwego resetu PCI), dlatego generator NIGDY nie konstruuje
 Simulatora w petli.
 """
 
@@ -48,12 +48,13 @@ from echo_core.paths import (CHIRP_PATH, HABITAT_SIM_PY, LOCATIONS_PKL, MATERIAL
                              SCENE_ROOT, SCRIPT_PATH, SPEC_DOC, graph_pkl, points_txt,
                              probe_census_csv, probe_census_log, scene_decisions, scene_dir,
                              scene_h5, scene_log, scene_mesh, scene_progress, scene_stdout,
-                             scene_verify_dir)
+                             scene_verify_dir, set_variant, VARIANTS)
 from echo_core.noise import _mean_f32, _rmse, plan_n, sigma_1_from_specs, snr_from_specs
 from echo_core.renderer import Renderer
 from echo_core.runtime import (_fmt_hms, _install_signal_handlers, setup_logging,
                                interrupted as is_interrupted)
-from echo_core.scenes import HELD_OUT, SCENE_ORDER, load_scene_locations
+from echo_core.scenes import (HELD_OUT, SCENE_ORDER, load_scene_locations,
+                              scenes_for_variant)
 from echo_core.status import status
 from echo_core.store import DatasetStore, build_file_attrs
 from echo_core.verify import _open_readonly, verify
@@ -486,7 +487,9 @@ def dry_run(scene, limit=None):
           "  (echo 170 648 + rgb 65 536 + depth 65 536)")
     print(f"  ROZMIAR bez kompresji     {raw_bytes/2**30:.2f} GiB")
     print(f"    po gzip -4              mniej; rzeczywisty rozmiar w --status")
-    free = os.statvfs(OUT_ROOT.parent if OUT_ROOT.parent.exists() else REPO_ROOT)
+    # przez modul, nie przez stala z importu — patrz komentarz w echo_ctl.py
+    from echo_core import paths as _P
+    free = os.statvfs(_P.OUT_ROOT.parent if _P.OUT_ROOT.parent.exists() else REPO_ROOT)
     print(f"  wolne na dysku            {free.f_bavail * free.f_frsize / 2**30:.1f} GiB")
     print()
     print("  wejscia:")
@@ -522,7 +525,16 @@ def main():
                    help="flush pliku HDF5 co N probek (domyslnie 36 = jedna lokalizacja)")
     p.add_argument("--plots", type=int, default=3,
                    help="ile losowych probek zapisac jako PNG w --verify (0 = zadnych)")
+    p.add_argument("--variant", default="main", choices=list(VARIANTS),
+                   help="main = geometria oryginalna (wariant glowny); "
+                        "patched = sceny z domknietymi dziurami (wariant dodatkowy). "
+                        "Kazdy wariant ma WLASNY katalog wyjsciowy, wiec sie nie mieszaja.")
     args = p.parse_args()
+
+    # PRZED czymkolwiek, co dotyka sciezek albo listy scen: wariant przestawia
+    # OUT_ROOT i scene_mesh() w echo_core.paths.
+    set_variant(args.variant)
+    scenes = scenes_for_variant()
 
     modes = [bool(args.status), bool(args.verify), bool(args.dry_run), bool(args.scene),
              bool(args.probe_only)]
@@ -532,13 +544,19 @@ def main():
     if args.status:
         return status()
     if args.verify:
-        if args.verify not in SCENE_ORDER:
-            raise SystemExit(f"nieznana scena: {args.verify}\ndostepne: {', '.join(SCENE_ORDER)}")
+        if args.verify not in scenes:
+            raise SystemExit(f"nieznana scena: {args.verify}\n"
+                             f"dostepne w wariancie {args.variant}: {', '.join(scenes)}")
         return verify(args.verify, n_plots=args.plots)
     if not args.scene:
         raise SystemExit("--dry-run wymaga --scene")
-    if args.scene not in SCENE_ORDER:
-        raise SystemExit(f"nieznana scena: {args.scene}\ndostepne: {', '.join(SCENE_ORDER)}")
+    if args.scene not in scenes:
+        extra = ""
+        if args.variant != "main" and args.scene in SCENE_ORDER:
+            extra = ("\n  Ta scena jest SZCZELNA — nie ma laty, wiec w wariancie 'patched' jej"
+                     "\n  geometria bylaby identyczna jak w 'main'. Uzyj wariantu glownego.")
+        raise SystemExit(f"nieznana scena: {args.scene}\n"
+                         f"dostepne w wariancie {args.variant}: {', '.join(scenes)}{extra}")
     if args.dry_run:
         return dry_run(args.scene, limit=args.limit)
     if args.probe_only:

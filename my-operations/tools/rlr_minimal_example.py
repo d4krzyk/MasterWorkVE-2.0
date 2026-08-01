@@ -44,7 +44,7 @@ agent_cfg.sensor_specifications = [audio_sensor_spec]
 sim_cfg = habitat_sim.Configuration(cfg, [agent_cfg])
 
 # sim = habitat_sim.Simulator(sim_cfg) rzuci wyjątkiem/abortem, jeśli
-# habitat-sim nie zostało zbudowane z flagą --audio (patrz CLAUDE.md / build.sh)
+# habitat-sim nie zostało zbudowane z flagą --audio (patrz habitat-sim/build.sh)
 has_audio = True
 sim = None
 try:
@@ -109,12 +109,12 @@ try:
         # lipiec 2022) audioSimulator_->UploadMesh() zawsze zwracał
         # ErrorCodes::MemoryAllocFailure (2018) - niezależnie od rozmiaru
         # siatki czy configu - i getIR() był zawsze pusty. Naprawione przez
-        # podbicie submodułu do 4fd446b (patrz CLAUDE.md /
+        # podbicie submodułu do 4fd446b (patrz
         # habitat-sim/local_changes.patch). Jeśli to się pojawi ponownie,
         # sprawdź `git -C habitat-sim/src/deps/rlr-audio-propagation log -1`.
         print(
             "UWAGA: pusta odpowiedź impulsowa - sprawdź wersję submodułu "
-            "rlr-audio-propagation (patrz CLAUDE.md, sekcja o audio)."
+            "rlr-audio-propagation (patrz habitat-sim/local_changes.patch)."
         )
 except Exception as e:
     has_audio = False

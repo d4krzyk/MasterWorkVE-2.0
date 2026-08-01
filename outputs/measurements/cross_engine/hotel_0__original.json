@@ -1,0 +1,16 @@
+{
+  "scene": "hotel_0",
+  "variant": "original",
+  "class": "szczelna",
+  "pairs": 40,
+  "renders_per_pair": 3,
+  "warmup": 50,
+  "dist_mean_m": 1.955,
+  "rir_s": 1.055,
+  "rt60": {
+    "250": 0.549,
+    "500": 0.4931,
+    "1000": 0.5468,
+    "2000": 0.5429
+  }
+}

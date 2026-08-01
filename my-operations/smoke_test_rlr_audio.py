@@ -101,7 +101,7 @@ def phase0_introspect():
         raise PhaseFailure(
             "habitat_sim.AudioSensorSpec nie istnieje - ten build habitat-sim "
             "NIE ma wkompilowanego wsparcia audio. Przebuduj z flaga --audio "
-            "(patrz CLAUDE.md, sekcja 'Building habitat-sim') i upewnij sie, "
+            "(patrz habitat-sim/README.md, budowanie z flaga --audio) i upewnij sie, "
             "ze BUILD_WITH_AUDIO=ON w CMakeCache.txt."
         )
     print("habitat_sim.AudioSensorSpec: dostepny")

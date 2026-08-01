@@ -1,0 +1,55 @@
+{
+  "scene": "frl_apartment_2",
+  "control_only": false,
+  "pairs": 60,
+  "renders_per_pair": 5,
+  "warmup": 50,
+  "dist_mean_m": 1.989,
+  "dist_range_m": [
+    1.0,
+    3.0
+  ],
+  "indirect_ray_count": 500,
+  "bands": [
+    {
+      "band_hz": 250,
+      "orig": 0.1978,
+      "ss1": 0.493,
+      "ratio_orig_ss1": 0.4013,
+      "patched": 0.6613,
+      "ratio_patched_orig": 3.3427,
+      "ratio_patched_ss1": 1.3415
+    },
+    {
+      "band_hz": 500,
+      "orig": 0.2407,
+      "ss1": 0.52,
+      "ratio_orig_ss1": 0.4629,
+      "patched": 0.5775,
+      "ratio_patched_orig": 2.3991,
+      "ratio_patched_ss1": 1.1106
+    },
+    {
+      "band_hz": 1000,
+      "orig": 0.2223,
+      "ss1": 0.463,
+      "ratio_orig_ss1": 0.4802,
+      "patched": 0.4464,
+      "ratio_patched_orig": 2.0076,
+      "ratio_patched_ss1": 0.9641
+    },
+    {
+      "band_hz": 2000,
+      "orig": 0.2265,
+      "ss1": 0.429,
+      "ratio_orig_ss1": 0.5279,
+      "patched": 0.3906,
+      "ratio_patched_orig": 1.7246,
+      "ratio_patched_ss1": 0.9104
+    }
+  ],
+  "median_ratio_to_ss1_500_2k": {
+    "orig": 0.4802,
+    "patched": 0.9641
+  }
+}

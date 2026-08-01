@@ -1,0 +1,16 @@
+{
+  "scene": "frl_apartment_2",
+  "variant": "patched",
+  "class": "BEZ SUFITU",
+  "pairs": 40,
+  "renders_per_pair": 3,
+  "warmup": 50,
+  "dist_mean_m": 1.917,
+  "rir_s": 1.408,
+  "rt60": {
+    "250": 0.6637,
+    "500": 0.6099,
+    "1000": 0.6187,
+    "2000": 0.5968
+  }
+}

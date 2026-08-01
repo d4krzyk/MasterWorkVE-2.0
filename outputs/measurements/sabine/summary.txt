@@ -1,0 +1,39 @@
+TEST FIZYCZNY Sabine/Eyring — zestawienie trzech przebiegow (2026-07-30)
+rt60_vs_sabine.py, 30 renderow/scene, rozgrzewka 50, pasma 500 Hz - 2 kHz
+Obie strony rownania liczone na TEJ SAMEJ siatce (geometria z PLY, RT60 z renderow).
+
+=== A: sceny szczelne, geometria ORYGINALNA ===
+  scena                 sufit   V [m3]    500 Hz     1 kHz     2 kHz  1 kHz: pomiar   Eyring  domyslny
+  room_0                zamk.       83      1.21      1.53      1.38          0.463    0.302     0.787
+  office_1              zamk.       23      1.15      1.41      1.27          0.401    0.284     0.563
+  hotel_0               zamk.       75      1.35      1.74      1.75          0.550    0.317     0.622
+  apartment_0           zamk.      379      1.13      1.16      1.29          0.771    0.664     0.773
+  room_1                zamk.       44      1.15      1.55      1.37          0.392    0.252     0.685
+  room_2                zamk.       56      1.02      1.07      1.13          0.543    0.508     0.761
+  office_0              zamk.       46      1.06      1.37      1.24          0.455    0.331     0.729
+
+
+=== B: frl_apartment_*, BEZ laty ===
+  scena                 sufit   V [m3]    500 Hz     1 kHz     2 kHz  1 kHz: pomiar   Eyring  domyslny
+  frl_apartment_0        BRAK      180      0.28      0.34      0.34          0.195    0.577     0.958
+  frl_apartment_1        BRAK      180      0.38      0.47      0.51          0.262    0.559     0.957
+  frl_apartment_2        BRAK      191      0.36      0.45      0.48          0.263    0.589     0.982
+  frl_apartment_3        BRAK      184      0.32      0.40      0.40          0.225    0.564     0.961
+  frl_apartment_4        BRAK      188      0.32      0.41      0.42          0.222    0.543     0.971
+  frl_apartment_5        BRAK      185      0.31      0.39      0.39          0.223    0.576     0.982
+
+=== C: frl_apartment_*, ZALATANE (semantycznie, lata jednostronna) ===
+  scena                 sufit   V [m3]    500 Hz     1 kHz     2 kHz  1 kHz: pomiar   Eyring  domyslny
+  frl_apartment_0       zamk.      201      0.89      1.00      1.04          0.614    0.614     0.868
+  frl_apartment_1       zamk.      206      0.94      1.00      1.08          0.615    0.613     0.888
+  frl_apartment_2       zamk.      203      0.83      0.92      0.99          0.548    0.598     0.851
+  frl_apartment_3       zamk.      203      0.95      1.05      1.13          0.622    0.594     0.861
+  frl_apartment_4       zamk.      207      0.86      1.00      1.05          0.576    0.574     0.871
+  frl_apartment_5       zamk.      205      0.95      1.04      1.12          0.633    0.611     0.881
+
+=== AGREGAT (mediana po pasmach na scene) ===
+  szczelne (oryginal)  n=7  mediana 1.27x  zakres 1.07-1.74x
+  frl ZALATANE         n=6  mediana 1.00x  zakres 0.92-1.05x
+  frl bez laty         n=6  mediana 0.41x  zakres 0.34-0.47x
+  szczelne vs zalatane: rozdzielenie ZUPELNE, Mann-Whitney p = 0.0032
+  szczelne vs bez laty: Mann-Whitney p = 0.0012

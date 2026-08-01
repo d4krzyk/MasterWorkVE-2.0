@@ -1,0 +1,450 @@
+  sigma_1_probe (na lokalizacje)  mediana 0.07270, zakres 0.06490-0.09308
+      0.065-0.068   | ######                                         1
+      0.068-0.071   | ######                                         1
+      0.071-0.073   | ############################################## 7
+      0.073-0.076   |                                                0
+      0.076-0.079   |                                                0
+      0.079-0.082   | ###################                            3
+      0.082-0.085   | ######                                         1
+      0.085-0.087   | ######                                         1
+      0.087-0.090   |                                                0
+      0.090-0.093   | #############                                  2
+
+  dorenderowane         335 probek (58.16 %), lacznie 972 renderow
+  renderow w pliku      11556 (sonda liczona osobno: 16 x 8)
+  tempo zmierzone       0.1500 s/render (spec 0.2606, -42.4 %)
+  rozmiar pliku         132.1 MiB (234.8 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_1/verify/loc28_ang60.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_1/verify/loc23_ang60.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_1/verify/loc33_ang200.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.06309, zakres 0.02844-0.10043
+      0.028-0.036   | ################                               9
+      0.036-0.043   | #################################              18
+      0.043-0.050   | ####################                           11
+      0.050-0.057   | ####################################           20
+      0.057-0.064   | #############################                  16
+      0.064-0.072   | ############################################## 25
+      0.072-0.079   | ############################################   24
+      0.079-0.086   | #########################                      14
+      0.086-0.093   | #####                                          3
+      0.093-0.100   | ###                                            2
+
+  dorenderowane         1886 probek (36.89 %), lacznie 5297 renderow
+  renderow w pliku      69593 (sonda liczona osobno: 142 x 8)
+  tempo zmierzone       0.1293 s/render (spec 0.2606, -50.4 %)
+  rozmiar pliku         1092.1 MiB (218.8 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/apartment_2/verify/loc120_ang150.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/apartment_2/verify/loc98_ang200.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/apartment_2/verify/loc202_ang260.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.04306, zakres 0.02801-0.10851
+      0.028-0.036   | #########################################      39
+      0.036-0.044   | ############################################## 43
+      0.044-0.052   | ###########################                    26
+      0.052-0.060   | ################                               15
+      0.060-0.068   | #######                                        7
+      0.068-0.076   | ########                                       8
+      0.076-0.084   | ####                                           4
+      0.084-0.092   | ###                                            3
+      0.092-0.100   | ##                                             2
+      0.100-0.109   | #                                              1
+
+  dorenderowane         1450 probek (27.21 %), lacznie 3964 renderow
+  renderow w pliku      49828 (sonda liczona osobno: 148 x 8)
+  tempo zmierzone       0.1115 s/render (spec 0.2606, -57.2 %)
+  rozmiar pliku         1153.7 MiB (221.7 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_5/verify/loc155_ang90.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_5/verify/loc121_ang230.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_5/verify/loc201_ang300.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.06237, zakres 0.05426-0.08334
+      0.054-0.057   | ############################                   10
+      0.057-0.060   | ###########################################    15
+      0.060-0.063   | ############################################## 16
+      0.063-0.066   | ###############################                11
+      0.066-0.069   | ####################                           7
+      0.069-0.072   | ####################                           7
+      0.072-0.075   | #####                                          2
+      0.075-0.078   | ########                                       3
+      0.078-0.080   | ########                                       3
+      0.080-0.083   | #####                                          2
+
+  dorenderowane         969 probek (35.42 %), lacznie 1740 renderow
+  renderow w pliku      36804 (sonda liczona osobno: 76 x 8)
+  tempo zmierzone       0.1448 s/render (spec 0.2606, -44.4 %)
+  rozmiar pliku         590.2 MiB (220.9 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_4/verify/loc92_ang140.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_4/verify/loc67_ang300.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_4/verify/loc109_ang210.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.05687, zakres 0.04498-0.07427
+      0.045-0.048   | ##############                                 4
+      0.048-0.051   | #####################                          6
+      0.051-0.054   | ############################################## 13
+      0.054-0.057   | #################                              5
+      0.057-0.060   | #####################                          6
+      0.060-0.063   | ###################################            10
+      0.063-0.065   | #####################                          6
+      0.065-0.068   | #######                                        2
+      0.068-0.071   | ##########                                     3
+      0.071-0.074   | #######                                        2
+
+  dorenderowane         794 probek (38.69 %), lacznie 1277 renderow
+  renderow w pliku      22517 (sonda liczona osobno: 57 x 8)
+  tempo zmierzone       0.1335 s/render (spec 0.2606, -48.8 %)
+  rozmiar pliku         455.9 MiB (227.5 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/room_0/verify/loc59_ang100.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/room_0/verify/loc44_ang40.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/room_0/verify/loc96_ang150.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.06499, zakres 0.05938-0.09926
+      0.059-0.063   | ############################################## 9
+      0.063-0.067   | ##############################                 6
+      0.067-0.071   | ###################################            7
+      0.071-0.075   |                                                0
+      0.075-0.079   | #####                                          1
+      0.079-0.083   | #####                                          1
+      0.083-0.087   | #####                                          1
+      0.087-0.091   |                                                0
+      0.091-0.095   |                                                0
+      0.095-0.099   | #####                                          1
+
+  dorenderowane         322 probek (34.40 %), lacznie 1106 renderow
+  renderow w pliku      14606 (sonda liczona osobno: 26 x 8)
+  tempo zmierzone       0.1335 s/render (spec 0.2606, -48.8 %)
+  rozmiar pliku         212.5 MiB (232.4 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_0/verify/loc47_ang190.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_0/verify/loc40_ang100.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_0/verify/loc53_ang20.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.08756, zakres 0.05351-0.12443
+      0.054-0.061   | #######################                        6
+      0.061-0.068   | ###############                                4
+      0.068-0.075   | ###################                            5
+      0.075-0.082   | ###############                                4
+      0.082-0.089   | ##########################                     7
+      0.089-0.096   | #######################                        6
+      0.096-0.103   | ############################################## 12
+      0.103-0.110   | #######                                        2
+      0.110-0.117   | ###                                            1
+      0.117-0.124   | ###                                            1
+
+  dorenderowane         876 probek (50.69 %), lacznie 2749 renderow
+  renderow w pliku      41665 (sonda liczona osobno: 48 x 8)
+  tempo zmierzone       0.1242 s/render (spec 0.2606, -52.3 %)
+  rozmiar pliku         389.3 MiB (230.7 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/hotel_0/verify/loc77_ang200.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/hotel_0/verify/loc70_ang190.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/hotel_0/verify/loc92_ang280.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.06663, zakres 0.05414-0.08578
+      0.054-0.057   | ############################                   5
+      0.057-0.060   | ###########                                    2
+      0.060-0.064   | #######################                        4
+      0.064-0.067   | ########################################       7
+      0.067-0.070   | ############################################## 8
+      0.070-0.073   | ###########                                    2
+      0.073-0.076   | #################                              3
+      0.076-0.079   | ###########                                    2
+      0.079-0.083   | #####                                          1
+      0.083-0.086   | #####                                          1
+
+  dorenderowane         504 probek (40.00 %), lacznie 970 renderow
+  renderow w pliku      18178 (sonda liczona osobno: 35 x 8)
+  tempo zmierzone       0.1486 s/render (spec 0.2606, -43.0 %)
+  rozmiar pliku         279.3 MiB (227.0 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/room_1/verify/loc45_ang90.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/room_1/verify/loc25_ang320.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/room_1/verify/loc67_ang260.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.06280, zakres 0.05173-0.07617
+      0.052-0.054   | ###################                            3
+      0.054-0.057   | ############################################## 7
+      0.057-0.059   | ###################                            3
+      0.059-0.062   | ###################                            3
+      0.062-0.064   | ##########################                     4
+      0.064-0.066   | ##########################                     4
+      0.066-0.069   | #######################################        6
+      0.069-0.071   | ##########################                     4
+      0.071-0.074   |                                                0
+      0.074-0.076   | ###################                            3
+
+  dorenderowane         310 probek (23.27 %), lacznie 666 renderow
+  renderow w pliku      17082 (sonda liczona osobno: 37 x 8)
+  tempo zmierzone       0.1541 s/render (spec 0.2606, -40.9 %)
+  rozmiar pliku         287.5 MiB (221.0 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_2/verify/loc84_ang190.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_2/verify/loc72_ang320.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_2/verify/loc97_ang150.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.06553, zakres 0.05813-0.09488
+      0.058-0.062   | #############################                  9
+      0.062-0.065   | ############################################## 14
+      0.065-0.069   | #######################                        7
+      0.069-0.073   | ####################################           11
+      0.073-0.077   | ######                                         2
+      0.077-0.080   | ######                                         2
+      0.080-0.084   | ###                                            1
+      0.084-0.088   |                                                0
+      0.088-0.091   |                                                0
+      0.091-0.095   | ###                                            1
+
+  dorenderowane         708 probek (41.84 %), lacznie 1406 renderow
+  renderow w pliku      25094 (sonda liczona osobno: 47 x 8)
+  tempo zmierzone       0.1607 s/render (spec 0.2606, -38.3 %)
+  rozmiar pliku         377.3 MiB (228.4 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/room_2/verify/loc58_ang330.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/room_2/verify/loc50_ang0.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/room_2/verify/loc75_ang330.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.06286, zakres 0.05148-0.09306
+      0.051-0.056   | ####################                           7
+      0.056-0.060   | ############################################## 16
+      0.060-0.064   | ############################                   10
+      0.064-0.068   | ########################################       14
+      0.068-0.072   | ##############                                 5
+      0.072-0.076   | ########                                       3
+      0.076-0.081   | ###########                                    4
+      0.081-0.085   | #####                                          2
+      0.085-0.089   |                                                0
+      0.089-0.093   | ##                                             1
+
+  dorenderowane         692 probek (31.00 %), lacznie 1547 renderow
+  renderow w pliku      30635 (sonda liczona osobno: 62 x 8)
+  tempo zmierzone       0.1743 s/render (spec 0.2606, -33.1 %)
+  rozmiar pliku         476.8 MiB (218.8 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_3/verify/loc73_ang170.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_3/verify/loc60_ang240.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/office_3/verify/loc109_ang240.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.04979, zakres 0.03257-0.11922
+      0.033-0.041   | #############################                  25
+      0.041-0.050   | ############################################## 39
+      0.050-0.059   | #################################              28
+      0.059-0.067   | ####################                           17
+      0.067-0.076   | #########                                      8
+      0.076-0.085   | ####                                           4
+      0.085-0.093   | ###                                            3
+      0.093-0.102   |                                                0
+      0.102-0.111   |                                                0
+      0.111-0.119   | #                                              1
+
+  dorenderowane         1699 probek (37.76 %), lacznie 4294 renderow
+  renderow w pliku      46558 (sonda liczona osobno: 125 x 8)
+  tempo zmierzone       0.1137 s/render (spec 0.2606, -56.4 %)
+  rozmiar pliku         973.9 MiB (221.6 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_2/verify/loc153_ang210.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_2/verify/loc126_ang320.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_2/verify/loc202_ang100.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.04882, zakres 0.03018-0.11202
+      0.030-0.038   | ###########################                    20
+      0.038-0.047   | #####################################          27
+      0.047-0.055   | ############################################## 33
+      0.055-0.063   | ##############################                 22
+      0.063-0.071   | #############                                  10
+      0.071-0.079   | ########                                       6
+      0.079-0.087   | ##                                             2
+      0.087-0.096   | ####                                           3
+      0.096-0.104   | ##                                             2
+      0.104-0.112   | ##                                             2
+
+  dorenderowane         760 probek (16.62 %), lacznie 1557 renderow
+  renderow w pliku      46989 (sonda liczona osobno: 127 x 8)
+  tempo zmierzone       0.1163 s/render (spec 0.2606, -55.4 %)
+  rozmiar pliku         988.8 MiB (221.5 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_4/verify/loc134_ang310.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_4/verify/loc100_ang320.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_4/verify/loc182_ang350.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.04523, zakres 0.03035-0.10254
+      0.030-0.038   | ###################################            28
+      0.038-0.045   | ############################################## 36
+      0.045-0.052   | ############################                   22
+      0.052-0.059   | #######################                        18
+      0.059-0.066   | ################                               13
+      0.066-0.074   | #######                                        6
+      0.074-0.081   | ##                                             2
+      0.081-0.088   | ##                                             2
+      0.088-0.095   | #                                              1
+      0.095-0.103   | ##                                             2
+
+  dorenderowane         885 probek (18.91 %), lacznie 1761 renderow
+  renderow w pliku      42549 (sonda liczona osobno: 130 x 8)
+  tempo zmierzone       0.1130 s/render (spec 0.2606, -56.6 %)
+  rozmiar pliku         1007.7 MiB (220.5 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_0/verify/loc126_ang280.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_0/verify/loc102_ang160.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_0/verify/loc172_ang190.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.04401, zakres 0.02845-0.09552
+      0.028-0.035   | ################################               24
+      0.035-0.042   | #################################              25
+      0.042-0.049   | ############################################## 34
+      0.049-0.055   | ############################                   21
+      0.055-0.062   | ########                                       6
+      0.062-0.069   | ########                                       6
+      0.069-0.075   | ########                                       6
+      0.075-0.082   | #####                                          4
+      0.082-0.089   | ##                                             2
+      0.089-0.096   | ##                                             2
+
+  dorenderowane         1321 probek (28.23 %), lacznie 2845 renderow
+  renderow w pliku      42445 (sonda liczona osobno: 130 x 8)
+  tempo zmierzone       0.1120 s/render (spec 0.2606, -57.0 %)
+  rozmiar pliku         1013.2 MiB (221.7 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_1/verify/loc154_ang280.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_1/verify/loc128_ang160.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_1/verify/loc205_ang190.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.04539, zakres 0.02584-0.10009
+      0.026-0.033   | ########################                       19
+      0.033-0.041   | ############################################## 35
+      0.041-0.048   | ###########################################    33
+      0.048-0.056   | ###############################                24
+      0.056-0.063   | ##################                             14
+      0.063-0.070   | ##########                                     8
+      0.070-0.078   | ##########                                     8
+      0.078-0.085   | ###                                            3
+      0.085-0.093   | ##                                             2
+      0.093-0.100   | #                                              1
+
+  dorenderowane         1432 probek (27.06 %), lacznie 3689 renderow
+  renderow w pliku      49373 (sonda liczona osobno: 147 x 8)
+  tempo zmierzone       0.1105 s/render (spec 0.2606, -57.6 %)
+  rozmiar pliku         1140.1 MiB (220.6 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_3/verify/loc156_ang220.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_3/verify/loc135_ang40.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/frl_apartment_3/verify/loc200_ang350.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+  sigma_1_probe (na lokalizacje)  mediana 0.06026, zakres 0.03422-0.10024
+      0.034-0.041   | ##########                                     10
+      0.041-0.047   | ############                                   11
+      0.047-0.054   | #######################################        36
+      0.054-0.061   | ####################################           33
+      0.061-0.067   | ############################################## 42
+      0.067-0.074   | #########################                      23
+      0.074-0.080   | ###############                                14
+      0.080-0.087   | ###                                            3
+      0.087-0.094   | #                                              1
+      0.094-0.100   | ###                                            3
+
+  dorenderowane         1903 probek (30.03 %), lacznie 4800 renderow
+  renderow w pliku      78492 (sonda liczona osobno: 176 x 8)
+  tempo zmierzone       0.1323 s/render (spec 0.2606, -49.3 %)
+  rozmiar pliku         1365.1 MiB (220.6 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/apartment_1/verify/loc167_ang30.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/apartment_1/verify/loc143_ang340.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/apartment_1/verify/loc219_ang230.png
+
+==============================================================================
+  WERDYKT: PASS
+==============================================================================
+      0.063-0.071   | ########################################       39
+      0.071-0.079   | ############################################## 44
+      0.079-0.086   | #############################                  28
+      0.086-0.094   | ###############################                30
+      0.094-0.102   | ########################                       23
+      0.102-0.110   | ###########                                    11
+      0.110-0.117   | #####                                          5
+      0.117-0.125   | ##                                             2
+      0.125-0.133   | ###                                            3
+
+  dorenderowane         2502 probek (32.94 %), lacznie 7817 renderow
+  renderow w pliku      164129 (sonda liczona osobno: 211 x 8)
+  tempo zmierzone       0.1753 s/render (spec 0.2606, -32.7 %)
+  rozmiar pliku         1687.5 MiB (227.5 KiB/probke, bez kompresji 294.6)
+
+--- INSPEKCJA WZROKOWA ---
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/apartment_0/verify/loc223_ang130.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/apartment_0/verify/loc186_ang300.png
+  /home/d4krzyk/Dokumenty/MasterWorkVE/outputs/echoes_36deg/apartment_0/verify/loc283_ang150.png
+
+==============================================================================
+  OSTRZEZENIA:
+    - 1 probek dobilo do N_MAX=64 i NIE osiagnelo SNR 3.5 — kategoria z §5 ograniczenie 6, do wypunktowania w pracy (liczba, udzial, rozklad snr_final i n_raw)
+  WERDYKT: PASS
+==============================================================================

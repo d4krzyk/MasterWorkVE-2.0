@@ -23,6 +23,12 @@ oraz odsyłacz do sekcji raportu i dokumentu.
 | `census_outlier_recheck.py` | Które przekroczenia `N_MAX` są prawdziwe? | tak | §2.5, §3.4 |
 | `probe_discard_unittest.py` | Czy nadmiar sondy przy `N < 8` jest odrzucany? | **nie** | §3.3 pkt 2 dokumentu |
 | `rt60_vs_sabine.py` | Czy pogłos z symulacji zgadza się z Sabine/Eyringiem? Które sceny są akustycznie zamknięte? | tak | §2.9, §2.10 |
+| `soundspaces1_rt60.py` | Czy SoundSpaces 1.0 wykazuje tę samą sygnaturę braku sufitu? | **nie** | §2.10 |
+| `ray_escape_survey.py` | Jaki ułamek promieni ucieka ze sceny w każdej z 1740 lokalizacji? | tak | §2.11 |
+| `patch_scene_ceiling.py` → `ceiling_patch_rt60.py` | Czy domknięcie sceny sufitem zbliża RT60 do SoundSpaces 1.0? | nie → tak | §2.12 |
+| `patch_scene_holes.py` | Gdzie są dziury w każdej scenie, jakiego są typu i czy da się je domknąć? | **nie** | §2.13 |
+| `patch_material_sweep.py` | Jaki materiał łaty daje najlepszą zgodność z SS 1.0? *(dopasowanie, nie walidacja)* | tak | §2.13 |
+| `cross_engine_rt60.py` | Czy SS 2.0 zgadza się z SS 1.0 tam, gdzie geometria jest cała — **bez dopasowanych parametrów**? | tak | §2.14 |
 
 Sam census (`--probe-only`) jest częścią generatora, nie tego katalogu — jest trybem
 produkcyjnym, nie pomiarem jednorazowym.
@@ -45,6 +51,17 @@ audio_path_render.py   ->  outputs/measurements/paths_specs.npz
                                                         |
                                                         v
                                              audio_path_analyse.py
+
+patch_scene_holes.py   ->  outputs/patched_scenes/<scena>/habitat/mesh_semantic.ply
+  (patch_scene_ceiling.py — poprzednik, tylko sufit, zostawiony bo na nim
+   oparty jest wynik §2.12)                             |
+                                    +-------------------+-------------------+
+                                    v                                       v
+                    ray_escape_survey.py --mesh ...              ceiling_patch_rt60.py
+                    (kontrola: czy domkneta?)                    (czy RT60 blizej SS 1.0?)
+                                                                            |
+                                                                            v
+                                                              patch_material_sweep.py
 ```
 
 ## Co gdzie ląduje
@@ -52,6 +69,9 @@ audio_path_render.py   ->  outputs/measurements/paths_specs.npz
 | katalog | zawartość | w gicie |
 |---|---|---|
 | `outputs/measurements/*.npz` | surowe spektrogramy (~210 MiB) | **nie** |
+| `outputs/measurements/ray_escape/*.csv` | ucieczka promieni, 1740 lokalizacji (~256 KB) | **tak** (wyjątek w `.gitignore`) |
+| `outputs/measurements/ceiling_patch/*.json` | wynik eksperymentu z sufitem (kilka KB) | **tak** (wyjątek w `.gitignore`) |
+| `outputs/patched_scenes/` | załatane siatki, 84 MB na scenę | **nie** — odtwarza je `patch_scene_ceiling.py` |
 | `outputs/probe_census/*.csv` | census 1740 lokalizacji (~120 KB) | **tak** (wyjątek w `.gitignore`) |
 | `outputs/diagnose_rlr_noise_out/*.png` | wykresy | **tak** |
 | `outputs/diagnose_rlr_noise_out/diagnostics_report.json` | wyniki eksperymentów | **tak** |

@@ -14,6 +14,84 @@ miejscu (bloku sciezek w generatorze).
     python my-operations/echo_ctl.py stop
     python my-operations/echo_ctl.py verify <scena>
 
+KOLEJKA — generacja bez nadzoru (np. przez noc):
+
+    python my-operations/echo_ctl.py queue                  # POKAZ kolejke (nie zmienia jej)
+    python my-operations/echo_ctl.py queue all              # wszystko, co jeszcze trzeba
+    python my-operations/echo_ctl.py queue room_0 office_0  # ustaw dokladnie te sceny
+    python my-operations/echo_ctl.py queue add hotel_0
+    python my-operations/echo_ctl.py queue rm apartment_0   # dziala NA ZYWO
+    python my-operations/echo_ctl.py queue clear            # oproznij (nie przerywa sceny)
+    python my-operations/echo_ctl.py stop                   # zatrzymuje kolejke I scene
+
+W pulpicie: [k] otwiera liste z przelacznikami — numery/nazwy przelaczaja scene,
+`w` wszystkie, `c` zadna, `s` ZAPISUJE, Enter ANULUJE bez zmian.
+
+EDYCJA DZIALA NA ZYWO. Nadzorca czyta plik kolejki przed kazda scena, wiec
+dodawanie i usuwanie w trakcie generacji nie wymaga niczego zatrzymywac — zmiana
+obowiazuje od nastepnej sceny. `queue clear` oprozni kolejke, ale NIE przerwie
+trwajacej sceny; do przerwania calosci sluzy `stop`.
+
+Zadna zmiana nie wchodzi w zycie bez jawnego [s] / podpolecenia. Golе `queue` tylko
+wypisuje stan — wczesniej puste wejscie znaczylo "zakolejkuj wszystko", co pozwalalo
+przypadkowym Enterem wrzucic 17 scen bez mozliwosci wycofania.
+
+Kolejka to OSOBNY PROCES-NADZORCA: uruchamia generator na jedna scene, czeka na
+jego zakonczenie i bierze nastepna. Nie jest to petla wewnatrz generatora, bo
+jeden Simulator na proces to twarde zalozenie projektu (konstruowanie
+wielu Simulatorow w jednym procesie potrafi zawiesic GPU). Nadzorca sam nigdy nie
+tworzy Simulatora.
+
+  * Stan trzymany w `.queue.json` w katalogu wariantu (zapis atomowy), wiec
+    `status` w drugim terminalu widzi kolejke, a po zabiciu nadzorcy wiadomo,
+    gdzie sie zatrzymala. Postep kazdej scenie i tak jest w jej pliku HDF5.
+  * `stop` KASUJE plik kolejki, a nadzorca sprawdza go przed kazda scena — bez
+    tego generator przerwany SIGINT-em wychodzi kodem 0 i kolejka wzielaby po
+    prostu nastepna scene.
+  * Scena juz rozpoczeta jest wznawiana (`--resume`), nie liczona od zera.
+  * Po niepowodzeniu scena jest ponawiana RAZ (z `--resume`, wiec nic nie ginie),
+    a po drugiej porazce cala kolejka jest PRZERYWANA. Typowa przyczyna to
+    zawieszony GPU — bez tego kolejne sceny dopisywalyby bledy przez cala noc.
+  * Kolejke mozna zalozyc, GDY GENERACJA JUZ DZIALA — nadzorca poczeka na wolne
+    GPU i ruszy sam po zakonczeniu biezacej sceny. Nie trzeba przy tym siedziec.
+  * Sceny juz kompletne nadzorca pomija bez konstruowania Simulatora, wiec mozna
+    bezpiecznie dokolejkowac takze te, ktora wlasnie sie konczy.
+
+DWA WARIANTY DATASETU. Kazde polecenie przyjmuje `--variant` (albo `-v`), ktory
+mozna podac w dowolnym miejscu wiersza:
+
+    python my-operations/echo_ctl.py next                        # wariant glowny
+    python my-operations/echo_ctl.py --variant patched next       # wariant dodatkowy
+    python my-operations/echo_ctl.py -v patched start frl_apartment_2
+    python my-operations/echo_ctl.py -v patched queue             # cala kolejka wariantu
+
+W pulpicie interaktywnym wariant przelacza sie klawiszem [w] — bez wychodzenia
+i restartu. Przelaczenie zmienia tylko WIDOK i to, co uruchomia kolejne polecenia;
+na trwajaca generacje nie ma zadnego wplywu (ma wlasny, zamrozony w chwili startu
+zestaw sciezek). Po przelaczeniu naglowek ostrzega, jesli w drugim wariancie cos
+dziala — GPU jest jedno. `start` w takiej sytuacji odmowi, a `queue` po prostu
+poczeka: kolejke mozna zalozyc w trakcie generacji i wystartuje sama po niej.
+
+  * `main` (domyslny) — geometria ORYGINALNA Repliki, 18 scen, 62 640 probek.
+    Tylko ten wariant zachowuje zgodnosc RGB/depth z VisualEchoes, wiec tylko on
+    jest porownywalny z praca zrodlowa.
+  * `patched` — sceny z domknietymi dziurami (measurements/patch_scene_holes.py),
+    **10 scen, 44 064 probki**. Tylko te 10 mialo dziure; pozostale 8 jest
+    szczelnych, ich siatka jest w obu wariantach identyczna, wiec generowanie ich
+    po raz drugi byloby strata czasu GPU — do treningu wariant dodatkowy sklada
+    sie z tych 10 scen PLUS 8 scen szczelnych z wariantu glownego.
+
+Warianty maja rozdzielne katalogi wyjsciowe (`outputs/echoes_36deg` i
+`outputs/echoes_36deg_patched`), wlasne cache indeksu i wlasne statusy, wiec nie
+da sie ich pomylic ani nadpisac. Kazdy plik HDF5 ma atrybut `variant`, a `scene_id`
+wskazuje faktycznie uzyta siatke. Pulpit ostrzega, jesli generacja dziala
+w INNYM wariancie niz ogladany — GPU jest jedno.
+
+Uzasadnienie fizyczne wariantu dodatkowego i jego ograniczenia:
+RAPORT_SESJI_2026-07-26_29.md §2.13-§2.15 (ucieczka promieni 22 % -> 0.00 %,
+zgodnosc z Eyringiem 0.41x -> 1.00x, ale sceny zalatane sa mierzalnie BARDZIEJ
+wyidealizowane niz nienaruszone skany, p = 0.0032).
+
 ODPORNOSC NA ZERWANIE SESJI. Generacja jest uruchamiana przez `setsid`, wiec
 proces trafia do wlasnej sesji i wlasnej grupy procesow: zamkniecie terminala
 albo zerwanie SSH wysyla SIGHUP tylko do grupy terminala, ktorej generator juz
@@ -39,9 +117,31 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import generate_echo_dataset as G  # noqa: E402  — jedyne zrodlo sciezek i stalych
+from echo_core import paths as P  # noqa: E402
+
+# DLACZEGO OSOBNY IMPORT `paths`, skoro G juz wszystko re-eksportuje: `OUT_ROOT` jest
+# STALA, a `from ... import OUT_ROOT` w generatorze zwiazalo jej kopie w chwili importu.
+# set_variant() podmienia globalna w echo_core.paths, wiec G.OUT_ROOT po zmianie
+# wariantu jest NIEAKTUALNE — funkcje sciezek (G.scene_h5 itp.) czytaja globalna
+# w czasie wywolania i dzialaja, ale sama stala nie. Zlapane pomiarowo: kolejka
+# ladowala plik stanu w katalogu wariantu glownego mimo --variant patched.
 
 GEN_SCRIPT = G.SCRIPT_PATH
-SCENE_INDEX_CACHE = G.OUT_ROOT / ".scene_index.json"
+
+# Wariant datasetu. Ustawiany raz w main() z argumentu --variant / wariant=...,
+# potem czytany przez SCENES() i sciezki w G. Kazdy wariant ma wlasny katalog
+# wyjsciowy, wiec statusy i cache sie nie mieszaja.
+VARIANT = "main"
+
+
+def SCENES():
+    """Sceny biezacego wariantu — `patched` ma tylko te, ktore maja late."""
+    return G.scenes_for_variant()
+
+
+def scene_index_cache():
+    # sciezka MUSI byc liczona po ustawieniu wariantu, dlatego funkcja, nie stala
+    return P.OUT_ROOT / ".scene_index.json"
 
 # --- kolory: wylaczane automatycznie, gdy wyjscie nie jest terminalem --------
 _TTY = sys.stdout.isatty()
@@ -84,30 +184,33 @@ def find_running():
             continue
         if not any(Path(a).name == GEN_SCRIPT.name for a in argv[1:]):
             continue
-        scene = None
+        scene, variant = None, "main"
         for i, a in enumerate(argv):
             if a == "--scene" and i + 1 < len(argv):
                 scene = argv[i + 1]
-        out.append((int(entry.name), scene))
+            elif a == "--variant" and i + 1 < len(argv):
+                variant = argv[i + 1]
+        out.append((int(entry.name), scene, variant))
     return out
 
 
 def scene_index():
     """scena -> liczba lokalizacji. Cache na dysku, bo liczenie wymaga
     wczytania 913 MB pkl (0.9 s) — za duzo jak na widok odswiezany co 2 s."""
-    if SCENE_INDEX_CACHE.exists():
+    cache = scene_index_cache()
+    if cache.exists():
         try:
-            return json.loads(SCENE_INDEX_CACHE.read_text())
+            return json.loads(cache.read_text())
         except (OSError, json.JSONDecodeError):
             pass
     idx = {}
-    for s in G.SCENE_ORDER:
+    for s in SCENES():
         try:
             idx[s] = len(G.load_scene_locations(s)[0])
         except Exception:
             idx[s] = 0
-    SCENE_INDEX_CACHE.parent.mkdir(parents=True, exist_ok=True)
-    SCENE_INDEX_CACHE.write_text(json.dumps(idx, indent=2))
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_text(json.dumps(idx, indent=2))
     return idx
 
 
@@ -172,8 +275,8 @@ def scene_state(scene, index, running_map):
 
 def all_states():
     index = scene_index()
-    running_map = {s: p for p, s in find_running() if s}
-    return [scene_state(s, index, running_map) for s in G.SCENE_ORDER], running_map
+    running_map = {s: p for p, s, v in find_running() if s and v == VARIANT}
+    return [scene_state(s, index, running_map) for s in SCENES()], running_map
 
 
 def tail_log(scene, n=3):
@@ -221,8 +324,38 @@ def header(states, running_map):
     rate = sum(rates) / len(rates) if rates else G.S_PER_RENDER_SPEC
 
     width = min(shutil.get_terminal_size((80, 24)).columns, 100)
-    print(BOLD("  Visual Echoes 2.0 · generator ech 36-orientacyjnych"))
+    tag = ("wariant GLOWNY (geometria oryginalna)" if VARIANT == "main"
+           else f"wariant DODATKOWY '{VARIANT}' (sceny z domknietymi dziurami)")
+    print(BOLD("  Visual Echoes 2.0 · generator ech 36-orientacyjnych") + DIM(f"  ·  {tag}"))
+    foreign = [(p, sc, v) for p, sc, v in find_running() if sc and v != VARIANT]
+    if foreign:
+        for pid, sc, v in foreign:
+            print(YELLOW(f"  UWAGA: w innym wariancie ({v}) dziala {sc} (pid {pid}) — "
+                         f"jeden Simulator na GPU!"))
     print(DIM("  " + "─" * (width - 2)))
+
+    q = read_queue()
+    if q:
+        alive = supervisor_alive(q)
+        # UWAGA: wlasne nazwy z przedrostkiem q_ — `done` i `left` sa juz uzywane
+        # wyzej w tej funkcji jako LICZNIKI scen, a przyslonienie ich lista dawalo
+        # w naglowku "sceny ['office_2']/10".
+        q_left, q_done = q.get("pending") or [], q.get("done") or []
+        est = sum(next((x["expected"] for x in states if x["scene"] == sc), 0) for sc in q_left)
+        eta = f"{est * rate * G.MEAN_N_SPEC / 3600:.0f} h" if est else "—"
+        tag = GREEN("KOLEJKA") if alive else RED("KOLEJKA (nadzorca nie zyje)")
+        # Scena uruchomiona RECZNIE nie jest czlonkiem kolejki, ale ma byc widoczna
+        # w tej samej linii — inaczej obraz jest rozjechany: kolejka mowi "czekam",
+        # a nie widac na co. Dopisujemy ja z adnotacja, skad sie wziela.
+        cur = q.get("current") or (next(iter(running_map), None) if running_map else None)
+        cur_note = ""
+        if cur:
+            cur_note = (f" · w toku: {BOLD(cur)}"
+                        + ("" if cur == q.get("current") else DIM(" (uruchomiona recznie)")))
+        print(f"  {tag}{cur_note} · gotowe {len(q_done)} · pozostalo {len(q_left)} "
+              + DIM(f"({', '.join(q_left[:4])}{'…' if len(q_left) > 4 else ''}) ~{eta}"))
+        if q.get("failed"):
+            print(RED(f"  kolejka przerwana na: {', '.join(q['failed'])} — patrz {queue_log().name}"))
 
     active = [s for s in states if s["state"] in ("W TOKU", "start...")]
     if active:
@@ -259,9 +392,9 @@ def header(states, running_map):
         if s.get("n_per_sample"):
             n_seen.append(s["n_per_sample"])
         remaining_s += left * n_scene * rate
-    n_note = (f"N zmierzone dla {len(n_seen)}/18 scen, reszta {G.MEAN_N_SPEC} wg spec"
+    n_note = (f"N zmierzone dla {len(n_seen)}/{len(states)} scen, reszta {G.MEAN_N_SPEC} wg spec"
               if n_seen else f"N {G.MEAN_N_SPEC} wg spec")
-    print(f"  sceny {BOLD(f'{done}/18')} · próbki {written}/{expected} "
+    print(f"  sceny {BOLD(f'{done}/{len(states)}')} · próbki {written}/{expected} "
           f"({100*written/max(expected,1):.1f}%) · {fmt_size(size)} · "
           f"pozostało ~{remaining_s/3600:.0f} h")
     print(DIM(f"        przy {rate:.3f} s/render · {n_note}"))
@@ -300,6 +433,332 @@ def next_scene(states):
         if s["state"] in ("pusta", "brak", "przerwana"):
             return s
     return None
+
+
+# ---------------------------------------------------------------------------
+# Kolejka scen — generacja bez nadzoru (np. na noc)
+# ---------------------------------------------------------------------------
+# Kolejka to OSOBNY PROCES-NADZORCA, ktory uruchamia generator na jedna scene,
+# czeka na jego zakonczenie i bierze nastepna. Dlaczego nie petla w jednym
+# procesie generatora: jeden Simulator na proces to twarde zalozenie projektu
+# (konstruowanie wielu Simulatorow w jednym procesie potrafi zawiesic
+# GPU), wiec kazda scena MUSI dostac swoj proces. Nadzorca sam nigdy nie tworzy
+# Simulatora, wiec nie zuzywa budzetu konstrukcji.
+#
+# Stan trzymamy w pliku JSON w katalogu wariantu, nie w pamieci nadzorcy — dzieki
+# temu `status` w drugim terminalu widzi kolejke, a po zabiciu nadzorcy wiadomo,
+# gdzie sie zatrzymala. USUNIECIE tego pliku jest sygnalem STOP: nadzorca sprawdza
+# go przed kazda scena i konczy prace, gdy zniknie (tak dziala `stop`).
+
+
+def queue_file():
+    return P.OUT_ROOT / ".queue.json"
+
+
+def queue_log():
+    return P.OUT_ROOT / "queue.log"
+
+
+def _ts():
+    return datetime.now().strftime("%H:%M:%S")
+
+
+def read_queue():
+    try:
+        return json.loads(queue_file().read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def write_queue(q):
+    p = queue_file()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    # zapis atomowy: `status` w drugim terminalu nigdy nie przeczyta polowy pliku
+    tmp = p.with_name(p.name + ".tmp")
+    tmp.write_text(json.dumps(q, indent=2))
+    tmp.replace(p)
+
+
+def supervisor_alive(q):
+    """Czy nadzorca z pliku kolejki nadal zyje.
+
+    Ten sam rygor co w find_running(): sprawdzamy wiersz polecen procesu, zeby
+    przypadkowe ponowne uzycie PID-u nie wygladalo jak dzialajaca kolejka.
+    """
+    pid = (q or {}).get("pid")
+    if not pid:
+        return False
+    try:
+        argv = (Path("/proc") / str(pid) / "cmdline").read_bytes().split(b"\0")
+    except (OSError, PermissionError):
+        return False
+    argv = [a.decode(errors="replace") for a in argv if a]
+    return "_run-queue" in argv and any(Path(a).name == Path(__file__).name for a in argv)
+
+
+def scene_complete(scene):
+    """Czy plik sceny ma juz wszystkie probki. Tanio, bez pkl i bez GPU."""
+    path = G.scene_h5(scene)
+    if not path.exists():
+        return False
+    try:
+        f = G._open_readonly(path)
+        try:
+            w = f["written"][:]
+            return int(w.sum()) >= int(f.attrs.get("n_samples_expected", w.size))
+        finally:
+            f.close()
+    except Exception:
+        return False
+
+
+def queue_start(scenes, states=None):
+    """Zaklada kolejke i odpala nadzorce w tle."""
+    # Trwajaca generacja NIE blokuje zalozenia kolejki. Nadzorca ma wlasna petle
+    # czekania na wolne GPU, wiec normalnym scenariuszem jest "odpalilem jedna scene
+    # recznie, teraz dokolejkuje reszte, zeby poszla po niej" — wczesniejsza odmowa
+    # byla nadmiarowa i wymuszala siedzenie przy komputerze do konca sceny.
+    running = find_running()
+    old = read_queue()
+    if old and supervisor_alive(old):
+        print(RED(f"  Kolejka juz dziala (pid {old['pid']})."))
+        print(DIM(f"  pozostalo: {', '.join(old.get('pending') or []) or '—'}"))
+        return 1
+
+    if states is None:
+        states, _ = all_states()
+    if not scenes:
+        # domyslnie wszystko, co jeszcze czegos potrzebuje, w kolejnosci z §4.2
+        scenes = [s["scene"] for s in states if s["state"] in ("pusta", "brak", "przerwana")]
+    unknown = [s for s in scenes if s not in SCENES()]
+    if unknown:
+        print(RED(f"  Nieznane sceny w wariancie {VARIANT}: {', '.join(unknown)}"))
+        return 1
+    seen, uniq = set(), []
+    for s in scenes:                       # bez duplikatow, kolejnosc zachowana
+        if s not in seen:
+            seen.add(s)
+            uniq.append(s)
+    if old and old.get("failed"):
+        print(YELLOW(f"  poprzednia kolejka przerwala sie na: {', '.join(old['failed'])}"))
+    return queue_apply(uniq, states, running)
+
+
+def queue_apply(pending, states=None, running=None):
+    """Ustawia zawartosc kolejki i pilnuje, zeby nadzorca dzialal.
+
+    Sluzy i do zalozenia kolejki, i do EDYCJI dzialajacej: nadzorca czyta plik
+    przed kazda scena, wiec zmiana `pending` dziala na zywo i nie wymaga
+    zatrzymywania czegokolwiek. Pusta lista = kolejka wygasa po biezacej scenie
+    (nadzorca sam wyjdzie), ale trwajaca generacja NIE jest przerywana — do tego
+    sluzy `stop`.
+    """
+    if states is None:
+        states, _ = all_states()
+    if running is None:
+        running = find_running()
+    old = read_queue() or {}
+    alive = supervisor_alive(old)
+
+    write_queue({"variant": VARIANT, "pending": list(pending),
+                 "done": old.get("done") or [], "failed": old.get("failed") or [],
+                 "current": old.get("current"),
+                 "started": old.get("started") or datetime.now().isoformat(timespec="seconds"),
+                 "pid": old.get("pid") if alive else None})
+
+    if not pending:
+        print(YELLOW("  Kolejka oprozniona." + (" Nadzorca zakonczy sie po biezacej scenie."
+                                               if alive else "")))
+        print(DIM("  Trwajaca generacja NIE zostala przerwana — do tego sluzy `stop`."))
+        return 0
+
+    total = sum(next((x["expected"] for x in states if x["scene"] == sc), 0) for sc in pending)
+    if alive:
+        print(GREEN(f"  Kolejka zaktualizowana na zywo (nadzorca pid {old['pid']}): "
+                    f"{len(pending)} scen, {total} probek"))
+    else:
+        cmd = [sys.executable, str(Path(__file__).resolve()), "_run-queue",
+               "--variant", VARIANT]
+        # start_new_session: nadzorca przezywa zamkniecie terminala, dokladnie tak samo
+        # jak pojedyncza generacja uruchamiana przez start()
+        with open(queue_log(), "ab") as fh:
+            proc = subprocess.Popen(cmd, stdout=fh, stderr=subprocess.STDOUT,
+                                    stdin=subprocess.DEVNULL, start_new_session=True,
+                                    cwd=str(G.REPO_ROOT))
+        print(GREEN(f"  Kolejka uruchomiona (pid {proc.pid}): {len(pending)} scen, "
+                    f"{total} probek"))
+    for i, sc in enumerate(pending, 1):
+        print(DIM(f"    {i}. {sc}"))
+    if running:
+        pid, sc, v = running[0]
+        print(YELLOW(f"  Trwa generacja {sc} [{v}] (pid {pid}) — kolejka poczeka na wolne GPU"))
+        print(DIM("  i wystartuje sama, gdy ta scena sie skonczy. Nie trzeba nic klikac."))
+    print(DIM(f"  log kolejki: {queue_log()}"))
+    print(DIM("  Zamkniecie pulpitu ani zerwanie SSH NIE zatrzyma kolejki."))
+    print(DIM("  Zatrzymanie calosci: `stop`.  Sama kolejka: [k] -> c, albo `queue clear`."))
+    time.sleep(1.5)
+    return 0
+
+
+def queue_candidates(states):
+    """Sceny, ktore moga trafic do kolejki: niegotowe + te juz w niej siedzace."""
+    q = read_queue() or {}
+    need = {x["scene"] for x in states if x["state"] in ("pusta", "brak", "przerwana")}
+    need |= set(q.get("pending") or [])
+    return [sc for sc in SCENES() if sc in need]
+
+
+def queue_edit(states):
+    """Interaktywny edytor kolejki: lista z zaznaczeniem, przelaczanie numerami.
+
+    DLACZEGO Enter = ANULUJ, a nie "zakolejkuj wszystko": poprzednia wersja pytala
+    o liste i puste wejscie traktowala jako "wszystko", wiec przypadkowy Enter
+    wrzucal do kolejki 17 scen bez mozliwosci wycofania. Tutaj zadna zmiana nie
+    wchodzi w zycie bez jawnego [s].
+    """
+    cand = queue_candidates(states)
+    if not cand:
+        print(GREEN("  Nie ma czego kolejkowac — wszystkie sceny wariantu gotowe."))
+        return 0
+    q = read_queue() or {}
+    sel = [sc for sc in cand if sc in (q.get("pending") or [])]
+    by_scene = {x["scene"]: x for x in states}
+    orig = list(sel)
+
+    while True:
+        print()
+        print(BOLD(f"  KOLEJKA — wariant {VARIANT}") +
+              DIM("   [x] = w kolejce, kolejnosc jak w §4.2"))
+        for i, sc in enumerate(cand, 1):
+            mark = GREEN("[x]") if sc in sel else DIM("[ ]")
+            st = by_scene.get(sc, {})
+            lok = st.get("expected", 0) // G.N_ANGLES
+            note = ""
+            if st.get("state") == "przerwana":
+                note = YELLOW(" wznowi")
+            elif st.get("held_out"):
+                note = DIM(" held-out")
+            print(f"   {mark} {i:>2}. {sc:<18}{lok:>4} lok.{note}")
+        est = sum(by_scene.get(sc, {}).get("expected", 0) for sc in sel)
+        print(DIM(f"   wybrane: {len(sel)} scen, {est} probek"))
+        print(DIM("   numery/nazwy = przelacz  ·  w = wszystkie  ·  c = zadna  ·  "
+                  "s = ZAPISZ  ·  Enter = anuluj"))
+        try:
+            raw = input("  kolejka> ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 0
+        if raw == "":
+            print(DIM("  anulowane — kolejka bez zmian"))
+            return 0
+        if raw == "s":
+            if sel == orig:
+                print(DIM("  bez zmian"))
+                return 0
+            return queue_apply(sel, states)
+        if raw == "w":
+            sel = list(cand)
+            continue
+        if raw == "c":
+            sel = []
+            continue
+        for tok in raw.replace(",", " ").split():
+            target = None
+            if tok.isdigit() and 1 <= int(tok) <= len(cand):
+                target = cand[int(tok) - 1]
+            elif tok in cand:
+                target = tok
+            if target is None:
+                print(RED(f"  nie rozpoznaje: {tok}"))
+                continue
+            if target in sel:
+                sel.remove(target)
+            else:
+                # wstawiamy tak, zeby zachowac kolejnosc SCENE_ORDER
+                sel = [sc for sc in cand if sc in set(sel) | {target}]
+
+
+def run_queue():
+    """Nadzorca. Uruchamiany tylko przez queue_start(), nie recznie."""
+    q = read_queue()
+    if not q:
+        print(f"[{_ts()}] brak pliku kolejki — koniec")
+        return 1
+    q["pid"] = os.getpid()
+    write_queue(q)
+    print(f"[{_ts()}] KOLEJKA start, wariant {q['variant']}, sceny: {', '.join(q['pending'])}")
+
+    while True:
+        q = read_queue()
+        if q is None:
+            print(f"[{_ts()}] plik kolejki usuniety — zatrzymuje kolejke (to jest `stop`)")
+            return 0
+        if not q.get("pending"):
+            break
+        scene = q["pending"][0]
+
+        # ktos mogl w miedzyczasie odpalic generacje recznie — GPU jest jedno
+        other = [r for r in find_running()]
+        if other:
+            print(f"[{_ts()}] czekam: GPU zajete przez {other[0][1]} (pid {other[0][0]})")
+            time.sleep(30)
+            continue
+
+        # Scena moze byc juz gotowa — np. dokolejkowano recznie te, ktora wlasnie
+        # sie konczyla. Pomijamy bez konstruowania Simulatora.
+        if scene_complete(scene):
+            print(f"[{_ts()}] {scene} jest juz kompletna — pomijam")
+            q["pending"].remove(scene)
+            q.setdefault("done", []).append(scene)
+            write_queue(q)
+            continue
+
+        q["current"] = scene
+        write_queue(q)
+        rc = 1
+        for attempt in (1, 2):
+            partial = G.scene_h5(scene).exists()
+            cmd = [sys.executable, str(GEN_SCRIPT), "--scene", scene,
+                   "--variant", q["variant"]]
+            if partial:
+                cmd.append("--resume")
+            G.scene_dir(scene).mkdir(parents=True, exist_ok=True)
+            print(f"[{_ts()}] start {scene} (proba {attempt}"
+                  f"{', --resume' if partial else ''})")
+            with open(G.scene_stdout(scene), "ab") as fh:
+                rc = subprocess.call(cmd, stdout=fh, stderr=subprocess.STDOUT,
+                                     stdin=subprocess.DEVNULL, cwd=str(G.REPO_ROOT))
+            if rc == 0:
+                print(f"[{_ts()}] {scene} GOTOWA")
+                break
+            print(f"[{_ts()}] {scene} zakonczyla sie kodem {rc}")
+            # Jedno ponowienie, bo --resume nie traci ani jednej probki, a awarie
+            # bywaja przejsciowe. Po drugiej porazce PRZERYWAMY cala kolejke:
+            # typowa przyczyna to zawieszony GPU, a wtedy kolejne
+            # sceny tylko dopisywalyby bledy przez cala noc.
+            if attempt == 1:
+                print(f"[{_ts()}] ponawiam raz z --resume (nic nie ginie)")
+                time.sleep(15)
+
+        q = read_queue()
+        if q is None:
+            print(f"[{_ts()}] plik kolejki usuniety w trakcie — koniec")
+            return 0
+        if scene in q.get("pending", []):
+            q["pending"].remove(scene)
+        q["current"] = None
+        if rc == 0:
+            q.setdefault("done", []).append(scene)
+        else:
+            q.setdefault("failed", []).append(scene)
+            q["pending"] = []
+            print(f"[{_ts()}] PRZERWANIE kolejki po dwoch nieudanych probach na {scene}")
+        write_queue(q)
+
+    q = read_queue() or q
+    print(f"[{_ts()}] KOLEJKA koniec — gotowe: {', '.join(q.get('done') or []) or '—'}"
+          f"{'; nieudane: ' + ', '.join(q['failed']) if q.get('failed') else ''}")
+    return 0 if not q.get("failed") else 1
 
 
 def scene_params(scene):
@@ -346,11 +805,14 @@ def regenerate(scene):
     """Generuje scene OD ZERA biezacymi parametrami (--force). NISZCZY stary plik."""
     running = find_running()
     if running:
-        pid, sc = running[0]
-        print(RED(f"  Generacja juz dziala: {sc} (pid {pid})."))
+        pid, sc, v = running[0]
+        print(RED(f"  Generacja juz dziala: {sc} [wariant {v}] (pid {pid})."))
         return 1
-    if scene not in G.SCENE_ORDER:
-        print(RED(f"  Nieznana scena: {scene}"))
+    if scene not in SCENES():
+        print(RED(f"  Nieznana scena w wariancie {VARIANT}: {scene}"))
+        if VARIANT != "main" and scene in G.SCENE_ORDER:
+            print(DIM("  Ta scena jest szczelna — nie ma laty, wiec w tym wariancie jej"))
+            print(DIM("  geometria bylaby identyczna jak w 'main'. Uzyj wariantu glownego."))
         return 1
 
     path = G.scene_h5(scene)
@@ -388,12 +850,15 @@ def regenerate(scene):
 def start(scene, states=None):
     running = find_running()
     if running:
-        pid, sc = running[0]
-        print(RED(f"  Generacja juz dziala: {sc} (pid {pid})."))
+        pid, sc, v = running[0]
+        print(RED(f"  Generacja juz dziala: {sc} [wariant {v}] (pid {pid})."))
         print(DIM("  Jeden Simulator na raz — rownolegle sceny biłyby sie o GPU."))
         return 1
-    if scene not in G.SCENE_ORDER:
-        print(RED(f"  Nieznana scena: {scene}"))
+    if scene not in SCENES():
+        print(RED(f"  Nieznana scena w wariancie {VARIANT}: {scene}"))
+        if VARIANT != "main" and scene in G.SCENE_ORDER:
+            print(DIM("  Ta scena jest szczelna — nie ma laty, wiec w tym wariancie jej"))
+            print(DIM("  geometria bylaby identyczna jak w 'main'. Uzyj wariantu glownego."))
         return 1
 
     partial = G.scene_h5(scene).exists()
@@ -405,7 +870,7 @@ def start(scene, states=None):
                 print(f"    {k:<24} plik: {was!s:<12} teraz: {now}")
             print(DIM("  --resume dopisze probki NOWYMI parametrami -> scena bedzie mieszana."))
             print(DIM("  Dla jednorodnosci uzyj regeneracji: echo_ctl.py regen " + scene))
-    cmd = [sys.executable, str(GEN_SCRIPT), "--scene", scene]
+    cmd = [sys.executable, str(GEN_SCRIPT), "--scene", scene, "--variant", VARIANT]
     if partial:
         cmd.append("--resume")
 
@@ -429,16 +894,26 @@ def start(scene, states=None):
 
 
 def stop(scene=None):
+    # Kolejke kasujemy PRZED wyslaniem SIGINT. Generator po przerwaniu konczy
+    # biezaca probke i wychodzi kodem 0, wiec nadzorca bez tego wzialby po prostu
+    # nastepna scene — a `stop` ma zatrzymac calosc. Brak pliku kolejki jest dla
+    # nadzorcy sygnalem zakonczenia pracy.
+    q = read_queue()
+    if q:
+        queue_file().unlink(missing_ok=True)
+        left = q.get("pending") or []
+        print(YELLOW(f"  kolejka zatrzymana; nieuruchomione sceny: "
+                     f"{', '.join(left) if left else '—'}"))
     running = find_running()
     if not running:
         print(DIM("  Nic nie dziala."))
         return 0
-    for pid, sc in running:
+    for pid, sc, v in running:
         if scene and sc != scene:
             continue
         try:
             os.kill(pid, signal.SIGINT)
-            print(YELLOW(f"  SIGINT -> {sc} (pid {pid})"))
+            print(YELLOW(f"  SIGINT -> {sc} [{v}] (pid {pid})"))
             print(DIM("  Generator dokonczy biezaca probke, zapisze i zamknie plik. "
                       "Moze to potrwac do kilkunastu sekund."))
         except ProcessLookupError:
@@ -496,7 +971,8 @@ def watch(scene=None, interval=2.0):
 
 
 def run_gen(*extra):
-    return subprocess.call([sys.executable, str(GEN_SCRIPT), *extra], cwd=str(G.REPO_ROOT))
+    return subprocess.call([sys.executable, str(GEN_SCRIPT), *extra,
+                           "--variant", VARIANT], cwd=str(G.REPO_ROOT))
 
 
 def pick_scene(states, prompt="  scena (numer albo nazwa): "):
@@ -504,9 +980,10 @@ def pick_scene(states, prompt="  scena (numer albo nazwa): "):
     raw = input(prompt).strip()
     if not raw:
         return None
-    if raw.isdigit() and 1 <= int(raw) <= len(G.SCENE_ORDER):
-        return G.SCENE_ORDER[int(raw) - 1]
-    if raw in G.SCENE_ORDER:
+    order = SCENES()
+    if raw.isdigit() and 1 <= int(raw) <= len(order):
+        return order[int(raw) - 1]
+    if raw in order:
         return raw
     print(RED(f"  Nieznana scena: {raw}"))
     return None
@@ -518,6 +995,7 @@ def pick_scene(states, prompt="  scena (numer albo nazwa): "):
 MENU = """
   {p} podgląd na żywo          {v} weryfikuj scenę
   {n} uruchom następną         {t} tabela wszystkich scen
+  {k} KOLEJKA scen (na noc)    {w} przełącz wariant (main/patched)
   {s} uruchom wybraną          {d} próbny przebieg (dry-run)
   {x} zatrzymaj generację      {r} REGENERUJ scenę od zera
   {q} wyjście
@@ -541,7 +1019,8 @@ def dashboard():
             print(YELLOW(f"  sceny wygenerowane STARYMI parametrami: {', '.join(stale)}"
                          "  — [r] regeneruje"))
         print(MENU.format(p=BOLD("p"), n=BOLD("n"), s=BOLD("s"), x=BOLD("x"), v=BOLD("v"),
-                          t=BOLD("t"), d=BOLD("d"), r=BOLD("r"), q=BOLD("q")))
+                          t=BOLD("t"), d=BOLD("d"), r=BOLD("r"), q=BOLD("q"), k=BOLD("k"),
+                          w=BOLD("w")))
         try:
             ch = input("  > ").strip().lower()
         except (EOFError, KeyboardInterrupt):
@@ -558,12 +1037,22 @@ def dashboard():
             if nxt:
                 start(nxt["scene"])
             else:
-                print(GREEN("  Wszystkie 18 scen gotowe."))
+                print(GREEN(f"  Wszystkie {len(SCENES())} scen gotowe."))
             input(DIM("  [Enter]"))
         elif ch == "s":
             sc = pick_scene(states)
             if sc:
                 start(sc)
+            input(DIM("  [Enter]"))
+        elif ch == "w":
+            other = "patched" if VARIANT == "main" else "main"
+            if switch_variant(other):
+                print(GREEN(f"  wariant: {other}"))
+                # Jesli w starym wariancie cos dziala, naglowek nowego widoku sam
+                # o tym ostrzeze (find_running() patrzy na WSZYSTKIE warianty).
+            input(DIM("  [Enter]"))
+        elif ch == "k":
+            queue_edit(states)
             input(DIM("  [Enter]"))
         elif ch == "x":
             stop()
@@ -590,8 +1079,50 @@ def dashboard():
             input(DIM("\n  [Enter]"))
 
 
+def switch_variant(name):
+    """Przelacza wariant w tym module i w echo_core. -> True, jesli sie udalo.
+
+    Zmiana dotyczy tylko WIDOKU i tego, co uruchomia kolejne polecenia — nie ma
+    zadnego wplywu na proces generacji, ktory juz dziala (ma wlasny, zamrozony
+    w chwili startu zestaw sciezek).
+    """
+    global VARIANT
+    try:
+        G.set_variant(name)
+    except ValueError as e:
+        print(RED(f"  {e}"))
+        return False
+    VARIANT = name
+    return True
+
+
+def apply_variant(args):
+    """Wyjmuje --variant/-v z argv, ustawia wariant w tym modulu i w echo_core.
+
+    Musi zadzialac PRZED czymkolwiek, co dotyka sciezek — P.OUT_ROOT i mesh sceny
+    zmieniaja sie wraz z wariantem. Zwraca argv bez zjedzonych argumentow.
+    """
+    global VARIANT
+    out, i = [], 0
+    while i < len(args):
+        a = args[i]
+        if a in ("--variant", "-v") and i + 1 < len(args):
+            VARIANT = args[i + 1]
+            i += 2
+            continue
+        if a.startswith("--variant="):
+            VARIANT = a.split("=", 1)[1]
+            i += 1
+            continue
+        out.append(a)
+        i += 1
+    if not switch_variant(VARIANT):
+        raise SystemExit(2)
+    return out
+
+
 def main():
-    args = sys.argv[1:]
+    args = apply_variant(sys.argv[1:])
     if not args:
         return dashboard()
     cmd, rest = args[0], args[1:]
@@ -607,9 +1138,54 @@ def main():
         states, _ = all_states()
         nxt = next_scene(states)
         if not nxt:
-            print(GREEN("  Wszystkie 18 scen gotowe."))
+            print(GREEN(f"  Wszystkie {len(SCENES())} scen wariantu {VARIANT} gotowe."))
             return 0
         return start(nxt["scene"])
+    if cmd == "_run-queue":          # wewnetrzne: nadzorca kolejki
+        return run_queue()
+    if cmd in ("queue", "q", "kolejka"):
+        states, _ = all_states()
+        sub = rest[0] if rest else "list"
+        q = read_queue() or {}
+        cur = list(q.get("pending") or [])
+        if sub == "list":
+            # Bez argumentow POKAZUJEMY kolejke, nie kolejkujemy wszystkiego —
+            # przypadkowe `queue` nie moze juz wrzucic 17 scen.
+            alive = supervisor_alive(q)
+            print(f"\n  KOLEJKA — wariant {VARIANT}"
+                  + (GREEN("  (nadzorca dziala)") if alive else DIM("  (nadzorca nie dziala)")))
+            for i, sc in enumerate(cur, 1):
+                print(f"    {i:>2}. {sc}")
+            if not cur:
+                print(DIM("    — pusta —"))
+            if q.get("done"):
+                print(DIM(f"    gotowe: {', '.join(q['done'])}"))
+            if q.get("failed"):
+                print(RED(f"    nieudane: {', '.join(q['failed'])}"))
+            print(DIM("\n  queue all              zakolejkuj wszystko, co niegotowe"))
+            print(DIM("  queue <sceny...>       ustaw dokladnie te sceny"))
+            print(DIM("  queue add <sceny...>   dodaj do kolejki"))
+            print(DIM("  queue rm  <sceny...>   usun z kolejki (dziala na zywo)"))
+            print(DIM("  queue clear            oproznij kolejke (NIE przerywa biezacej sceny)"))
+            print(DIM("  w pulpicie: [k] — lista z przelacznikami\n"))
+            return 0
+        if sub == "clear":
+            return queue_apply([], states)
+        if sub == "all":
+            return queue_start([], states)
+        if sub == "add":
+            bad = [x for x in rest[1:] if x not in SCENES()]
+            if bad:
+                print(RED(f"  nieznane sceny: {', '.join(bad)}"))
+                return 1
+            want = set(cur) | set(rest[1:])
+            return queue_apply([sc for sc in SCENES() if sc in want], states)
+        if sub in ("rm", "remove", "del"):
+            bad = [x for x in rest[1:] if x not in cur]
+            if bad:
+                print(YELLOW(f"  nie ma w kolejce: {', '.join(bad)}"))
+            return queue_apply([sc for sc in cur if sc not in set(rest[1:])], states)
+        return queue_start(rest, states)
     if cmd == "start":
         if not rest:
             print(RED("  Podaj scene: echo_ctl.py start <scena>"))

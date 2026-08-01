@@ -19,6 +19,21 @@ SCENE_ORDER = (
 HELD_OUT = ("apartment_2", "frl_apartment_5", "office_4")
 
 
+def scenes_for_variant(variant=None):
+    """Sceny do wygenerowania w danym wariancie, w kolejnosci SCENE_ORDER.
+
+    `main` — wszystkie 18. `patched` — TYLKO te, ktore maja zalatana siatke,
+    bo dla scen szczelnych oba warianty maja identyczna geometrie i dalyby
+    identyczne echa (patrz komentarz przy VARIANTS w paths.py). Generowanie ich
+    po raz drugi byloby czysta strata czasu GPU.
+    """
+    from . import paths
+    v = paths.VARIANT if variant is None else variant
+    if v == "main":
+        return SCENE_ORDER
+    return tuple(s for s in SCENE_ORDER if paths.has_patch(s))
+
+
 # Lokalizacje: zbior z pkl, wspolrzedne z points.txt, wysokosc z graph.pkl
 # ---------------------------------------------------------------------------
 def load_scene_locations(scene):

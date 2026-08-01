@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 # Kolejnosc importow (quaternion przed habitat_sim) wymagana przez lokalny patch
-# tego repo - patrz habitat-sim/local_changes.patch / CLAUDE.md.
+# tego repo - patrz habitat-sim/local_changes.patch.
 import quaternion  # noqa: F401
 import habitat_sim
 
@@ -32,7 +32,7 @@ SCENE_PATH = REPO_ROOT / "sound-spaces/data/scene_datasets/replica/room_0/habita
 POINTS_PATH = REPO_ROOT / "my-operations/metadata/replica/room_0/points.txt"
 
 # Brak dedykowanego pliku materialow akustycznych dla Replica w tym repo (tylko
-# mp3d) - patrz CLAUDE.md. Uzywamy go mimo to: kategorie Replica bez dopasowania
+# mp3d). Uzywamy go mimo to: kategorie Replica bez dopasowania
 # dostaja material domyslny (log "Using default material instead."), co NIE
 # powoduje crasha (to wlasnie zweryfikowalismy w Zadaniu 0) - tylko oznacza,
 # ze dokladnosc przypisania materialu jest tu nieistotna dla celu tego skryptu
@@ -46,7 +46,7 @@ REPORT_PATH = OUT_DIR / "diagnostics_report.json"
 # enableMaterials=True jest bezpieczne na tym buildzie - zweryfikowane w Zadaniu 0
 # (2026-07-23): fix w drzewie roboczym, binarka nowsza niz zrodlo, runtime bez
 # SIGSEGV na room_0. Gdyby Zadanie 0 kiedys nie przeszlo, ta stala powinna
-# wrocic na False z jawna adnotacja w raporcie (patrz sekcja audio w CLAUDE.md).
+# wrocic na False z jawna adnotacja w raporcie.
 MATERIALS_ENABLED = True
 
 # Dowolny punkt ze srodka points.txt, z dala od scian zewnetrznych room_0
@@ -300,7 +300,7 @@ PRODUCTION_SENSOR_HEIGHT = 1.25  # kamera z pkl; patrz PKL_FORMAT.md i listener_
 # Powyzej tego progu regula adaptacyjna zazada wiecej niz 40 renderow, zostanie
 # obcieta i probka moze nie osiagnac SNR 3.5 (GENERATOR_PARAMS.md §5 ogr. 6).
 # Prog wybrano na podstawie udokumentowanego zakresu do sigma_1 = 0.1131, ale
-# CLAUDE.md notuje szum render-do-renderu do 0.16 RMSE, czyli sigma_1 do 0.1131
+# Charakteryzacja z 2026-07-20 notuje szum render-do-renderu do 0.16 RMSE, czyli sigma_1 do 0.1131
 # przy dwoch renderach — a 11 z 18 scen (1227 z 1740 lokalizacji, 71 %) nie ma
 # ZADNEGO pomiaru. Na office_1 (mediana sigma_1 = 0.0766) juz jedna probka na 576
 # dobila do limitu i nie dobila do progu. Scena z mediana 0.12 dawalaby

@@ -7,9 +7,10 @@ import time
 import numpy as np
 
 from .params import MEAN_N_SPEC, N_ANGLES
-from .paths import OUT_ROOT, scene_h5, scene_progress
+from . import paths
+from .paths import scene_h5, scene_progress
 from .runtime import _fmt_hms
-from .scenes import HELD_OUT, SCENE_ORDER, load_scene_locations
+from .scenes import HELD_OUT, load_scene_locations, scenes_for_variant
 from .verify import _open_readonly
 
 def _writer_alive(scene):
@@ -37,7 +38,7 @@ def _writer_alive(scene):
 
 def status():
     print(f"\n{'=' * 96}")
-    print(f"  STAN DATASETU — {OUT_ROOT}")
+    print(f"  STAN DATASETU [{paths.VARIANT}] — {paths.OUT_ROOT}")
     print(f"  kolejnosc wg GENERATOR_PARAMS.md §4.2 (walidacyjna, held-out, po jednej z rodziny, reszta)")
     print("=" * 96)
     print(f"  {'#':<3}{'scena':<18}{'':<3}{'stan':<12}{'probki':>14}{'%':>7}{'rozmiar':>11}"
@@ -48,7 +49,7 @@ def status():
     tot_bytes = 0
     tot_seconds = 0.0
     rates = []
-    for i, scene in enumerate(SCENE_ORDER, start=1):
+    for i, scene in enumerate(scenes_for_variant(), start=1):
         path = scene_h5(scene)
         tag = "H" if scene in HELD_OUT else " "
         n_written = n_expected = 0

@@ -4,68 +4,42 @@ __pycache__/
 *.pyo
 *.egg-info/
 
-# Conda / env
+# Srodowisko i buildy
 .env
 .conda/
-
-# CMake
 build/
 **/build/
 cmake-build-*/
 CMakeCache.txt
 CMakeFiles/
-
-# Compiled binaries
 *.so
 *.o
 *.a
 
-# Habitat builds
-habitat-sim/build/
-habitat-lab/build/
-
-# Habitat generated data
-scenes_ve_metadata_locations/
-
-# Wszystko, co generuja skrypty w czasie dzialania (diagnostyki, dataset echo).
-# CLAUDE.md od dawna opisywal ten katalog jako gitignored, ale wpisu tu nie bylo
-# - wykryte 2026-07-28, przed wygenerowaniem ~19 GB HDF5 do outputs/echoes_36deg/.
-#
-# WYJATEK: diagnostics_report.json i wykresy z fazy charakteryzacji MUSZA byc
-# wersjonowane. To na nich opiera sie kazde twierdzenie metodologiczne pracy
-# (determinizm RNG, checkpoint-boundary R=16, bias katowy, podloga szumu,
-# uzasadnienie float16) - kilkaset KB, bez ktorych cala faza charakteryzacji
-# jest nie do odtworzenia.
-#
-# Uwaga na skladnie: git NIE wchodzi do zignorowanego katalogu, wiec sama
-# negacja "!outputs/diagnose_rlr_noise_out/*.json" przy zignorowanym "outputs/"
-# nie zadziala. Dlatego ignorujemy ZAWARTOSC ("outputs/*"), a katalog
-# diagnostyk odblokowujemy, zeby git mial do czego zajrzec.
-outputs/*
-!outputs/diagnose_rlr_noise_out/
-outputs/diagnose_rlr_noise_out/*
-!outputs/diagnose_rlr_noise_out/*.json
-!outputs/diagnose_rlr_noise_out/*.png
-
-# Census sondy: 1740 wierszy CSV, ~120 KB. To jest podstawa rozstrzygniecia o
-# N_MAX (GENERATOR_PARAMS.md §3.2) i najcenniejszy pojedynczy pomiar projektu —
-# musi byc wersjonowany. Logi census juz nie (lapie je wzorzec *.log wyzej).
-!outputs/probe_census/
-outputs/probe_census/*
-!outputs/probe_census/*.csv
-
-# outputs/measurements/ zostaje ignorowany w calosci: to ~210 MiB posrednich
-# spektrogramow (.npz), z ktorych policzono liczby zapisane w dokumentach.
-# Skrypty, ktore je wytwarzaja i czytaja, sa w my-operations/measurements/.
-
-# Logs
+# Logi i modele
 *.log
-
-# Models / data
 *.pth
 *.pt
 *.ckpt
 
+# Dane scen pobierane lokalnie
+scenes_ve_metadata_locations/
 
-.claude
-CLAUDE.md
+# outputs/ — wszystko, co generuja skrypty: dataset ech (~19 GB), zalatane siatki,
+# posrednie spektrogramy. Domyslnie ignorowane; wersjonujemy tylko male pliki
+# dowodowe (wyniki pomiarow, na ktorych opieraja sie liczby w docs/).
+#
+# Dwie rzeczy o skladni, latwe do zepsucia przy edycji:
+#  - git nie wchodzi do zignorowanego katalogu, stad "!outputs/**/" — bez tego
+#    zadna pozniejsza negacja nie zadziala;
+#  - negacje musza stac PO "*.log" wyzej, bo o losie pliku decyduje OSTATNI
+#    pasujacy wzorzec.
+outputs/**
+!outputs/**/
+!outputs/diagnose_rlr_noise_out/*.json
+!outputs/diagnose_rlr_noise_out/*.png
+!outputs/probe_census/*.csv
+!outputs/measurements/*/*.csv
+!outputs/measurements/*/*.json
+!outputs/measurements/dataset_check/*.log
+!outputs/measurements/sabine/summary.txt

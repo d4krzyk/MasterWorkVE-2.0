@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 # Kolejnosc importow (quaternion przed habitat_sim) wymagana przez lokalny patch
-# tego repo - patrz habitat-sim/local_changes.patch / CLAUDE.md.
+# tego repo - patrz habitat-sim/local_changes.patch.
 import quaternion  # noqa: F401
 import habitat_sim
 
@@ -29,7 +29,8 @@ from .common import (CHIRP_PATH, OUT_DIR, PRODUCTION_SENSOR_HEIGHT, REPLICA_MATE
 # --- BLOK 2: czy tysiace renderow w JEDNEJ instancji ciekna? -----------------
 #
 # Wiemy, ze ~30 KONSTRUKCJI Simulatora w jednym procesie kladzie karte sprzetowo
-# (wyciek GL/EGL na sim.close(), procedura odzysku przez PCI FLR w CLAUDE.md).
+# (wyciek GL/EGL na sim.close(); odzysk wymaga prawdziwego resetu PCI:
+# `echo 1 > /sys/bus/pci/devices/<id>/reset` po wyladowaniu modulow nvidia*).
 # To jednak inny wzorzec zuzycia zasobow niz tysiace RENDEROW w jednej instancji -
 # a to wlasnie jest wzorzec produkcyjny ("jeden dlugo zyjacy Simulator na scene").
 # Jesli render tez cieknie, architektura wymaga rotacji instancji w obrebie sceny

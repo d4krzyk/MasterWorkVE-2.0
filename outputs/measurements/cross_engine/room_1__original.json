@@ -1,0 +1,16 @@
+{
+  "scene": "room_1",
+  "variant": "original",
+  "class": "szczelna",
+  "pairs": 40,
+  "renders_per_pair": 3,
+  "warmup": 50,
+  "dist_mean_m": 1.74,
+  "rir_s": 1.217,
+  "rt60": {
+    "250": 0.465,
+    "500": 0.4148,
+    "1000": 0.3367,
+    "2000": 0.3376
+  }
+}

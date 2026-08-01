@@ -6,7 +6,8 @@ import numpy as np
 
 from . import audio, spectrogram
 from .params import (INDIRECT_RAY_COUNT, SENSOR_HEIGHT, THREAD_COUNT, WARMUP_DISCARD)
-from .paths import CHIRP_PATH, MATERIAL_CONFIG, OUT_ROOT, scene_mesh
+from . import paths
+from .paths import CHIRP_PATH, MATERIAL_CONFIG, scene_mesh
 from .store import SPEC_SHAPE
 
 class Renderer:
@@ -33,7 +34,8 @@ class Renderer:
         args.scene = str(scene_mesh(scene))
         args.sensor_height = SENSOR_HEIGHT
         args.material_config = str(MATERIAL_CONFIG)
-        args.out_dir = str(OUT_ROOT / "_rlr_scratch")
+        # przez modul, nie przez stala z importu: OUT_ROOT zmienia sie z wariantem
+        args.out_dir = str(paths.OUT_ROOT / "_rlr_scratch")
         args.indirect_ray_count = INDIRECT_RAY_COUNT
         args.thread_count = THREAD_COUNT
         args.gpu_device_id = 0

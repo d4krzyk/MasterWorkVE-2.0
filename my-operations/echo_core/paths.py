@@ -25,7 +25,53 @@ MATERIAL_CONFIG = MY_OPS / "replica_material_config.json"
 CHIRP_PATH = MY_OPS / "sweep_audio/3ms_sweep.wav"
 SPEC_DOC = MY_OPS / "docs/GENERATOR_PARAMS.md"
 
+PATCHED_SCENE_ROOT = REPO_ROOT / "outputs/patched_scenes"
+
+# --- warianty datasetu -------------------------------------------------------
+# `main`    — geometria ORYGINALNA Repliki. Wariant glowny: zachowuje zgodnosc
+#             RGB/depth z VisualEchoes (99.98 % pikseli bit-identycznych), wiec
+#             tylko on jest porownywalny z praca zrodlowa.
+# `patched` — geometria z domknietymi dziurami (measurements/patch_scene_holes.py).
+#             Wariant dodatkowy, do sprawdzenia, czy domkniecie scen poprawia
+#             uczenie. Uzasadnienie fizyczne: RAPORT_SESJI §2.13-§2.15 (ucieczka
+#             promieni 22 % -> 0.00 %, zgodnosc z Eyringiem 0.41x -> 1.00x).
+#
+# KTORE SCENY SIE ROZNIA: tylko te 10, ktore mialy dziure. Pozostale 8 jest
+# szczelnych i nie ma czego latac, wiec ich siatka jest w obu wariantach TA SAMA,
+# a wygenerowane echa bylyby bit-identyczne (threadCount=1 daje odtwarzalnosc).
+# Dlatego wariant `patched` generuje TYLKO sceny z lata — patrz scenes_for_variant()
+# w scenes.py. Do treningu wariant dodatkowy sklada sie z tych 10 scen plus 8 scen
+# szczelnych z wariantu glownego.
+VARIANTS = ("main", "patched")
+VARIANT = "main"                               # mutowane przez set_variant()
+
 OUT_ROOT = REPO_ROOT / "outputs/echoes_36deg"  # gitignored (patrz .gitignore)
+
+
+def set_variant(name):
+    """Ustawia wariant datasetu. Wolac RAZ, na starcie, PRZED uzyciem sciezek.
+
+    Dziala przez podmiane globalnych w tym module, bo wszystkie funkcje sciezek
+    czytaja je w czasie wywolania (na tym samym mechanizmie opiera sie
+    measurements/probe_discard_unittest.py). Moduly, ktore robia
+    `from .paths import OUT_ROOT`, wiazalyby kopie — dlatego echo_core.status
+    i echo_core.renderer odwoluja sie przez `paths.OUT_ROOT`.
+    """
+    global VARIANT, OUT_ROOT
+    if name not in VARIANTS:
+        raise ValueError(f"nieznany wariant {name!r}, dostepne: {VARIANTS}")
+    VARIANT = name
+    OUT_ROOT = REPO_ROOT / ("outputs/echoes_36deg" if name == "main"
+                            else f"outputs/echoes_36deg_{name}")
+
+
+def patched_scene_mesh(scene):
+    return PATCHED_SCENE_ROOT / scene / "habitat/mesh_semantic.ply"
+
+
+def has_patch(scene):
+    """Czy dla sceny istnieje zalatana siatka (czyli czy miala dziure)."""
+    return patched_scene_mesh(scene).exists()
 
 # `import habitat_sim` wymaga src_python na sciezce; robimy to tutaj, zeby
 # skrypt dzialal takze bez recznie ustawionego PYTHONPATH (istotne dla
@@ -37,6 +83,17 @@ if str(MY_OPS) not in sys.path:
 
 
 def scene_mesh(scene):
+    """Siatka sceny dla BIEZACEGO wariantu.
+
+    W wariancie `patched` zwraca zalatana siatke, jesli istnieje; dla scen
+    szczelnych (bez laty) zwraca oryginal, bo nie ma czego domykac. To ta funkcja
+    decyduje, co trafia do symulatora ORAZ do atrybutu `scene_id` w HDF5
+    (echo_core/store.py), wiec wariant jest zapisany w kazdym pliku datasetu.
+    """
+    if VARIANT != "main":
+        p = patched_scene_mesh(scene)
+        if p.exists():
+            return p
     return SCENE_ROOT / scene / "habitat/mesh_semantic.ply"
 
 
