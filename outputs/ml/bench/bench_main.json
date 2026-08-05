@@ -1,0 +1,186 @@
+{
+  "geometry": "main",
+  "batch_size": 32,
+  "angle_subset": "all",
+  "loader": [
+    {
+      "num_workers": 0,
+      "batch_size": 32,
+      "prefetch_factor": null,
+      "augment": true,
+      "batches": 295,
+      "samples": 9440,
+      "seconds": 29.354,
+      "samples_per_s": 321.6,
+      "batches_per_s": 10.05,
+      "full_epoch": false,
+      "source": "gzip"
+    },
+    {
+      "num_workers": 2,
+      "batch_size": 32,
+      "prefetch_factor": null,
+      "augment": true,
+      "batches": 295,
+      "samples": 9440,
+      "seconds": 11.899,
+      "samples_per_s": 793.3,
+      "batches_per_s": 24.79,
+      "full_epoch": false,
+      "source": "gzip"
+    },
+    {
+      "num_workers": 4,
+      "batch_size": 32,
+      "prefetch_factor": null,
+      "augment": true,
+      "batches": 295,
+      "samples": 9440,
+      "seconds": 5.886,
+      "samples_per_s": 1603.7,
+      "batches_per_s": 50.12,
+      "full_epoch": false,
+      "source": "gzip"
+    },
+    {
+      "num_workers": 8,
+      "batch_size": 32,
+      "prefetch_factor": null,
+      "augment": true,
+      "batches": 295,
+      "samples": 9440,
+      "seconds": 3.569,
+      "samples_per_s": 2645.1,
+      "batches_per_s": 82.66,
+      "full_epoch": false,
+      "source": "gzip"
+    }
+  ],
+  "prefetch": [
+    {
+      "num_workers": 8,
+      "batch_size": 32,
+      "prefetch_factor": 2,
+      "augment": true,
+      "batches": 295,
+      "samples": 9440,
+      "seconds": 3.559,
+      "samples_per_s": 2652.4,
+      "batches_per_s": 82.89,
+      "full_epoch": false,
+      "source": "gzip"
+    },
+    {
+      "num_workers": 8,
+      "batch_size": 32,
+      "prefetch_factor": 4,
+      "augment": true,
+      "batches": 295,
+      "samples": 9440,
+      "seconds": 3.624,
+      "samples_per_s": 2604.9,
+      "batches_per_s": 81.4,
+      "full_epoch": false,
+      "source": "gzip"
+    },
+    {
+      "num_workers": 8,
+      "batch_size": 32,
+      "prefetch_factor": 8,
+      "augment": true,
+      "batches": 295,
+      "samples": 9440,
+      "seconds": 3.702,
+      "samples_per_s": 2550.0,
+      "batches_per_s": 79.69,
+      "full_epoch": false,
+      "source": "gzip"
+    }
+  ],
+  "uncompressed": {
+    "gzip": {
+      "num_workers": 8,
+      "batch_size": 32,
+      "prefetch_factor": null,
+      "augment": true,
+      "batches": 156,
+      "samples": 4992,
+      "seconds": 1.737,
+      "samples_per_s": 2873.3,
+      "batches_per_s": 89.79,
+      "full_epoch": false,
+      "source": "gzip"
+    },
+    "uncompressed": {
+      "num_workers": 8,
+      "batch_size": 32,
+      "prefetch_factor": null,
+      "augment": true,
+      "batches": 156,
+      "samples": 4992,
+      "seconds": 1.041,
+      "samples_per_s": 4793.3,
+      "batches_per_s": 149.79,
+      "full_epoch": false,
+      "source": "uncompressed"
+    },
+    "gzip_MB": 1145.1,
+    "uncompressed_MB": 1543.6,
+    "wspolczynnik_kompresji": 1.348,
+    "przyspieszenie": 1.67
+  },
+  "model": [
+    {
+      "batch_size": 32,
+      "amp": false,
+      "iters": 25,
+      "seconds": 38.074,
+      "samples_per_s": 21.0,
+      "ms_per_iter": 1522.97,
+      "peak_mem_gb": 6.28
+    },
+    {
+      "batch_size": 32,
+      "amp": true,
+      "iters": 25,
+      "seconds": 37.844,
+      "samples_per_s": 21.1,
+      "ms_per_iter": 1513.76,
+      "peak_mem_gb": 6.28
+    }
+  ],
+  "estimate": {
+    "amp=False": {
+      "krokow": 40000,
+      "batch_size": 32,
+      "s_na_krok_gpu": 1.523,
+      "s_na_krok_io": 0.0121,
+      "s_na_krok_efektywnie": 1.523,
+      "waskie_gardlo": "GPU",
+      "godzin_bez_walidacji": 16.92
+    },
+    "amp=True": {
+      "krokow": 40000,
+      "batch_size": 32,
+      "s_na_krok_gpu": 1.5138,
+      "s_na_krok_io": 0.0121,
+      "s_na_krok_efektywnie": 1.5138,
+      "waskie_gardlo": "GPU",
+      "godzin_bez_walidacji": 16.82
+    }
+  },
+  "best_loader": {
+    "num_workers": 8,
+    "batch_size": 32,
+    "prefetch_factor": null,
+    "augment": true,
+    "batches": 295,
+    "samples": 9440,
+    "seconds": 3.569,
+    "samples_per_s": 2645.1,
+    "batches_per_s": 82.66,
+    "full_epoch": false,
+    "source": "gzip"
+  },
+  "utc": "2026-08-05T14:53:25.322989+00:00"
+}

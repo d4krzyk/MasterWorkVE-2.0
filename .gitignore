@@ -43,3 +43,21 @@ outputs/**
 !outputs/measurements/*/*.json
 !outputs/measurements/dataset_check/*.log
 !outputs/measurements/sabine/summary.txt
+# Faza uczenia: podzial lokalizacji, raporty weryfikacji dataloadera, benchmark
+# i konfiguracja macierzy eksperymentow. To pliki, na ktorych opieraja sie liczby
+# w docs/RAPORT_SESJI_2026-08-05.md — lacznie ~65 KB.
+!outputs/ml/splits/*.json
+!outputs/ml/verify_loader/*/*.json
+!outputs/ml/bench/*.json
+!outputs/ml/experiments.json
+# Przebiegi treningowe zostaja poza gitem: checkpointy pelnego modelu to ~1.3 GB
+# na przebieg (317 M parametrow + stan Adama), a jest ich 36 w macierzy.
+outputs/ml/runs/**
+
+# Zagniezdzone repozytoria wendorowanych zaleznosci (habitat-sim,
+# beyond-image-to-depth). Git NIE zaglada do katalogu ".git", wiec sam z siebie
+# jest bezpieczny — ale PRZEMIANOWANY (np. ".git.disabled" przy dodawaniu
+# zaleznosci plikami zamiast submodulem) traci te ochrone i da sie go
+# przypadkiem zacommitowac razem z packiem. Zdarzylo sie raz.
+**/.git.disabled/
+**/.git.bak/

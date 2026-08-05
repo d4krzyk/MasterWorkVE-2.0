@@ -1,0 +1,304 @@
+{
+  "total_steps": 40000,
+  "batch_size": 32,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "zasada": "stala liczba krokow gradientu we wszystkich warunkach, NIE stala liczba epok",
+  "conditions": [
+    {
+      "id": "A",
+      "angle_subset": "cardinal",
+      "model": "full",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "baseline VisualEchoes (Gao 2020): 4 kierunki kardynalne",
+      "group": "glowne"
+    },
+    {
+      "id": "B",
+      "angle_subset": "all",
+      "model": "full",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "efekt laczny gestosci i ilosci danych (36 orientacji)",
+      "group": "glowne"
+    },
+    {
+      "id": "D",
+      "angle_subset": "random_4",
+      "model": "full",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "SAMA gestosc katowa przy licznosci probek rownej A",
+      "group": "glowne"
+    },
+    {
+      "id": "C6",
+      "angle_subset": "every_6",
+      "model": "full",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "krzywa nasycenia: 6 orientacji",
+      "group": "krzywa"
+    },
+    {
+      "id": "C9",
+      "angle_subset": "every_4",
+      "model": "full",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "krzywa nasycenia: 9 orientacji",
+      "group": "krzywa"
+    },
+    {
+      "id": "C12",
+      "angle_subset": "every_3",
+      "model": "full",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "krzywa nasycenia: 12 orientacji",
+      "group": "krzywa"
+    },
+    {
+      "id": "C18",
+      "angle_subset": "every_2",
+      "model": "full",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "krzywa nasycenia: 18 orientacji",
+      "group": "krzywa"
+    },
+    {
+      "id": "EA",
+      "angle_subset": "cardinal",
+      "model": "echo2depth",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "echo2depth, 4 kierunki: hipoteza bez priora wizualnego",
+      "group": "echo"
+    },
+    {
+      "id": "EB",
+      "angle_subset": "all",
+      "model": "echo2depth",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "echo2depth, 36 orientacji: hipoteza bez priora wizualnego",
+      "group": "echo"
+    },
+    {
+      "id": "ED",
+      "angle_subset": "random_4",
+      "model": "echo2depth",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "echo2depth, sama gestosc przy licznosci rownej EA",
+      "group": "echo"
+    },
+    {
+      "id": "PB",
+      "angle_subset": "all",
+      "model": "full",
+      "geometry": "patched",
+      "angle_seed": 0,
+      "isolates": "wplyw domkniecia dziur w geometrii, przy 36 orientacjach",
+      "group": "geometria"
+    },
+    {
+      "id": "PA",
+      "angle_subset": "cardinal",
+      "model": "full",
+      "geometry": "patched",
+      "angle_seed": 0,
+      "isolates": "wplyw domkniecia dziur, przy 4 kierunkach",
+      "group": "geometria"
+    }
+  ],
+  "summary": {
+    "krokow_na_przebieg": 40000,
+    "batch_size": 32,
+    "ziarna": [
+      0,
+      1,
+      2
+    ],
+    "warunkow": 12,
+    "przebiegow_razem": 36,
+    "warunki": [
+      {
+        "id": "A",
+        "grupa": "glowne",
+        "angle_subset": "cardinal",
+        "katow_na_lokalizacje": 4,
+        "model": "full",
+        "geometria": "main",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "baseline VisualEchoes (Gao 2020): 4 kierunki kardynalne",
+        "przebiegow": 3
+      },
+      {
+        "id": "B",
+        "grupa": "glowne",
+        "angle_subset": "all",
+        "katow_na_lokalizacje": 36,
+        "model": "full",
+        "geometria": "main",
+        "probek_train": 49464,
+        "probek_val": 6588,
+        "probek_test": 6588,
+        "rownowaznik_epok": 25.9,
+        "izoluje": "efekt laczny gestosci i ilosci danych (36 orientacji)",
+        "przebiegow": 3
+      },
+      {
+        "id": "D",
+        "grupa": "glowne",
+        "angle_subset": "random_4",
+        "katow_na_lokalizacje": 4,
+        "model": "full",
+        "geometria": "main",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "SAMA gestosc katowa przy licznosci probek rownej A",
+        "przebiegow": 3
+      },
+      {
+        "id": "C6",
+        "grupa": "krzywa",
+        "angle_subset": "every_6",
+        "katow_na_lokalizacje": 6,
+        "model": "full",
+        "geometria": "main",
+        "probek_train": 8244,
+        "probek_val": 1098,
+        "probek_test": 1098,
+        "rownowaznik_epok": 155.3,
+        "izoluje": "krzywa nasycenia: 6 orientacji",
+        "przebiegow": 3
+      },
+      {
+        "id": "C9",
+        "grupa": "krzywa",
+        "angle_subset": "every_4",
+        "katow_na_lokalizacje": 9,
+        "model": "full",
+        "geometria": "main",
+        "probek_train": 12366,
+        "probek_val": 1647,
+        "probek_test": 1647,
+        "rownowaznik_epok": 103.5,
+        "izoluje": "krzywa nasycenia: 9 orientacji",
+        "przebiegow": 3
+      },
+      {
+        "id": "C12",
+        "grupa": "krzywa",
+        "angle_subset": "every_3",
+        "katow_na_lokalizacje": 12,
+        "model": "full",
+        "geometria": "main",
+        "probek_train": 16488,
+        "probek_val": 2196,
+        "probek_test": 2196,
+        "rownowaznik_epok": 77.6,
+        "izoluje": "krzywa nasycenia: 12 orientacji",
+        "przebiegow": 3
+      },
+      {
+        "id": "C18",
+        "grupa": "krzywa",
+        "angle_subset": "every_2",
+        "katow_na_lokalizacje": 18,
+        "model": "full",
+        "geometria": "main",
+        "probek_train": 24732,
+        "probek_val": 3294,
+        "probek_test": 3294,
+        "rownowaznik_epok": 51.8,
+        "izoluje": "krzywa nasycenia: 18 orientacji",
+        "przebiegow": 3
+      },
+      {
+        "id": "EA",
+        "grupa": "echo",
+        "angle_subset": "cardinal",
+        "katow_na_lokalizacje": 4,
+        "model": "echo2depth",
+        "geometria": "main",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "echo2depth, 4 kierunki: hipoteza bez priora wizualnego",
+        "przebiegow": 3
+      },
+      {
+        "id": "EB",
+        "grupa": "echo",
+        "angle_subset": "all",
+        "katow_na_lokalizacje": 36,
+        "model": "echo2depth",
+        "geometria": "main",
+        "probek_train": 49464,
+        "probek_val": 6588,
+        "probek_test": 6588,
+        "rownowaznik_epok": 25.9,
+        "izoluje": "echo2depth, 36 orientacji: hipoteza bez priora wizualnego",
+        "przebiegow": 3
+      },
+      {
+        "id": "ED",
+        "grupa": "echo",
+        "angle_subset": "random_4",
+        "katow_na_lokalizacje": 4,
+        "model": "echo2depth",
+        "geometria": "main",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "echo2depth, sama gestosc przy licznosci rownej EA",
+        "przebiegow": 3
+      },
+      {
+        "id": "PB",
+        "grupa": "geometria",
+        "angle_subset": "all",
+        "katow_na_lokalizacje": 36,
+        "model": "full",
+        "geometria": "patched",
+        "probek_train": 49464,
+        "probek_val": 6588,
+        "probek_test": 6588,
+        "rownowaznik_epok": 25.9,
+        "izoluje": "wplyw domkniecia dziur w geometrii, przy 36 orientacjach",
+        "przebiegow": 3
+      },
+      {
+        "id": "PA",
+        "grupa": "geometria",
+        "angle_subset": "cardinal",
+        "katow_na_lokalizacje": 4,
+        "model": "full",
+        "geometria": "patched",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "wplyw domkniecia dziur, przy 4 kierunkach",
+        "przebiegow": 3
+      }
+    ],
+    "godzin_na_przebieg": 0.86,
+    "godzin_cala_macierz": 31.0,
+    "dni_cala_macierz": 1.29
+  }
+}

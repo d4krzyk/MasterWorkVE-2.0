@@ -1,0 +1,732 @@
+{
+  "utc": "2026-08-05T14:46:11.472365+00:00",
+  "variant": "main",
+  "split_fingerprint": "e0bf7547668d9e0a",
+  "all_passed": true,
+  "checks": [
+    {
+      "name": "train/val/test rozlaczne po lokalizacjach",
+      "passed": true,
+      "detail": {
+        "train-val": {
+          "wspolnych_lokalizacji": 0,
+          "przyklady": []
+        },
+        "train-test": {
+          "wspolnych_lokalizacji": 0,
+          "przyklady": []
+        },
+        "val-test": {
+          "wspolnych_lokalizacji": 0,
+          "przyklady": []
+        },
+        "sceny": {
+          "train": [
+            "apartment_0",
+            "apartment_1",
+            "frl_apartment_0",
+            "frl_apartment_1",
+            "frl_apartment_2",
+            "frl_apartment_3",
+            "frl_apartment_4",
+            "hotel_0",
+            "office_0",
+            "office_1",
+            "office_2",
+            "office_3",
+            "room_0",
+            "room_1",
+            "room_2"
+          ],
+          "heldout": [
+            "apartment_2",
+            "frl_apartment_5",
+            "office_4"
+          ],
+          "wspolne": [],
+          "zgodne_z_base_options": true,
+          "pokrycie_wszystkich_18": true
+        },
+        "podzial_apartment_2": {
+          "val": 71,
+          "test": 71,
+          "suma": 142,
+          "wspolne": 0
+        },
+        "podzial_frl_apartment_5": {
+          "val": 74,
+          "test": 74,
+          "suma": 148,
+          "wspolne": 0
+        },
+        "podzial_office_4": {
+          "val": 38,
+          "test": 38,
+          "suma": 76,
+          "wspolne": 0
+        }
+      }
+    },
+    {
+      "name": "licznosc probek dla kazdego --angle-subset",
+      "passed": true,
+      "detail": {
+        "all": {
+          "angles_per_location": 36,
+          "train": {
+            "got": 49464,
+            "want": 49464
+          },
+          "val": {
+            "got": 6588,
+            "want": 6588
+          },
+          "test": {
+            "got": 6588,
+            "want": 6588
+          },
+          "total": {
+            "got": 62640,
+            "want": 62640
+          }
+        },
+        "every_2": {
+          "angles_per_location": 18,
+          "train": {
+            "got": 24732,
+            "want": 24732
+          },
+          "val": {
+            "got": 3294,
+            "want": 3294
+          },
+          "test": {
+            "got": 3294,
+            "want": 3294
+          },
+          "total": {
+            "got": 31320,
+            "want": 31320
+          }
+        },
+        "every_3": {
+          "angles_per_location": 12,
+          "train": {
+            "got": 16488,
+            "want": 16488
+          },
+          "val": {
+            "got": 2196,
+            "want": 2196
+          },
+          "test": {
+            "got": 2196,
+            "want": 2196
+          },
+          "total": {
+            "got": 20880,
+            "want": 20880
+          }
+        },
+        "every_4": {
+          "angles_per_location": 9,
+          "train": {
+            "got": 12366,
+            "want": 12366
+          },
+          "val": {
+            "got": 1647,
+            "want": 1647
+          },
+          "test": {
+            "got": 1647,
+            "want": 1647
+          },
+          "total": {
+            "got": 15660,
+            "want": 15660
+          }
+        },
+        "every_6": {
+          "angles_per_location": 6,
+          "train": {
+            "got": 8244,
+            "want": 8244
+          },
+          "val": {
+            "got": 1098,
+            "want": 1098
+          },
+          "test": {
+            "got": 1098,
+            "want": 1098
+          },
+          "total": {
+            "got": 10440,
+            "want": 10440
+          }
+        },
+        "every_9": {
+          "angles_per_location": 4,
+          "train": {
+            "got": 5496,
+            "want": 5496
+          },
+          "val": {
+            "got": 732,
+            "want": 732
+          },
+          "test": {
+            "got": 732,
+            "want": 732
+          },
+          "total": {
+            "got": 6960,
+            "want": 6960
+          }
+        },
+        "cardinal": {
+          "angles_per_location": 4,
+          "train": {
+            "got": 5496,
+            "want": 5496
+          },
+          "val": {
+            "got": 732,
+            "want": 732
+          },
+          "test": {
+            "got": 732,
+            "want": 732
+          },
+          "total": {
+            "got": 6960,
+            "want": 6960
+          }
+        },
+        "random_4": {
+          "angles_per_location": 4,
+          "train": {
+            "got": 5496,
+            "want": 5496
+          },
+          "val": {
+            "got": 732,
+            "want": 732
+          },
+          "test": {
+            "got": 732,
+            "want": 732
+          },
+          "total": {
+            "got": 6960,
+            "want": 6960
+          }
+        },
+        "random_6": {
+          "angles_per_location": 6,
+          "train": {
+            "got": 8244,
+            "want": 8244
+          },
+          "val": {
+            "got": 1098,
+            "want": 1098
+          },
+          "test": {
+            "got": 1098,
+            "want": 1098
+          },
+          "total": {
+            "got": 10440,
+            "want": 10440
+          }
+        },
+        "random_9": {
+          "angles_per_location": 9,
+          "train": {
+            "got": 12366,
+            "want": 12366
+          },
+          "val": {
+            "got": 1647,
+            "want": 1647
+          },
+          "test": {
+            "got": 1647,
+            "want": 1647
+          },
+          "total": {
+            "got": 15660,
+            "want": 15660
+          }
+        },
+        "random_12": {
+          "angles_per_location": 12,
+          "train": {
+            "got": 16488,
+            "want": 16488
+          },
+          "val": {
+            "got": 2196,
+            "want": 2196
+          },
+          "test": {
+            "got": 2196,
+            "want": 2196
+          },
+          "total": {
+            "got": 20880,
+            "want": 20880
+          }
+        },
+        "random_18": {
+          "angles_per_location": 18,
+          "train": {
+            "got": 24732,
+            "want": 24732
+          },
+          "val": {
+            "got": 3294,
+            "want": 3294
+          },
+          "test": {
+            "got": 3294,
+            "want": 3294
+          },
+          "total": {
+            "got": 31320,
+            "want": 31320
+          }
+        }
+      }
+    },
+    {
+      "name": "random_K odtwarzalny i zrownowazony",
+      "passed": true,
+      "detail": {
+        "random_4": {
+          "ten_sam_seed_daje_to_samo": true,
+          "inny_seed_daje_cos_innego": true
+        },
+        "rozklad_katow_random_4": {
+          "oczekiwany_licznik": 152.7,
+          "min": 125,
+          "max": 185,
+          "max_odchylka": 32.3,
+          "prog_5sigma": 58.2,
+          "zrownowazony": true
+        }
+      }
+    },
+    {
+      "name": "ksztalt i dtype wsadu zgodne z audioVisual_model.py",
+      "passed": true,
+      "detail": {
+        "train": {
+          "got": {
+            "img": [
+              [
+                8,
+                3,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "depth": [
+              [
+                8,
+                1,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "audio": [
+              [
+                8,
+                2,
+                257,
+                166
+              ],
+              "torch.float32"
+            ]
+          },
+          "want": {
+            "img": [
+              [
+                8,
+                3,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "depth": [
+              [
+                8,
+                1,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "audio": [
+              [
+                8,
+                2,
+                257,
+                166
+              ],
+              "torch.float32"
+            ]
+          },
+          "ok": true
+        },
+        "val": {
+          "got": {
+            "img": [
+              [
+                8,
+                3,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "depth": [
+              [
+                8,
+                1,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "audio": [
+              [
+                8,
+                2,
+                257,
+                166
+              ],
+              "torch.float32"
+            ]
+          },
+          "want": {
+            "img": [
+              [
+                8,
+                3,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "depth": [
+              [
+                8,
+                1,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "audio": [
+              [
+                8,
+                2,
+                257,
+                166
+              ],
+              "torch.float32"
+            ]
+          },
+          "ok": true
+        },
+        "test": {
+          "got": {
+            "img": [
+              [
+                8,
+                3,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "depth": [
+              [
+                8,
+                1,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "audio": [
+              [
+                8,
+                2,
+                257,
+                166
+              ],
+              "torch.float32"
+            ]
+          },
+          "want": {
+            "img": [
+              [
+                8,
+                3,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "depth": [
+              [
+                8,
+                1,
+                128,
+                128
+              ],
+              "torch.float32"
+            ],
+            "audio": [
+              [
+                8,
+                2,
+                257,
+                166
+              ],
+              "torch.float32"
+            ]
+          },
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "brak NaN/Inf",
+      "passed": true,
+      "detail": {
+        "train": {
+          "samples_checked": 1280,
+          "nonfinite": {
+            "img": 0,
+            "depth": 0,
+            "audio": 0
+          },
+          "ok": true
+        },
+        "val": {
+          "samples_checked": 1280,
+          "nonfinite": {
+            "img": 0,
+            "depth": 0,
+            "audio": 0
+          },
+          "ok": true
+        },
+        "test": {
+          "samples_checked": 1280,
+          "nonfinite": {
+            "img": 0,
+            "depth": 0,
+            "audio": 0
+          },
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "statystyki echa (magnituda STFT, nieujemna)",
+      "passed": true,
+      "detail": {
+        "max": 9.64062,
+        "min": 0.0,
+        "srednia": 0.138509,
+        "procent_zer": 0.0017,
+        "probek": 960
+      }
+    },
+    {
+      "name": "zakres glebi wzgledem max_depth",
+      "passed": true,
+      "detail": {
+        "apartment_0": {
+          "probek": 7596,
+          "max_m": 14.7779,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 131,
+          "procent_powyzej": 0.000105,
+          "procent_zerowych": 0.000673
+        },
+        "apartment_1": {
+          "probek": 6336,
+          "max_m": 9.6945,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 6.047269
+        },
+        "apartment_2": {
+          "probek": 5112,
+          "max_m": 11.3568,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 11.393159
+        },
+        "frl_apartment_0": {
+          "probek": 4680,
+          "max_m": 12.5551,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 15.121491
+        },
+        "frl_apartment_1": {
+          "probek": 4680,
+          "max_m": 12.6269,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 15.170732
+        },
+        "frl_apartment_2": {
+          "probek": 4500,
+          "max_m": 13.2022,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 13.609732
+        },
+        "frl_apartment_3": {
+          "probek": 5292,
+          "max_m": 13.2095,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 14.8317
+        },
+        "frl_apartment_4": {
+          "probek": 4572,
+          "max_m": 13.0696,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 14.555609
+        },
+        "frl_apartment_5": {
+          "probek": 5328,
+          "max_m": 13.1918,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 14.241768
+        },
+        "hotel_0": {
+          "probek": 1728,
+          "max_m": 8.5277,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 0.001498
+        },
+        "office_0": {
+          "probek": 936,
+          "max_m": 5.4465,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 0.037534
+        },
+        "office_1": {
+          "probek": 576,
+          "max_m": 4.2984,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 0.001473
+        },
+        "office_2": {
+          "probek": 1332,
+          "max_m": 7.6019,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 6.260507
+        },
+        "office_3": {
+          "probek": 2232,
+          "max_m": 8.6472,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 1.042252
+        },
+        "office_4": {
+          "probek": 2736,
+          "max_m": 7.7233,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 0.001207
+        },
+        "room_0": {
+          "probek": 2052,
+          "max_m": 8.1709,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 0.001008
+        },
+        "room_1": {
+          "probek": 1260,
+          "max_m": 6.1285,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 0.000446
+        },
+        "room_2": {
+          "probek": 1692,
+          "max_m": 6.6152,
+          "min_m": 0.0,
+          "pikseli_powyzej_max_depth": 0,
+          "procent_powyzej": 0.0,
+          "procent_zerowych": 0.004141
+        },
+        "_RAZEM": {
+          "wariant": "main",
+          "max_depth_modelu_m": 14.104,
+          "pikseli": 1026293760,
+          "global_max_m": 14.7779,
+          "global_min_m": 0.0,
+          "pikseli_powyzej_max_depth": 131,
+          "procent_powyzej": 1.3e-05,
+          "procent_zerowych_(maskowanych_w_stracie)": 8.480338,
+          "pelny_skan": true
+        }
+      }
+    },
+    {
+      "name": "zrzut probek PNG",
+      "passed": true,
+      "detail": {
+        "katalog": "/home/d4krzyk/Dokumenty/MasterWorkVE/outputs/ml/verify_loader/main/samples",
+        "pliki": [
+          "sample_00_apartment_2_loc135_120deg.png",
+          "sample_01_frl_apartment_5_loc157_170deg.png",
+          "sample_02_frl_apartment_5_loc89_170deg.png",
+          "sample_03_apartment_2_loc156_110deg.png",
+          "sample_04_apartment_2_loc37_170deg.png",
+          "sample_05_office_4_loc37_190deg.png"
+        ]
+      }
+    }
+  ]
+}
