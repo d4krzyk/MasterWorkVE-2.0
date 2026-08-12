@@ -30,9 +30,9 @@ import h5py
 import numpy as np
 import torch
 
-from . import paths
-from .echo_h5_dataset import DatasetConfig, EchoH5Dataset, build_dataloader
-from .splits import load_splits
+from .. import paths
+from ..dataset.echo_h5_dataset import DatasetConfig, EchoH5Dataset, build_dataloader
+from ..dataset.splits import load_splits
 
 
 @dataclass
@@ -291,7 +291,7 @@ def bench_uncompressed(
     jest wlasnoscia formatu, a nie rozmiaru. Przepisanie 26 GiB tylko po to,
     zeby zmierzyc stosunek, byloby marnotrawstwem doby pracy dysku.
     """
-    from .splits import Splits
+    from ..dataset.splits import Splits
 
     dst = rewrite_uncompressed(scene, variant)
     root = dst.parent.parent

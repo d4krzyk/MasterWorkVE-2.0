@@ -1,0 +1,1633 @@
+{
+  "script": "determinism_check.py",
+  "version": "1.0.0",
+  "created_utc": "2026-08-11T14:22:24.982238+00:00",
+  "condition": "A",
+  "steps": 2000,
+  "seed": 0,
+  "batch_size": 32,
+  "amp": true,
+  "checkpoints": [
+    0,
+    100,
+    250,
+    500,
+    1000,
+    2000
+  ],
+  "val_subset_batches": 64,
+  "runs": {
+    "slow_1": {
+      "tag": "slow_1",
+      "fast_bilinear": false,
+      "steps": 2000,
+      "seed": 0,
+      "compared_against": null,
+      "replayed_from_snapshots": true,
+      "data_order_sha256": "fc7a5a9e16388b7dbc9625d85716dd4078ce9e7a0550582b1bcb259b61e53834",
+      "final_loss_mean_last100": null,
+      "evals": {
+        "0": {
+          "RMSE": 5.68695624443125,
+          "RMSE_per_sample": 5.596292019541798,
+          "n_samples": 732
+        },
+        "100": {
+          "RMSE": 1.783215843073007,
+          "RMSE_per_sample": 1.7320225960244247,
+          "n_samples": 732
+        },
+        "250": {
+          "RMSE": 0.6114374859050506,
+          "RMSE_per_sample": 0.5800948908623776,
+          "n_samples": 732
+        },
+        "500": {
+          "RMSE": 0.47173589850219944,
+          "RMSE_per_sample": 0.41602181604569727,
+          "n_samples": 732
+        },
+        "1000": {
+          "RMSE": 0.4350998641073688,
+          "RMSE_per_sample": 0.37355591524188797,
+          "n_samples": 732
+        },
+        "2000": {
+          "RMSE": 0.38878653629867294,
+          "RMSE_per_sample": 0.3323589124782978,
+          "n_samples": 732
+        }
+      },
+      "weight_diffs": {},
+      "seconds": 41.7,
+      "s_per_step": null
+    },
+    "slow_2": {
+      "tag": "slow_2",
+      "fast_bilinear": false,
+      "steps": 2000,
+      "seed": 0,
+      "compared_against": "slow_1",
+      "data_order_sha256": "fc7a5a9e16388b7dbc9625d85716dd4078ce9e7a0550582b1bcb259b61e53834",
+      "final_loss_mean_last100": 0.13875967964529992,
+      "evals": {
+        "0": {
+          "RMSE": 5.686956252057057,
+          "RMSE_per_sample": 5.596292028010217,
+          "n_samples": 732
+        },
+        "100": {
+          "RMSE": 1.787898025960688,
+          "RMSE_per_sample": 1.7394627182861495,
+          "n_samples": 732
+        },
+        "250": {
+          "RMSE": 0.6155148403969105,
+          "RMSE_per_sample": 0.5870091373233196,
+          "n_samples": 732
+        },
+        "500": {
+          "RMSE": 0.48131776513921454,
+          "RMSE_per_sample": 0.4232406858151239,
+          "n_samples": 732
+        },
+        "1000": {
+          "RMSE": 0.4329934322750573,
+          "RMSE_per_sample": 0.36608157110466655,
+          "n_samples": 732
+        },
+        "2000": {
+          "RMSE": 0.3961061926448764,
+          "RMSE_per_sample": 0.33544287573586884,
+          "n_samples": 732
+        }
+      },
+      "weight_diffs": {
+        "0": {
+          "rel_l2": 0.0,
+          "l2_diff": 0.0,
+          "l2_ref": 462.60967060062103,
+          "max_abs_diff": 0.0,
+          "bit_identical": true,
+          "per_net": {
+            "attention": {
+              "l2_diff": 0.0,
+              "l2_ref": 425.6051451596293,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "audiodepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 84.04718479501966,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "material": {
+              "l2_diff": 0.0,
+              "l2_ref": 119.46829843524246,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "rgbdepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 107.38418945024289,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            }
+          }
+        },
+        "100": {
+          "rel_l2": 0.12478315589555976,
+          "l2_diff": 205.23138592636903,
+          "l2_ref": 1644.7042427596746,
+          "max_abs_diff": 39.62691879272461,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 204.70592862455888,
+              "l2_ref": 1505.2117696747043,
+              "rel_l2": 0.13599809192881776,
+              "max_abs_diff": 39.62691879272461,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 4.788963986234504,
+              "l2_ref": 365.52876917175496,
+              "rel_l2": 0.013101469405775449,
+              "max_abs_diff": 0.5054822564125061,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 11.571077739633182,
+              "l2_ref": 456.4152134192494,
+              "rel_l2": 0.02535208599412819,
+              "max_abs_diff": 0.6756437122821808,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.653792464990835,
+              "l2_ref": 312.1913619107068,
+              "rel_l2": 0.024516349261386607,
+              "max_abs_diff": 1.0813086032867432,
+              "identical": false
+            }
+          }
+        },
+        "250": {
+          "rel_l2": 0.270175729975871,
+          "l2_diff": 945.6127513803921,
+          "l2_ref": 3499.9914739375117,
+          "max_abs_diff": 165.36659240722656,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 945.2142109839888,
+              "l2_ref": 3099.8752759815675,
+              "rel_l2": 0.3049200780133611,
+              "max_abs_diff": 165.36659240722656,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 9.684565555494444,
+              "l2_ref": 902.8549254906029,
+              "rel_l2": 0.010726602117424282,
+              "max_abs_diff": 1.2732625901699066,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 22.151721449654403,
+              "l2_ref": 1121.3664083896228,
+              "rel_l2": 0.019754222423575316,
+              "max_abs_diff": 1.3211656212806702,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 13.003128620803063,
+              "l2_ref": 753.726709521556,
+              "rel_l2": 0.017251781655790163,
+              "max_abs_diff": 1.5911691188812256,
+              "identical": false
+            }
+          }
+        },
+        "500": {
+          "rel_l2": 0.1497527993305388,
+          "l2_diff": 565.5887838955651,
+          "l2_ref": 3776.8161024301176,
+          "max_abs_diff": 140.99824905395508,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 565.037469324548,
+              "l2_ref": 1937.169374421385,
+              "rel_l2": 0.29168201644387426,
+              "max_abs_diff": 140.99824905395508,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 9.889961463265623,
+              "l2_ref": 1803.350357752451,
+              "rel_l2": 0.005484215211286877,
+              "max_abs_diff": 1.0898143351078033,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 20.99263745331504,
+              "l2_ref": 2237.416329246179,
+              "rel_l2": 0.009382535194237988,
+              "max_abs_diff": 1.453272819519043,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 9.21024227604983,
+              "l2_ref": 1501.2029653567658,
+              "rel_l2": 0.006135241195624061,
+              "max_abs_diff": 1.075981080532074,
+              "identical": false
+            }
+          }
+        },
+        "1000": {
+          "rel_l2": 0.04689520821180694,
+          "l2_diff": 320.72935982411803,
+          "l2_ref": 6839.277871963196,
+          "max_abs_diff": 68.22087669372559,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 319.8709366434935,
+              "l2_ref": 2183.255325232543,
+              "rel_l2": 0.14651100718575985,
+              "max_abs_diff": 68.22087669372559,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.166098412759931,
+              "l2_ref": 3605.785644501254,
+              "rel_l2": 0.0028193851257528337,
+              "max_abs_diff": 1.0119464695453644,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 19.565947968603297,
+              "l2_ref": 4472.680271014509,
+              "rel_l2": 0.0043745465320652755,
+              "max_abs_diff": 1.3701663613319397,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.983123896991127,
+              "l2_ref": 3000.42648201142,
+              "rel_l2": 0.002660663057352905,
+              "max_abs_diff": 0.8358441740274429,
+              "identical": false
+            }
+          }
+        },
+        "2000": {
+          "rel_l2": 0.010217785917828513,
+          "l2_diff": 138.63622064397592,
+          "l2_ref": 13568.12735742255,
+          "max_abs_diff": 34.61993885040283,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 137.00789566586602,
+              "l2_ref": 4010.8756992164845,
+              "rel_l2": 0.03415909789790549,
+              "max_abs_diff": 34.61993885040283,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 9.60081962190696,
+              "l2_ref": 7211.193999756854,
+              "rel_l2": 0.0013313772479606953,
+              "max_abs_diff": 1.101829320192337,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 17.523709156615993,
+              "l2_ref": 8944.481691687743,
+              "rel_l2": 0.001959164293767974,
+              "max_abs_diff": 1.1764383912086487,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.041454369537432,
+              "l2_ref": 6000.157037745463,
+              "rel_l2": 0.0011735450131123955,
+              "max_abs_diff": 0.5801949799060822,
+              "identical": false
+            }
+          }
+        }
+      },
+      "seconds": 3078.1,
+      "s_per_step": 1.5391
+    },
+    "fast_1": {
+      "tag": "fast_1",
+      "fast_bilinear": true,
+      "steps": 2000,
+      "seed": 0,
+      "compared_against": "slow_1",
+      "data_order_sha256": "fc7a5a9e16388b7dbc9625d85716dd4078ce9e7a0550582b1bcb259b61e53834",
+      "final_loss_mean_last100": 0.13943926706910134,
+      "evals": {
+        "0": {
+          "RMSE": 5.686956279764158,
+          "RMSE_per_sample": 5.5962920455984735,
+          "n_samples": 732
+        },
+        "100": {
+          "RMSE": 1.804670169708069,
+          "RMSE_per_sample": 1.753326672836731,
+          "n_samples": 732
+        },
+        "250": {
+          "RMSE": 0.6241739872628258,
+          "RMSE_per_sample": 0.5976045317744296,
+          "n_samples": 732
+        },
+        "500": {
+          "RMSE": 0.47467326552561034,
+          "RMSE_per_sample": 0.41873350856530533,
+          "n_samples": 732
+        },
+        "1000": {
+          "RMSE": 0.4345515969638965,
+          "RMSE_per_sample": 0.3716585002483322,
+          "n_samples": 732
+        },
+        "2000": {
+          "RMSE": 0.3895155596746331,
+          "RMSE_per_sample": 0.33005837940921384,
+          "n_samples": 732
+        }
+      },
+      "weight_diffs": {
+        "0": {
+          "rel_l2": 0.0,
+          "l2_diff": 0.0,
+          "l2_ref": 462.60967060062103,
+          "max_abs_diff": 0.0,
+          "bit_identical": true,
+          "per_net": {
+            "attention": {
+              "l2_diff": 0.0,
+              "l2_ref": 425.6051451596293,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "audiodepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 84.04718479501966,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "material": {
+              "l2_diff": 0.0,
+              "l2_ref": 119.46829843524246,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "rgbdepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 107.38418945024289,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            }
+          }
+        },
+        "100": {
+          "rel_l2": 0.1289156958894415,
+          "l2_diff": 212.02819198768037,
+          "l2_ref": 1644.7042427596746,
+          "max_abs_diff": 42.128562927246094,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 211.4841349436014,
+              "l2_ref": 1505.2117696747043,
+              "rel_l2": 0.1405012498602146,
+              "max_abs_diff": 42.128562927246094,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 5.448684733989644,
+              "l2_ref": 365.52876917175496,
+              "rel_l2": 0.014906308869574673,
+              "max_abs_diff": 0.6495352238416672,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 11.97780486094789,
+              "l2_ref": 456.4152134192494,
+              "rel_l2": 0.02624322000841246,
+              "max_abs_diff": 0.8070401847362518,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.566960427006442,
+              "l2_ref": 312.1913619107068,
+              "rel_l2": 0.02423821203986659,
+              "max_abs_diff": 1.2645768523216248,
+              "identical": false
+            }
+          }
+        },
+        "250": {
+          "rel_l2": 0.23953864479732262,
+          "l2_diff": 838.3832144691753,
+          "l2_ref": 3499.9914739375117,
+          "max_abs_diff": 238.0684585571289,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 837.8963574900739,
+              "l2_ref": 3099.8752759815675,
+              "rel_l2": 0.270300022708093,
+              "max_abs_diff": 238.0684585571289,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.056659831437969,
+              "l2_ref": 902.8549254906029,
+              "rel_l2": 0.011138732865607699,
+              "max_abs_diff": 1.3166010677814484,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 23.09730094409775,
+              "l2_ref": 1121.3664083896228,
+              "rel_l2": 0.02059746107186092,
+              "max_abs_diff": 1.5208469033241272,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 13.47169962053868,
+              "l2_ref": 753.726709521556,
+              "rel_l2": 0.017873453932779063,
+              "max_abs_diff": 1.654569536447525,
+              "identical": false
+            }
+          }
+        },
+        "500": {
+          "rel_l2": 0.16876807500713314,
+          "l2_diff": 637.4059832630744,
+          "l2_ref": 3776.8161024301176,
+          "max_abs_diff": 159.56689453125,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 636.8926778363556,
+              "l2_ref": 1937.169374421385,
+              "rel_l2": 0.3287749054088725,
+              "max_abs_diff": 159.56689453125,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.094172733705621,
+              "l2_ref": 1803.350357752451,
+              "rel_l2": 0.005597455142486109,
+              "max_abs_diff": 1.3599901795387268,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 21.797436395627443,
+              "l2_ref": 2237.416329246179,
+              "rel_l2": 0.009742235323262946,
+              "max_abs_diff": 1.3331281542778015,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 8.77974153398561,
+              "l2_ref": 1501.2029653567658,
+              "rel_l2": 0.005848470684241605,
+              "max_abs_diff": 1.0158501267433167,
+              "identical": false
+            }
+          }
+        },
+        "1000": {
+          "rel_l2": 0.057121289701730665,
+          "l2_diff": 390.66837267504576,
+          "l2_ref": 6839.277871963196,
+          "max_abs_diff": 83.19488143920898,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 389.93766033810147,
+              "l2_ref": 2183.255325232543,
+              "rel_l2": 0.17860378299847657,
+              "max_abs_diff": 83.19488143920898,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.306780666930809,
+              "l2_ref": 3605.785644501254,
+              "rel_l2": 0.0028584008266404936,
+              "max_abs_diff": 1.166248857975006,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 20.079482506032832,
+              "l2_ref": 4472.680271014509,
+              "rel_l2": 0.004489362370961144,
+              "max_abs_diff": 1.1581289768218994,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.809168533813605,
+              "l2_ref": 3000.42648201142,
+              "rel_l2": 0.002602686178325726,
+              "max_abs_diff": 0.7883026152849197,
+              "identical": false
+            }
+          }
+        },
+        "2000": {
+          "rel_l2": 0.01167793576685396,
+          "l2_diff": 158.4477197564745,
+          "l2_ref": 13568.12735742255,
+          "max_abs_diff": 38.570560455322266,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 156.95032937422002,
+              "l2_ref": 4010.8756992164845,
+              "rel_l2": 0.039131187587009966,
+              "max_abs_diff": 38.570560455322266,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 9.555072373509365,
+              "l2_ref": 7211.193999756854,
+              "rel_l2": 0.0013250333264964917,
+              "max_abs_diff": 1.028917133808136,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 18.29118967970145,
+              "l2_ref": 8944.481691687743,
+              "rel_l2": 0.0020449692123244837,
+              "max_abs_diff": 1.0816978216171265,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 6.81226668505474,
+              "l2_ref": 6000.157037745463,
+              "rel_l2": 0.001135348065425705,
+              "max_abs_diff": 0.4970726817846298,
+              "identical": false
+            }
+          }
+        }
+      },
+      "seconds": 193.0,
+      "s_per_step": 0.0965
+    },
+    "fast_2": {
+      "tag": "fast_2",
+      "fast_bilinear": true,
+      "steps": 2000,
+      "seed": 0,
+      "compared_against": "fast_1",
+      "data_order_sha256": "fc7a5a9e16388b7dbc9625d85716dd4078ce9e7a0550582b1bcb259b61e53834",
+      "final_loss_mean_last100": 0.13767936252057553,
+      "evals": {
+        "0": {
+          "RMSE": 5.686956259730525,
+          "RMSE_per_sample": 5.5962920175875475,
+          "n_samples": 732
+        },
+        "100": {
+          "RMSE": 1.7812952013813514,
+          "RMSE_per_sample": 1.73534060599374,
+          "n_samples": 732
+        },
+        "250": {
+          "RMSE": 0.605351544978443,
+          "RMSE_per_sample": 0.5772362296047107,
+          "n_samples": 732
+        },
+        "500": {
+          "RMSE": 0.487850384259918,
+          "RMSE_per_sample": 0.4298421550196051,
+          "n_samples": 732
+        },
+        "1000": {
+          "RMSE": 0.4315729280204656,
+          "RMSE_per_sample": 0.36855645219240685,
+          "n_samples": 732
+        },
+        "2000": {
+          "RMSE": 0.3905568692806053,
+          "RMSE_per_sample": 0.33380213546785503,
+          "n_samples": 732
+        }
+      },
+      "weight_diffs": {
+        "0": {
+          "rel_l2": 0.0,
+          "l2_diff": 0.0,
+          "l2_ref": 462.60967060062103,
+          "max_abs_diff": 0.0,
+          "bit_identical": true,
+          "per_net": {
+            "attention": {
+              "l2_diff": 0.0,
+              "l2_ref": 425.6051451596293,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "audiodepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 84.04718479501966,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "material": {
+              "l2_diff": 0.0,
+              "l2_ref": 119.46829843524246,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "rgbdepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 107.38418945024289,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            }
+          }
+        },
+        "100": {
+          "rel_l2": 0.12296604377732495,
+          "l2_diff": 205.3793084138001,
+          "l2_ref": 1670.211564956213,
+          "max_abs_diff": 30.97711181640625,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 204.83691541243223,
+              "l2_ref": 1533.034602895206,
+              "rel_l2": 0.13361532415875568,
+              "max_abs_diff": 30.97711181640625,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 4.89344205038148,
+              "l2_ref": 365.5515320381994,
+              "rel_l2": 0.013386462978549694,
+              "max_abs_diff": 0.7201898247003555,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 11.892816276872873,
+              "l2_ref": 456.4039169498392,
+              "rel_l2": 0.026057656026164094,
+              "max_abs_diff": 0.7510651350021362,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.557351040873957,
+              "l2_ref": 312.2164634621133,
+              "rel_l2": 0.024205485377266224,
+              "max_abs_diff": 1.3354175090789795,
+              "identical": false
+            }
+          }
+        },
+        "250": {
+          "rel_l2": 0.23192818125023376,
+          "l2_diff": 746.7207188841631,
+          "l2_ref": 3219.6204655203387,
+          "max_abs_diff": 151.09323120117188,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 746.1619273458048,
+              "l2_ref": 2779.449184800751,
+              "rel_l2": 0.2684567616584415,
+              "max_abs_diff": 151.09323120117188,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.124614290275952,
+              "l2_ref": 902.8426268288706,
+              "rel_l2": 0.011214151823820592,
+              "max_abs_diff": 1.4366565346717834,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 23.090544561864284,
+              "l2_ref": 1121.3454204642846,
+              "rel_l2": 0.020591821342886313,
+              "max_abs_diff": 1.538848876953125,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 14.090036472096816,
+              "l2_ref": 753.7093672579397,
+              "rel_l2": 0.018694256810629268,
+              "max_abs_diff": 3.023668736219406,
+              "identical": false
+            }
+          }
+        },
+        "500": {
+          "rel_l2": 0.15219691475100317,
+          "l2_diff": 575.4875360990235,
+          "l2_ref": 3781.2036928641505,
+          "max_abs_diff": 132.88539505004883,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 574.9228136185216,
+              "l2_ref": 1945.733884148118,
+              "rel_l2": 0.295478646027812,
+              "max_abs_diff": 132.88539505004883,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.763882945328058,
+              "l2_ref": 1803.344563354723,
+              "rel_l2": 0.005968844315200773,
+              "max_abs_diff": 1.533303141593933,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 21.560025917238665,
+              "l2_ref": 2237.4073493727155,
+              "rel_l2": 0.009636164788357954,
+              "max_abs_diff": 1.2516382336616516,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 8.304618755538613,
+              "l2_ref": 1501.1921122225792,
+              "rel_l2": 0.00553201598111468,
+              "max_abs_diff": 0.7801420092582703,
+              "identical": false
+            }
+          }
+        },
+        "1000": {
+          "rel_l2": 0.052084950769745675,
+          "l2_diff": 356.3726925052167,
+          "l2_ref": 6842.143214853937,
+          "max_abs_diff": 78.5810546875,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 355.53069992081043,
+              "l2_ref": 2192.2195316692428,
+              "rel_l2": 0.1621784199915851,
+              "max_abs_diff": 78.5810546875,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 11.119030834628767,
+              "l2_ref": 3605.782083169012,
+              "rel_l2": 0.003083666893384913,
+              "max_abs_diff": 1.4380085468292236,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 20.335942845571267,
+              "l2_ref": 4472.680568820959,
+              "rel_l2": 0.004546701364576101,
+              "max_abs_diff": 1.2633623480796814,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.888850303853082,
+              "l2_ref": 3000.426868885228,
+              "rel_l2": 0.002629242653990793,
+              "max_abs_diff": 1.0325448215007782,
+              "identical": false
+            }
+          }
+        },
+        "2000": {
+          "rel_l2": 0.01010449274015014,
+          "l2_diff": 137.09930291255148,
+          "l2_ref": 13568.152943273266,
+          "max_abs_diff": 30.108171939849854,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 135.2867199870838,
+              "l2_ref": 4010.964598588309,
+              "rel_l2": 0.033729223148640866,
+              "max_abs_diff": 30.108171939849854,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.17269499228659,
+              "l2_ref": 7211.19219798951,
+              "rel_l2": 0.0014106814397656397,
+              "max_abs_diff": 1.6481526494026184,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 18.554073843815065,
+              "l2_ref": 8944.482153966697,
+              "rel_l2": 0.002074359758835978,
+              "max_abs_diff": 1.2130778431892395,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 6.78121483482792,
+              "l2_ref": 6000.156944776765,
+              "rel_l2": 0.0011301729100154753,
+              "max_abs_diff": 0.4694700688123703,
+              "identical": false
+            }
+          }
+        }
+      },
+      "seconds": 188.2,
+      "s_per_step": 0.0941
+    }
+  },
+  "pairs": {
+    "para1_slow_vs_slow": {
+      "runs": [
+        "slow_1",
+        "slow_2"
+      ],
+      "opis": "PODLOGA: wlasny niedeterminizm cuDNN/atomikow",
+      "data_order_identical": true,
+      "per_step": {
+        "0": {
+          "rel_l2": 0.0,
+          "l2_diff": 0.0,
+          "l2_ref": 462.60967060062103,
+          "max_abs_diff": 0.0,
+          "bit_identical": true,
+          "per_net": {
+            "attention": {
+              "l2_diff": 0.0,
+              "l2_ref": 425.6051451596293,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "audiodepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 84.04718479501966,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "material": {
+              "l2_diff": 0.0,
+              "l2_ref": 119.46829843524246,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "rgbdepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 107.38418945024289,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            }
+          },
+          "rmse_a": 5.68695624443125,
+          "rmse_b": 5.686956252057057,
+          "abs_rmse_diff": 7.625807540989626e-09
+        },
+        "100": {
+          "rel_l2": 0.12478315589555976,
+          "l2_diff": 205.23138592636903,
+          "l2_ref": 1644.7042427596746,
+          "max_abs_diff": 39.62691879272461,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 204.70592862455888,
+              "l2_ref": 1505.2117696747043,
+              "rel_l2": 0.13599809192881776,
+              "max_abs_diff": 39.62691879272461,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 4.788963986234504,
+              "l2_ref": 365.52876917175496,
+              "rel_l2": 0.013101469405775449,
+              "max_abs_diff": 0.5054822564125061,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 11.571077739633182,
+              "l2_ref": 456.4152134192494,
+              "rel_l2": 0.02535208599412819,
+              "max_abs_diff": 0.6756437122821808,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.653792464990835,
+              "l2_ref": 312.1913619107068,
+              "rel_l2": 0.024516349261386607,
+              "max_abs_diff": 1.0813086032867432,
+              "identical": false
+            }
+          },
+          "rmse_a": 1.783215843073007,
+          "rmse_b": 1.787898025960688,
+          "abs_rmse_diff": 0.0046821828876810745
+        },
+        "250": {
+          "rel_l2": 0.270175729975871,
+          "l2_diff": 945.6127513803921,
+          "l2_ref": 3499.9914739375117,
+          "max_abs_diff": 165.36659240722656,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 945.2142109839888,
+              "l2_ref": 3099.8752759815675,
+              "rel_l2": 0.3049200780133611,
+              "max_abs_diff": 165.36659240722656,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 9.684565555494444,
+              "l2_ref": 902.8549254906029,
+              "rel_l2": 0.010726602117424282,
+              "max_abs_diff": 1.2732625901699066,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 22.151721449654403,
+              "l2_ref": 1121.3664083896228,
+              "rel_l2": 0.019754222423575316,
+              "max_abs_diff": 1.3211656212806702,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 13.003128620803063,
+              "l2_ref": 753.726709521556,
+              "rel_l2": 0.017251781655790163,
+              "max_abs_diff": 1.5911691188812256,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.6114374859050506,
+          "rmse_b": 0.6155148403969105,
+          "abs_rmse_diff": 0.004077354491859864
+        },
+        "500": {
+          "rel_l2": 0.1497527993305388,
+          "l2_diff": 565.5887838955651,
+          "l2_ref": 3776.8161024301176,
+          "max_abs_diff": 140.99824905395508,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 565.037469324548,
+              "l2_ref": 1937.169374421385,
+              "rel_l2": 0.29168201644387426,
+              "max_abs_diff": 140.99824905395508,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 9.889961463265623,
+              "l2_ref": 1803.350357752451,
+              "rel_l2": 0.005484215211286877,
+              "max_abs_diff": 1.0898143351078033,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 20.99263745331504,
+              "l2_ref": 2237.416329246179,
+              "rel_l2": 0.009382535194237988,
+              "max_abs_diff": 1.453272819519043,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 9.21024227604983,
+              "l2_ref": 1501.2029653567658,
+              "rel_l2": 0.006135241195624061,
+              "max_abs_diff": 1.075981080532074,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.47173589850219944,
+          "rmse_b": 0.48131776513921454,
+          "abs_rmse_diff": 0.009581866637015102
+        },
+        "1000": {
+          "rel_l2": 0.04689520821180694,
+          "l2_diff": 320.72935982411803,
+          "l2_ref": 6839.277871963196,
+          "max_abs_diff": 68.22087669372559,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 319.8709366434935,
+              "l2_ref": 2183.255325232543,
+              "rel_l2": 0.14651100718575985,
+              "max_abs_diff": 68.22087669372559,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.166098412759931,
+              "l2_ref": 3605.785644501254,
+              "rel_l2": 0.0028193851257528337,
+              "max_abs_diff": 1.0119464695453644,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 19.565947968603297,
+              "l2_ref": 4472.680271014509,
+              "rel_l2": 0.0043745465320652755,
+              "max_abs_diff": 1.3701663613319397,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.983123896991127,
+              "l2_ref": 3000.42648201142,
+              "rel_l2": 0.002660663057352905,
+              "max_abs_diff": 0.8358441740274429,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.4350998641073688,
+          "rmse_b": 0.4329934322750573,
+          "abs_rmse_diff": 0.0021064318323114617
+        },
+        "2000": {
+          "rel_l2": 0.010217785917828513,
+          "l2_diff": 138.63622064397592,
+          "l2_ref": 13568.12735742255,
+          "max_abs_diff": 34.61993885040283,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 137.00789566586602,
+              "l2_ref": 4010.8756992164845,
+              "rel_l2": 0.03415909789790549,
+              "max_abs_diff": 34.61993885040283,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 9.60081962190696,
+              "l2_ref": 7211.193999756854,
+              "rel_l2": 0.0013313772479606953,
+              "max_abs_diff": 1.101829320192337,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 17.523709156615993,
+              "l2_ref": 8944.481691687743,
+              "rel_l2": 0.001959164293767974,
+              "max_abs_diff": 1.1764383912086487,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.041454369537432,
+              "l2_ref": 6000.157037745463,
+              "rel_l2": 0.0011735450131123955,
+              "max_abs_diff": 0.5801949799060822,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.38878653629867294,
+          "rmse_b": 0.3961061926448764,
+          "abs_rmse_diff": 0.0073196563462034625
+        }
+      }
+    },
+    "para2_fast_vs_fast": {
+      "runs": [
+        "fast_1",
+        "fast_2"
+      ],
+      "opis": "podloga wariantu szybkiego",
+      "data_order_identical": true,
+      "per_step": {
+        "0": {
+          "rel_l2": 0.0,
+          "l2_diff": 0.0,
+          "l2_ref": 462.60967060062103,
+          "max_abs_diff": 0.0,
+          "bit_identical": true,
+          "per_net": {
+            "attention": {
+              "l2_diff": 0.0,
+              "l2_ref": 425.6051451596293,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "audiodepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 84.04718479501966,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "material": {
+              "l2_diff": 0.0,
+              "l2_ref": 119.46829843524246,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "rgbdepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 107.38418945024289,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            }
+          },
+          "rmse_a": 5.686956279764158,
+          "rmse_b": 5.686956259730525,
+          "abs_rmse_diff": 2.0033632530669365e-08
+        },
+        "100": {
+          "rel_l2": 0.12296604377732495,
+          "l2_diff": 205.3793084138001,
+          "l2_ref": 1670.211564956213,
+          "max_abs_diff": 30.97711181640625,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 204.83691541243223,
+              "l2_ref": 1533.034602895206,
+              "rel_l2": 0.13361532415875568,
+              "max_abs_diff": 30.97711181640625,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 4.89344205038148,
+              "l2_ref": 365.5515320381994,
+              "rel_l2": 0.013386462978549694,
+              "max_abs_diff": 0.7201898247003555,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 11.892816276872873,
+              "l2_ref": 456.4039169498392,
+              "rel_l2": 0.026057656026164094,
+              "max_abs_diff": 0.7510651350021362,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.557351040873957,
+              "l2_ref": 312.2164634621133,
+              "rel_l2": 0.024205485377266224,
+              "max_abs_diff": 1.3354175090789795,
+              "identical": false
+            }
+          },
+          "rmse_a": 1.804670169708069,
+          "rmse_b": 1.7812952013813514,
+          "abs_rmse_diff": 0.023374968326717482
+        },
+        "250": {
+          "rel_l2": 0.23192818125023376,
+          "l2_diff": 746.7207188841631,
+          "l2_ref": 3219.6204655203387,
+          "max_abs_diff": 151.09323120117188,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 746.1619273458048,
+              "l2_ref": 2779.449184800751,
+              "rel_l2": 0.2684567616584415,
+              "max_abs_diff": 151.09323120117188,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.124614290275952,
+              "l2_ref": 902.8426268288706,
+              "rel_l2": 0.011214151823820592,
+              "max_abs_diff": 1.4366565346717834,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 23.090544561864284,
+              "l2_ref": 1121.3454204642846,
+              "rel_l2": 0.020591821342886313,
+              "max_abs_diff": 1.538848876953125,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 14.090036472096816,
+              "l2_ref": 753.7093672579397,
+              "rel_l2": 0.018694256810629268,
+              "max_abs_diff": 3.023668736219406,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.6241739872628258,
+          "rmse_b": 0.605351544978443,
+          "abs_rmse_diff": 0.01882244228438279
+        },
+        "500": {
+          "rel_l2": 0.15219691475100317,
+          "l2_diff": 575.4875360990235,
+          "l2_ref": 3781.2036928641505,
+          "max_abs_diff": 132.88539505004883,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 574.9228136185216,
+              "l2_ref": 1945.733884148118,
+              "rel_l2": 0.295478646027812,
+              "max_abs_diff": 132.88539505004883,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.763882945328058,
+              "l2_ref": 1803.344563354723,
+              "rel_l2": 0.005968844315200773,
+              "max_abs_diff": 1.533303141593933,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 21.560025917238665,
+              "l2_ref": 2237.4073493727155,
+              "rel_l2": 0.009636164788357954,
+              "max_abs_diff": 1.2516382336616516,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 8.304618755538613,
+              "l2_ref": 1501.1921122225792,
+              "rel_l2": 0.00553201598111468,
+              "max_abs_diff": 0.7801420092582703,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.47467326552561034,
+          "rmse_b": 0.487850384259918,
+          "abs_rmse_diff": 0.013177118734307658
+        },
+        "1000": {
+          "rel_l2": 0.052084950769745675,
+          "l2_diff": 356.3726925052167,
+          "l2_ref": 6842.143214853937,
+          "max_abs_diff": 78.5810546875,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 355.53069992081043,
+              "l2_ref": 2192.2195316692428,
+              "rel_l2": 0.1621784199915851,
+              "max_abs_diff": 78.5810546875,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 11.119030834628767,
+              "l2_ref": 3605.782083169012,
+              "rel_l2": 0.003083666893384913,
+              "max_abs_diff": 1.4380085468292236,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 20.335942845571267,
+              "l2_ref": 4472.680568820959,
+              "rel_l2": 0.004546701364576101,
+              "max_abs_diff": 1.2633623480796814,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.888850303853082,
+              "l2_ref": 3000.426868885228,
+              "rel_l2": 0.002629242653990793,
+              "max_abs_diff": 1.0325448215007782,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.4345515969638965,
+          "rmse_b": 0.4315729280204656,
+          "abs_rmse_diff": 0.0029786689434309066
+        },
+        "2000": {
+          "rel_l2": 0.01010449274015014,
+          "l2_diff": 137.09930291255148,
+          "l2_ref": 13568.152943273266,
+          "max_abs_diff": 30.108171939849854,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 135.2867199870838,
+              "l2_ref": 4010.964598588309,
+              "rel_l2": 0.033729223148640866,
+              "max_abs_diff": 30.108171939849854,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.17269499228659,
+              "l2_ref": 7211.19219798951,
+              "rel_l2": 0.0014106814397656397,
+              "max_abs_diff": 1.6481526494026184,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 18.554073843815065,
+              "l2_ref": 8944.482153966697,
+              "rel_l2": 0.002074359758835978,
+              "max_abs_diff": 1.2130778431892395,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 6.78121483482792,
+              "l2_ref": 6000.156944776765,
+              "rel_l2": 0.0011301729100154753,
+              "max_abs_diff": 0.4694700688123703,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.3895155596746331,
+          "rmse_b": 0.3905568692806053,
+          "abs_rmse_diff": 0.0010413096059722071
+        }
+      }
+    },
+    "para3_slow_vs_fast": {
+      "runs": [
+        "slow_1",
+        "fast_1"
+      ],
+      "opis": "EFEKT PODSTAWIENIA",
+      "data_order_identical": true,
+      "per_step": {
+        "0": {
+          "rel_l2": 0.0,
+          "l2_diff": 0.0,
+          "l2_ref": 462.60967060062103,
+          "max_abs_diff": 0.0,
+          "bit_identical": true,
+          "per_net": {
+            "attention": {
+              "l2_diff": 0.0,
+              "l2_ref": 425.6051451596293,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "audiodepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 84.04718479501966,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "material": {
+              "l2_diff": 0.0,
+              "l2_ref": 119.46829843524246,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            },
+            "rgbdepth": {
+              "l2_diff": 0.0,
+              "l2_ref": 107.38418945024289,
+              "rel_l2": 0.0,
+              "max_abs_diff": 0.0,
+              "identical": true
+            }
+          },
+          "rmse_a": 5.68695624443125,
+          "rmse_b": 5.686956279764158,
+          "abs_rmse_diff": 3.5332908154828147e-08
+        },
+        "100": {
+          "rel_l2": 0.1289156958894415,
+          "l2_diff": 212.02819198768037,
+          "l2_ref": 1644.7042427596746,
+          "max_abs_diff": 42.128562927246094,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 211.4841349436014,
+              "l2_ref": 1505.2117696747043,
+              "rel_l2": 0.1405012498602146,
+              "max_abs_diff": 42.128562927246094,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 5.448684733989644,
+              "l2_ref": 365.52876917175496,
+              "rel_l2": 0.014906308869574673,
+              "max_abs_diff": 0.6495352238416672,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 11.97780486094789,
+              "l2_ref": 456.4152134192494,
+              "rel_l2": 0.02624322000841246,
+              "max_abs_diff": 0.8070401847362518,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.566960427006442,
+              "l2_ref": 312.1913619107068,
+              "rel_l2": 0.02423821203986659,
+              "max_abs_diff": 1.2645768523216248,
+              "identical": false
+            }
+          },
+          "rmse_a": 1.783215843073007,
+          "rmse_b": 1.804670169708069,
+          "abs_rmse_diff": 0.02145432663506197
+        },
+        "250": {
+          "rel_l2": 0.23953864479732262,
+          "l2_diff": 838.3832144691753,
+          "l2_ref": 3499.9914739375117,
+          "max_abs_diff": 238.0684585571289,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 837.8963574900739,
+              "l2_ref": 3099.8752759815675,
+              "rel_l2": 0.270300022708093,
+              "max_abs_diff": 238.0684585571289,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.056659831437969,
+              "l2_ref": 902.8549254906029,
+              "rel_l2": 0.011138732865607699,
+              "max_abs_diff": 1.3166010677814484,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 23.09730094409775,
+              "l2_ref": 1121.3664083896228,
+              "rel_l2": 0.02059746107186092,
+              "max_abs_diff": 1.5208469033241272,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 13.47169962053868,
+              "l2_ref": 753.726709521556,
+              "rel_l2": 0.017873453932779063,
+              "max_abs_diff": 1.654569536447525,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.6114374859050506,
+          "rmse_b": 0.6241739872628258,
+          "abs_rmse_diff": 0.012736501357775154
+        },
+        "500": {
+          "rel_l2": 0.16876807500713314,
+          "l2_diff": 637.4059832630744,
+          "l2_ref": 3776.8161024301176,
+          "max_abs_diff": 159.56689453125,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 636.8926778363556,
+              "l2_ref": 1937.169374421385,
+              "rel_l2": 0.3287749054088725,
+              "max_abs_diff": 159.56689453125,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.094172733705621,
+              "l2_ref": 1803.350357752451,
+              "rel_l2": 0.005597455142486109,
+              "max_abs_diff": 1.3599901795387268,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 21.797436395627443,
+              "l2_ref": 2237.416329246179,
+              "rel_l2": 0.009742235323262946,
+              "max_abs_diff": 1.3331281542778015,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 8.77974153398561,
+              "l2_ref": 1501.2029653567658,
+              "rel_l2": 0.005848470684241605,
+              "max_abs_diff": 1.0158501267433167,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.47173589850219944,
+          "rmse_b": 0.47467326552561034,
+          "abs_rmse_diff": 0.0029373670234109084
+        },
+        "1000": {
+          "rel_l2": 0.057121289701730665,
+          "l2_diff": 390.66837267504576,
+          "l2_ref": 6839.277871963196,
+          "max_abs_diff": 83.19488143920898,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 389.93766033810147,
+              "l2_ref": 2183.255325232543,
+              "rel_l2": 0.17860378299847657,
+              "max_abs_diff": 83.19488143920898,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 10.306780666930809,
+              "l2_ref": 3605.785644501254,
+              "rel_l2": 0.0028584008266404936,
+              "max_abs_diff": 1.166248857975006,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 20.079482506032832,
+              "l2_ref": 4472.680271014509,
+              "rel_l2": 0.004489362370961144,
+              "max_abs_diff": 1.1581289768218994,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 7.809168533813605,
+              "l2_ref": 3000.42648201142,
+              "rel_l2": 0.002602686178325726,
+              "max_abs_diff": 0.7883026152849197,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.4350998641073688,
+          "rmse_b": 0.4345515969638965,
+          "abs_rmse_diff": 0.0005482671434722808
+        },
+        "2000": {
+          "rel_l2": 0.01167793576685396,
+          "l2_diff": 158.4477197564745,
+          "l2_ref": 13568.12735742255,
+          "max_abs_diff": 38.570560455322266,
+          "bit_identical": false,
+          "per_net": {
+            "attention": {
+              "l2_diff": 156.95032937422002,
+              "l2_ref": 4010.8756992164845,
+              "rel_l2": 0.039131187587009966,
+              "max_abs_diff": 38.570560455322266,
+              "identical": false
+            },
+            "audiodepth": {
+              "l2_diff": 9.555072373509365,
+              "l2_ref": 7211.193999756854,
+              "rel_l2": 0.0013250333264964917,
+              "max_abs_diff": 1.028917133808136,
+              "identical": false
+            },
+            "material": {
+              "l2_diff": 18.29118967970145,
+              "l2_ref": 8944.481691687743,
+              "rel_l2": 0.0020449692123244837,
+              "max_abs_diff": 1.0816978216171265,
+              "identical": false
+            },
+            "rgbdepth": {
+              "l2_diff": 6.81226668505474,
+              "l2_ref": 6000.157037745463,
+              "rel_l2": 0.001135348065425705,
+              "max_abs_diff": 0.4970726817846298,
+              "identical": false
+            }
+          },
+          "rmse_a": 0.38878653629867294,
+          "rmse_b": 0.3895155596746331,
+          "abs_rmse_diff": 0.0007290233759601472
+        }
+      }
+    }
+  },
+  "verdict": {
+    "init_weights_bit_identical": true,
+    "data_order_identical_all_runs": true,
+    "rel_l2_floor_slow": 0.010217785917828513,
+    "rel_l2_floor_fast": 0.01010449274015014,
+    "rel_l2_substitution": 0.01167793576685396,
+    "ratio_substitution_over_floor_weights": 1.1429027639420104,
+    "abs_rmse_diff_floor_slow": 0.0073196563462034625,
+    "abs_rmse_diff_floor_fast": 0.0010413096059722071,
+    "abs_rmse_diff_substitution": 0.0007290233759601472,
+    "ratio_substitution_over_floor_rmse": 0.09959803322437055,
+    "criterion_met": false,
+    "criterion_met_lenient_2x": true
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "opis": "BLOK 1.2 -- bramka wykonalnosci: calkowity wklad echa, zmierzony jako roznica miedzy modelem z prawdziwym echem a tym samym modelem z echem z losowo innej lokalizacji. Jest to GORNE OGRANICZENIE na jakikolwiek efekt gestosci katowej.",
+  "model": "echo2depth",
+  "seed": 0,
+  "steps": 40000,
+  "runs": {
+    "EB": {
+      "best_val_rmse": 0.5609629074820108,
+      "best_step": 39000,
+      "best_step_fraction_of_budget": 0.975,
+      "epochs": 25,
+      "RMSE": 0.5609629074820108,
+      "RMSE_edge": 1.116781891618208,
+      "RMSE_smooth": 0.4419873570662026,
+      "DELTA1": 0.7997262366441443,
+      "per_scene": {
+        "apartment_2": 0.6960848920428414,
+        "frl_apartment_5": 0.4699103126290009,
+        "office_4": 0.43640457618355977
+      },
+      "plateau": {
+        "n_validations": 40,
+        "plateau_sd": 0.005487132241738202,
+        "improvement_last_quarter": 0.005392438622427331,
+        "plateau_from_step": 30000
+      },
+      "sufit_budzetu": {
+        "pozny_best_step": true,
+        "nadal_sie_poprawia": false,
+        "niedotrenowany": false,
+        "uzasadnienie": "poprawa w ostatniej cwiartce 0.00539 wobec 2x rozrzut plateau 0.01097"
+      }
+    },
+    "ESE": {
+      "best_val_rmse": 1.1683652315833462,
+      "best_step": 6000,
+      "best_step_fraction_of_budget": 0.15,
+      "epochs": 25,
+      "RMSE": 1.1683652315833462,
+      "RMSE_edge": 2.0519114209462037,
+      "RMSE_smooth": 1.0004970826267525,
+      "DELTA1": 0.3482137270766467,
+      "per_scene": {
+        "apartment_2": 1.0401086715896737,
+        "frl_apartment_5": 1.3394218433493734,
+        "office_4": 1.056532399581875
+      },
+      "plateau": {
+        "n_validations": 40,
+        "plateau_sd": 0.00904684403483877,
+        "improvement_last_quarter": 0.010614054589781485,
+        "plateau_from_step": 30000
+      },
+      "sufit_budzetu": {
+        "pozny_best_step": false,
+        "nadal_sie_poprawia": false,
+        "niedotrenowany": false,
+        "uzasadnienie": "poprawa w ostatniej cwiartce 0.01061 wobec 2x rozrzut plateau 0.01809"
+      }
+    }
+  },
+  "wynik": {
+    "calkowity_wklad_echa_RMSE": 0.6074023241013353,
+    "calkowity_wklad_echa_krawedzie": 0.9351295293279958,
+    "calkowity_wklad_echa_gladkie": 0.5585097255605499,
+    "podloga_szumu_frameworka": {
+      "low": 0.00232,
+      "high": 0.00732
+    },
+    "ile_razy_nad_podloga": [
+      82.97845957668515,
+      261.81134659540317
+    ],
+    "per_scene_wklad": {
+      "apartment_2": 0.3440237795468323,
+      "frl_apartment_5": 0.8695115307203725,
+      "office_4": 0.6201278233983152
+    }
+  }
+}

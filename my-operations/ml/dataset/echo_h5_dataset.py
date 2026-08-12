@@ -43,7 +43,7 @@ import torch
 import torch.utils.data as data
 
 from . import angles as angles_mod
-from . import paths
+from .. import paths
 from .splits import Splits, load_splits
 
 # Statystyki ImageNet -- te same, ktorych uzywa `AudioVisualDataset`, bo
@@ -74,6 +74,31 @@ class DatasetConfig:
     image_transform: bool = True
     augment: bool | None = None      # None -> augmentacja tylko w train (jak u Paridy)
     return_meta: bool = True
+    # MASKA PRZECIECIA (Blok 0.5). Gdy ustawione, probka dostaje dodatkowo
+    # `valid_ref` = maske waznosci glebi z DRUGIEGO wariantu geometrii. Sluzy
+    # wylacznie do EWALUACJI: `geometry_check.py` wykazal, ze latka domyka
+    # dziury (0 -> wartosc dodatnia, nigdy odwrotnie), wiec model wariantu
+    # `patched` bylby punktowany na pikselach, ktorych model wariantu `main`
+    # nie ma prawa znac. Metryki obu wariantow licza sie wtedy na dokladnie tym
+    # samym zbiorze pikseli i roznica jest przypisywalna akustyce.
+    mask_variant: str | None = None
+    # Tryb maski, gdy `mask_variant` jest ustawione:
+    #   "intersection" -- piksele wazne w OBU wariantach (podstawowy dla main vs patched)
+    #   "strict"       -- przeciecie MINUS piksele o roznej wartosci glebi
+    # Maska scisla usuwa te ~3,3 % kadru, ktore latka PRZESLANIA (promien
+    # uciekajacy przez dziure trafia teraz w sufit, wiec glebia sie zmienia mimo
+    # ze piksel byl wazny w obu wariantach). Sluzy jako kontrola wrazliwosci:
+    # jesli Delta wychodzi ta sama na obu maskach, zastrzezenie o tych pikselach
+    # znika z rozdzialu o ograniczeniach zamiast w nim siedziec.
+    mask_mode: str = "intersection"
+    # KONTROLA PERMUTACYJNA ECHA (Blok 1.2). Gdy ustawione, kazda probka dostaje
+    # spektrogram z INNEJ probki zbioru; obraz, glebia i metadane zostaja na
+    # miejscu. Roznica RMSE miedzy tym warunkiem a normalnym jest CALKOWITYM
+    # wkladem echa do modelu -- a wiec GORNYM OGRANICZENIEM na jakikolwiek efekt
+    # gestosci katowej. Bez tej liczby wynik zerowy jest nieinterpretowalny:
+    # "gestosc katowa nie niesie informacji" i "model w ogole nie uzywa echa"
+    # daja identyczne liczby i zupelnie rozne wnioski.
+    shuffle_echo_seed: int | None = None
 
     def effective_augment(self) -> bool:
         if self.augment is not None:
@@ -118,9 +143,13 @@ class EchoH5Dataset(data.Dataset):
 
         self.scenes: list[str] = sorted(wanted.keys())
         self.scene_paths: list[str] = [str(paths.scene_h5(s, cfg.variant)) for s in self.scenes]
+        self.mask_paths: list[str] | None = (
+            [str(paths.scene_h5(s, cfg.mask_variant)) for s in self.scenes]
+            if cfg.mask_variant else None)
 
         scene_idx_all: list[np.ndarray] = []
         row_all: list[np.ndarray] = []
+        row_mask_all: list[np.ndarray] = []
         loc_all: list[np.ndarray] = []
         ang_all: list[np.ndarray] = []
         self.per_scene_counts: dict[str, int] = {}
@@ -151,17 +180,32 @@ class EchoH5Dataset(data.Dataset):
                 rows_for_scene.append(loc_id * 1000 + sel)
             wanted_keys = np.concatenate(rows_for_scene)
 
-            order = np.argsort(key, kind="stable")
-            key_sorted = key[order]
-            pos = np.searchsorted(key_sorted, wanted_keys)
-            bad = (pos >= key_sorted.size) | (key_sorted[np.minimum(pos, key_sorted.size - 1)] != wanted_keys)
-            if bad.any():
-                missing = wanted_keys[bad]
-                raise RuntimeError(
-                    f"{scene}: brak {missing.size} probek (loc*1000+kat), np. {missing[:5].tolist()} "
-                    f"-- plik HDF5 nie zawiera wszystkich orientacji dla wybranych lokalizacji"
-                )
-            rows = order[pos]
+            def _lookup(k: np.ndarray, where: str) -> np.ndarray:
+                order = np.argsort(k, kind="stable")
+                key_sorted = k[order]
+                pos = np.searchsorted(key_sorted, wanted_keys)
+                bad = (pos >= key_sorted.size) | (
+                    key_sorted[np.minimum(pos, key_sorted.size - 1)] != wanted_keys)
+                if bad.any():
+                    missing = wanted_keys[bad]
+                    raise RuntimeError(
+                        f"{scene} [{where}]: brak {missing.size} probek (loc*1000+kat), np. "
+                        f"{missing[:5].tolist()} -- plik HDF5 nie zawiera wszystkich "
+                        f"orientacji dla wybranych lokalizacji"
+                    )
+                return order[pos]
+
+            rows = _lookup(key, cfg.variant)
+
+            if self.mask_paths is not None:
+                # Wiersze wariantu maskujacego dopasowane PO KLUCZU (loc, kat),
+                # a nie po indeksie: oba pliki powstaly z osobnych przebiegow
+                # generatora i zgodnosc kolejnosci jest hipoteza, nie faktem.
+                with h5py.File(self.mask_paths[si], "r") as fm:
+                    mkey = (fm["location_id"][:].astype(np.int64) * 1000
+                            + fm["angle_deg"][:].astype(np.int64))
+                rows_mask = _lookup(mkey, cfg.mask_variant)
+                row_mask_all.append(rows_mask.astype(np.int32))
 
             # `written` to flaga generatora: probka faktycznie zapisana na dysk.
             # Wszystkie pliki maja complete=True, ale sprawdzamy jawnie, bo cicho
@@ -186,11 +230,65 @@ class EchoH5Dataset(data.Dataset):
             self.index_row = np.concatenate(row_all)
             self.index_loc = np.concatenate(loc_all)
             self.index_angle = np.concatenate(ang_all)
+            self.index_row_mask = np.concatenate(row_mask_all) if row_mask_all else None
+            self.index_echo_src = (self._echo_permutation(cfg.shuffle_echo_seed)
+                                   if cfg.shuffle_echo_seed is not None else None)
         else:
             self.index_scene = np.empty(0, dtype=np.int16)
             self.index_row = np.empty(0, dtype=np.int32)
             self.index_loc = np.empty(0, dtype=np.int32)
             self.index_angle = np.empty(0, dtype=np.int16)
+            self.index_row_mask = None
+            self.index_echo_src = None
+
+    def _echo_permutation(self, seed: int) -> np.ndarray:
+        """Permutacja probka -> zrodlo echa, ZAWSZE z innej LOKALIZACJI.
+
+        Sama losowa permutacja nie wystarczy: przy 36 orientacjach na
+        lokalizacje mialaby ~0,5 % szans na przypisanie probce echa z TEJ SAMEJ
+        pozycji, tylko innego kata. Takie echo nadal niesie pelna informacje o
+        polozeniu, wiec kontrola przestalaby byc kontrola -- mierzylaby "ile
+        wnosi ORIENTACJA echa", a nie "ile wnosi echo".
+
+        Permutacja jest STALA dla danego ziarna (a nie losowana co epoke), zeby
+        warunek byl odtwarzalny. Ryzyko, ze siec nauczy sie na pamiec 49 464
+        arbitralnych par obraz-echo, jest ograniczone tym samym budzetem
+        (~26 epok), ktory ma warunek porownawczy -- gdyby zapamietywanie bylo
+        mozliwe, dzialaloby w obu.
+        """
+        n = int(self.index_scene.size)
+        loc_key = self.index_scene.astype(np.int64) * 100_000 + self.index_loc.astype(np.int64)
+        rng = np.random.default_rng(seed)
+        perm = rng.permutation(n)
+
+        # Naprawa kolizji POJEDYNCZYMI zamianami, w petli.
+        #
+        # DLACZEGO NIE WEKTOROWO. Kuszace `perm[bad], perm[part] = perm[part], perm[bad]`
+        # jest BLEDNE: gdy w `part` powtorzy sie ten sam indeks (a przy ~35 zlych
+        # pozycjach losowanych i.i.d. z 49 464 zdarza sie to w ~1 % przypadkow),
+        # ta sama wartosc trafia w dwa miejsca i wynik PRZESTAJE BYC PERMUTACJA --
+        # cicho, bo nic tego nie sprawdza. Zamiana skalarna zawsze zachowuje
+        # bijekcje, a zlych pozycji jest kilkadziesiat, wiec petla w Pythonie
+        # nic nie kosztuje.
+        for _ in range(64):
+            bad = np.flatnonzero(loc_key[perm] == loc_key)
+            if bad.size == 0:
+                break
+            for i in bad:
+                j = int(rng.integers(0, n))
+                perm[i], perm[j] = perm[j], perm[i]
+        else:
+            raise RuntimeError("nie udalo sie zbudowac permutacji echa bez tej samej lokalizacji")
+
+        # Kontrola jawna: bijekcja i brak echa z wlasnej lokalizacji. Oba warunki
+        # sa zalozeniem calej kontroli permutacyjnej, wiec nie moga byc
+        # domniemane -- blad tutaj unieważnia warunek SE/ESE, a nie widac go
+        # z zewnatrz po niczym.
+        if not np.array_equal(np.sort(perm), np.arange(n)):
+            raise RuntimeError("permutacja echa nie jest bijekcja -- kontrola bylaby niewazna")
+        if bool((loc_key[perm] == loc_key).any()):
+            raise RuntimeError("permutacja echa zostawila probki z echem z wlasnej lokalizacji")
+        return perm.astype(np.int64)
 
     # ------------------------------------------------------------- uchwyty h5
 
@@ -203,9 +301,9 @@ class EchoH5Dataset(data.Dataset):
             self._pid = pid
         return self._files
 
-    def _file(self, scene_idx: int) -> h5py.File:
+    def _file(self, scene_idx: int, mask: bool = False) -> h5py.File:
         handles = self._handles()
-        path = self.scene_paths[scene_idx]
+        path = (self.mask_paths if mask else self.scene_paths)[scene_idx]
         f = handles.get(path)
         if f is None:
             f = h5py.File(path, "r")
@@ -231,7 +329,12 @@ class EchoH5Dataset(data.Dataset):
 
         # Echo: float16 na dysku (polowa miejsca przy bledzie wzglednym ~5e-4
         # na wartosciach rzedu 10) -> float32 w pamieci, bo siec liczy w float32.
-        echo = np.asarray(f["echo"][row], dtype=np.float32)
+        if self.index_echo_src is None:
+            echo = np.asarray(f["echo"][row], dtype=np.float32)
+        else:
+            src = int(self.index_echo_src[index])
+            fe = self._file(int(self.index_scene[src]))
+            echo = np.asarray(fe["echo"][int(self.index_row[src])], dtype=np.float32)
         audio = torch.from_numpy(echo)
 
         rgb = f["rgb"][row]           # (128, 128, 4) uint8, RGBA
@@ -246,6 +349,21 @@ class EchoH5Dataset(data.Dataset):
 
         out = {"img": img, "depth": depth_t, "audio": audio}
 
+        if self.index_row_mask is not None:
+            # Maska przeciecia: piksel wazny w OBU wariantach geometrii.
+            # Liczona jako iloczyn, a nie kopiowana z wariantu `main`, mimo ze
+            # `geometry_check.py` wykazal brak przypadkow (+ -> 0) -- iloczyn
+            # jest poprawny takze wtedy, gdyby kiedys sie pojawily.
+            fm = self._file(si, mask=True)
+            ref = np.asarray(fm["depth"][int(self.index_row_mask[index])], dtype=np.float32)
+            ref_t = torch.from_numpy(ref).unsqueeze(0)
+            valid = (ref_t > 0) & (depth_t > 0)
+            if self.cfg.mask_mode == "strict":
+                # Piksel wchodzi do punktowania tylko, jesli w OBU wariantach ma
+                # te sama wartosc glebi -- czyli latka go nie dotknela wcale.
+                valid = valid & (ref_t == depth_t)
+            out["valid_ref"] = valid
+
         if self.cfg.return_meta:
             # Tylko tensory liczbowe: `DataParallel` rozprasza slownik wsadu po
             # urzadzeniach i przewrocilby sie na stringu.
@@ -253,6 +371,17 @@ class EchoH5Dataset(data.Dataset):
             out["location_id"] = torch.tensor(int(self.index_loc[index]), dtype=torch.int64)
             out["angle_deg"] = torch.tensor(int(self.index_angle[index]), dtype=torch.int64)
         return out
+
+    def get_audio(self, index: int) -> torch.Tensor:
+        """Samo echo danej probki, bez czytania RGB i glebi.
+
+        Uzywane przez kontrole permutacyjna (Blok 1.2): tam potrzebne jest echo
+        z INNEJ probki niz obraz, wiec pelne `__getitem__` czytaloby dwa razy
+        wiecej danych, niz trzeba.
+        """
+        f = self._file(int(self.index_scene[index]))
+        echo = np.asarray(f["echo"][int(self.index_row[index])], dtype=np.float32)
+        return torch.from_numpy(echo)
 
     def _prepare_image(self, rgb: np.ndarray) -> torch.Tensor:
         """RGBA uint8 -> znormalizowany tensor (3, 128, 128).

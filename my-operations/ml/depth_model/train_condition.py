@@ -44,22 +44,27 @@ import numpy as np
 import torch
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    __package__ = "ml"
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    __package__ = "ml.depth_model"
 
-from . import paths  # noqa: E402
-from .echo_h5_dataset import MAX_DEPTH_REPLICA, DatasetConfig, build_dataloader  # noqa: E402
-from .experiments import (  # noqa: E402
+from .. import paths  # noqa: E402
+from ..dataset.echo_h5_dataset import MAX_DEPTH_REPLICA, DatasetConfig, build_dataloader  # noqa: E402
+from ..matrix.experiments import (  # noqa: E402
     BATCH_SIZE,
     CONDITIONS_BY_ID,
     MODEL_ECHO,
     TOTAL_STEPS,
     RunSpec,
 )
-from .metrics import Evaluator  # noqa: E402
-from .splits import load_splits  # noqa: E402
+from ..dataset import angles as angles_mod  # noqa: E402
+from .metrics import SampleStatsCollector  # noqa: E402
+from ..dataset.splits import load_splits  # noqa: E402
 
 AUDIO_SHAPE = (2, 257, 166)
+
+# Podzbior katow zbioru WALIDACYJNEGO -- ten sam dla kazdego warunku, z tego
+# samego powodu, dla ktorego zbior testowy jest wspolny. Patrz `evaluate()`.
+VAL_ANGLE_SUBSET = "all"
 
 
 class EchoOnlyModel(torch.nn.Module):
@@ -180,8 +185,25 @@ class InfiniteLoader:
 
 @torch.no_grad()
 def evaluate(model, loader, loss_fn, device, scene_names, edge_threshold, amp):
+    """Walidacja na PELNYCH 36 katach + `val@4` z TYCH SAMYCH predykcji.
+
+    DLACZEGO WSZYSTKIE WARUNKI WALIDUJA NA 36 KATACH (decyzja 2026-08-11).
+    Wczesniej kazdy warunek walidowal na wlasnym podzbiorze katow, co dokladalo
+    DRUGA roznice miedzy warunkami: dane treningowe I kryterium wyboru
+    checkpointu. Argument rozstrzygajacy: zbior TESTOWY jest juz wspolny dla
+    wszystkich warunkow -- nikt nie proponuje testowac `cardinal` na 4 katach,
+    a `all` na 36, bo to oczywiscie uniewaznialoby porownanie. Walidacja i test
+    to ta sama kategoria: dane ODLOZONE, reprezentujace rozklad, na ktorym model
+    ma dzialac. Traktowanie ich roznie bylo dryfem implementacyjnym, nie decyzja
+    projektowa.
+
+    `val@4` liczone jest z tych samych predykcji, przez wybor wierszy o kacie
+    kardynalnym -- ZERO dodatkowego przelotu. Sluzy jako kolumna odpornosci:
+    mierzy, ile zmienia sie wybor checkpointu, gdy kryterium ograniczyc do
+    katow, ktore warunek faktycznie widzial.
+    """
     model.eval()
-    ev = Evaluator(scene_names, edge_threshold)
+    col = SampleStatsCollector(scene_names, edge_threshold)
     losses = []
     for batch in loader:
         batch = {k: v.to(device, non_blocking=True) for k, v in batch.items()}
@@ -192,17 +214,65 @@ def evaluate(model, loader, loss_fn, device, scene_names, edge_threshold, amp):
         m = dg != 0
         if bool(m.any()):
             losses.append(float(loss_fn(dp[m], dg[m])))
-        ev.update(dp, dg, batch.get("scene_idx"))
+        col.update(dp, dg, scene_idx=batch["scene_idx"],
+                   location_id=batch["location_id"], angle_deg=batch["angle_deg"])
     model.train()
-    res = ev.result()
+
+    tab = col.table()
+    res = tab.aggregate()
+    res["per_scene"] = {n: tab.aggregate(np.flatnonzero(tab.cols["scene_idx"] == i))
+                        for i, n in enumerate(scene_names)
+                        if (tab.cols["scene_idx"] == i).any()}
     res["loss"] = float(np.mean(losses)) if losses else float("nan")
+    res["edge_pixel_fraction"] = (res["edge"]["n_pixels"] / res["all"]["n_pixels"]
+                                  if res["all"]["n_pixels"] else float("nan"))
+    res["edge_threshold_m_per_px"] = edge_threshold
+
+    card = np.flatnonzero(np.isin(tab.cols["angle_deg"], angles_mod.CARDINAL_DEG))
+    res["val4"] = tab.aggregate(card) if card.size else None
     return res
 
 
-def save_checkpoint(path: Path, nets, optimizer, scaler, step, best_rmse, epoch, spec):
+def _plateau_diagnostics(metrics_fp: Path, total_steps: int) -> dict:
+    """Czy krzywa walidacyjna jeszcze opada, czy juz stoi i szumi.
+
+    Porownuje NAJLEPSZE RMSE ostatniej cwiartki budzetu z MEDIANA cwiartki
+    poprzedniej i zestawia te roznice z rozrzutem samej ostatniej cwiartki.
+    Mediana, a nie minimum, po stronie odniesienia: minimum dwoch szumiacych
+    ciagow zawsze wypada nizej w tym dluzszym, wiec porownanie minimum do
+    minimum systematycznie udawaloby poprawe.
+    """
+    out = {"n_validations": 0, "plateau_sd": None, "improvement_last_quarter": None,
+           "plateau_from_step": None}
+    if not metrics_fp.exists():
+        return out
+    rows = []
+    for line in metrics_fp.read_text(encoding="utf-8").splitlines():
+        try:
+            r = json.loads(line)
+            rows.append((int(r["step"]), float(r["overall"]["RMSE"])))
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+            continue
+    if len(rows) < 8:
+        return out
+    rows.sort()
+    last = [v for s, v in rows if s > 0.75 * total_steps]
+    prev = [v for s, v in rows if 0.50 * total_steps < s <= 0.75 * total_steps]
+    if not last or not prev:
+        return out
+    out["n_validations"] = len(rows)
+    out["plateau_sd"] = float(np.std(last))
+    out["improvement_last_quarter"] = float(np.median(prev) - min(last))
+    out["plateau_from_step"] = int(0.75 * total_steps)
+    return out
+
+
+def save_checkpoint(path: Path, nets, optimizer, scaler, step, best_rmse, epoch, spec,
+                    best_step: int = 0, best_state: dict | None = None):
     tmp = path.with_suffix(".pt.tmp")
     torch.save({
-        "step": step, "best_rmse": best_rmse, "epoch": epoch,
+        "step": step, "best_rmse": best_rmse, "epoch": epoch, "best_step": best_step,
+        "best": best_state or {},
         "nets": {k: v.state_dict() for k, v in nets.items()},
         "optimizer": optimizer.state_dict(),
         "scaler": scaler.state_dict(),
@@ -279,21 +349,35 @@ def main(argv=None) -> int:
     from models import criterion
     loss_fn = criterion.LogDepthLoss()
 
+    # Permutacja echa (o ile warunek jej wymaga) obejmuje TAKZE walidacje.
+    # Inaczej checkpoint bylby wybierany po wyniku na zadaniu z prawdziwym
+    # echem, a trenowany na zadaniu z echem permutowanym -- czyli mierzylibysmy
+    # co innego, niz optymalizujemy.
+    shuffle_seed = getattr(cond, "shuffle_echo_seed", None)
     train_loader, train_ds = build_dataloader(
         DatasetConfig(variant=cond.geometry, mode="train",
-                      angle_subset=cond.angle_subset, angle_seed=cond.angle_seed),
+                      angle_subset=cond.angle_subset, angle_seed=cond.angle_seed,
+                      shuffle_echo_seed=shuffle_seed),
         batch_size=spec.batch_size, num_workers=spec.num_workers, splits=splits,
     )
+    # WALIDACJA ZAWSZE NA PELNYCH 36 KATACH, niezaleznie od `cond.angle_subset`
+    # -- patrz naglowek `evaluate()`. `val@4` liczy sie z tych samych predykcji.
     val_loader, val_ds = build_dataloader(
         DatasetConfig(variant=cond.geometry, mode="val",
-                      angle_subset=cond.angle_subset, angle_seed=cond.angle_seed,
-                      augment=False),
+                      angle_subset=VAL_ANGLE_SUBSET, angle_seed=cond.angle_seed,
+                      augment=False, shuffle_echo_seed=shuffle_seed),
         batch_size=spec.batch_size, num_workers=max(2, spec.num_workers // 2),
         splits=splits, shuffle=False, drop_last=False,
     )
-    print(f"  train={len(train_ds)} val={len(val_ds)} wsadow/epoke={len(train_loader)}")
+    if shuffle_seed is not None:
+        print(f"  UWAGA: kontrola permutacyjna echa aktywna (ziarno {shuffle_seed}) "
+              f"-- echo pochodzi z innej lokalizacji niz obraz")
+    print(f"  train={len(train_ds)} val={len(val_ds)} (walidacja na '{VAL_ANGLE_SUBSET}', "
+          f"nie na '{cond.angle_subset}')  wsadow/epoke={len(train_loader)}")
 
-    step, best_rmse, start_epoch = 0, float("inf"), 0
+    step, best_rmse, start_epoch, best_step = 0, float("inf"), 0, 0
+    best = {"val36": {"rmse": float("inf"), "step": 0},
+            "val4": {"rmse": float("inf"), "step": 0}}
     if args.resume and ckpt_path.exists():
         ck = torch.load(ckpt_path, map_location=device, weights_only=False)
         for k, n in nets.items():
@@ -301,7 +385,10 @@ def main(argv=None) -> int:
         optimizer.load_state_dict(ck["optimizer"])
         scaler.load_state_dict(ck["scaler"])
         step, best_rmse, start_epoch = ck["step"], ck["best_rmse"], ck["epoch"]
-        print(f"  WZNOWIONO od kroku {step} (best RMSE {best_rmse:.5f})")
+        best_step = ck.get("best_step", 0)
+        best = ck.get("best", {"val36": {"rmse": best_rmse, "step": best_step},
+                               "val4": {"rmse": float("inf"), "step": 0}})
+        print(f"  WZNOWIONO od kroku {step} (best RMSE {best_rmse:.5f} na kroku {best_step})")
 
     (run_dir / "config.json").write_text(json.dumps({
         "condition": vars(cond) if hasattr(cond, "__dict__") else cond.__dict__,
@@ -314,6 +401,17 @@ def main(argv=None) -> int:
 
     metrics_fp = run_dir / "metrics.jsonl"
     train_log = run_dir / "train_loss.csv"
+
+    # SWIEZY PRZEBIEG KASUJE LOGI POPRZEDNIEGO. Oba pliki sa dopisywane (`"a"`),
+    # a `--force` nie usuwa katalogu -- wiec bez tego ponowne uruchomienie
+    # zostawialo w `metrics.jsonl` wpisy OBU przebiegow naraz. Zaobserwowane:
+    # `EA_seed0` mial 80 rekordow zamiast 40, a `exp_ctl.py status` liczyl z nich
+    # minimum, pokazujac 0,56353 zamiast prawdziwych 0,76085 -- czyli wynik
+    # STAREGO przebiegu, sprzed zmiany protokolu walidacji.
+    # Przy `--resume` NIE kasujemy: tam ciagniemy ten sam przebieg dalej.
+    if not args.resume:
+        metrics_fp.unlink(missing_ok=True)
+        train_log.unlink(missing_ok=True)
     if not train_log.exists():
         train_log.write_text("step,loss,epoch,samples_per_s\n", encoding="utf-8")
 
@@ -366,38 +464,101 @@ def main(argv=None) -> int:
             rec = {"step": step, "epoch": stream.epoch, "split": "val", **res}
             with metrics_fp.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False, default=str) + "\n")
-            o, e, s = res["overall"], res["edge"], res["smooth"]
-            print(f"  [val {step}] loss {res['loss']:.4f}  RMSE {o['RMSE']:.4f}  "
+            o, e, s = res["all"], res["edge"], res["smooth"]
+            r4 = res.get("val4") or {}
+            print(f"  [val {step}] loss {res['loss']:.4f}  RMSE@36 {o['RMSE']:.4f}  "
+                  f"RMSE@4 {r4.get('all', {}).get('RMSE', float('nan')):.4f}  "
                   f"krawedzie {e['RMSE']:.4f}  gladkie {s['RMSE']:.4f}  "
                   f"d1 {o['DELTA1']:.4f}  (krawedzi {res['edge_pixel_fraction']*100:.1f}% px)")
 
             # Wybor checkpointu po RMSE walidacyjnym, nie po ostatnim kroku:
             # warunki roznia sie rownowaznikiem epok, wiec roznie sie przeuczaja.
-            if o["RMSE"] < best_rmse:
-                best_rmse = o["RMSE"]
+            # DWA kryteria: `val@36` jest PODSTAWOWE dla calej macierzy, `val@4`
+            # to kolumna odpornosci. Gdy oba wskazuja ten sam krok, drugi plik
+            # sie nie zapisuje (`best_step_same`).
+            if o["RMSE"] < best["val36"]["rmse"]:
+                best["val36"] = {"rmse": o["RMSE"], "step": step}
                 for k, n in nets.items():
                     torch.save(n.state_dict(), run_dir / f"best_{k}.pth")
-                (run_dir / "best.json").write_text(json.dumps(rec, indent=2,
-                                                             ensure_ascii=False, default=str),
+                (run_dir / "best.json").write_text(json.dumps({**rec, "best_step": step},
+                                                             indent=2, ensure_ascii=False,
+                                                             default=str),
                                                    encoding="utf-8")
-                print(f"           -> nowy najlepszy RMSE {best_rmse:.5f}, zapisano wagi")
+                print(f"           -> nowy najlepszy val@36 RMSE {o['RMSE']:.5f}, zapisano wagi")
+            if r4 and r4["all"]["RMSE"] < best["val4"]["rmse"]:
+                best["val4"] = {"rmse": r4["all"]["RMSE"], "step": step}
+                for k, n in nets.items():
+                    torch.save(n.state_dict(), run_dir / f"best4_{k}.pth")
+                (run_dir / "best_val4.json").write_text(
+                    json.dumps({"step": step, "val4": r4}, indent=2, ensure_ascii=False,
+                               default=str), encoding="utf-8")
+                print(f"           -> nowy najlepszy val@4  RMSE {r4['all']['RMSE']:.5f}")
+            best_rmse, best_step = best["val36"]["rmse"], best["val36"]["step"]
             t0 = time.perf_counter()
 
         if step % args.checkpoint_freq == 0:
             save_checkpoint(ckpt_path, nets, optimizer, scaler, step, best_rmse,
-                            stream.epoch, spec)
+                            stream.epoch, spec, best_step, best)
 
-    save_checkpoint(ckpt_path, nets, optimizer, scaler, step, best_rmse, stream.epoch, spec)
+    save_checkpoint(ckpt_path, nets, optimizer, scaler, step, best_rmse, stream.epoch,
+                    spec, best_step, best)
+
+    # BLOK 1.3: SUFIT BUDZETU. Warunek `cardinal` widzi kazda probke 233 razy,
+    # `all` tylko 26. Jesli najlepsze RMSE walidacyjne pada blisko konca budzetu,
+    # warunek moze byc NIEDOTRENOWANY -- a to dziala przeciwko hipotezie pracy,
+    # bo akurat warunki gestsze maja mniej powtorzen. Wtedy budzet trzeba
+    # podniesc WSZYSTKIM warunkom jednakowo (nigdy pojedynczemu).
+    #
+    # SAM POZNY `best_step` NIE WYSTARCZA. Zmierzone na EB (2026-08-10): krzywa
+    # wychodzi na plateau ok. kroku 21 000 i potem FLUKTUUJE z odchyleniem
+    # 0,0061 RMSE -- czyli w skali podlogi szumu frameworka (0,0023-0,0073, §3.1
+    # raportu). Przy takim plateau najlepszy checkpoint laduje w losowym miejscu,
+    # wiec `best_step = 97,5 % budzetu` wypada regularnie BEZ zadnego
+    # niedotrenowania. Ostrzeganie na samym `best_step` kazaloby podniesc budzet
+    # calej macierzy bez powodu -- to kosztuje dziesiatki godzin GPU.
+    #
+    # Test rozstrzygajacy: czy w ostatniej cwiartce budzetu nastapila poprawa
+    # WIEKSZA niz rozrzut samego plateau. Jesli nie -- model stoi, a pozny
+    # `best_step` jest artefaktem wyboru minimum z szumu.
+    best_frac = best_step / spec.total_steps if spec.total_steps else 0.0
+    late_best = bool(best_frac >= 0.9 and step >= spec.total_steps)
+    plateau = _plateau_diagnostics(metrics_fp, spec.total_steps)
+    still_improving = bool(
+        plateau["improvement_last_quarter"] is not None
+        and plateau["plateau_sd"] is not None
+        and plateau["improvement_last_quarter"] > 2 * plateau["plateau_sd"])
+    budget_warning = bool(late_best and still_improving)
     (run_dir / "status.json").write_text(json.dumps({
         "step": step, "total_steps": spec.total_steps,
         "finished": step >= spec.total_steps, "interrupted": stop["flag"],
-        "best_val_rmse": best_rmse, "epochs": stream.epoch,
+        "val_angle_subset": VAL_ANGLE_SUBSET,
+        "best_val_rmse": best_rmse, "best_step": best_step,
+        "best_val36_rmse": best["val36"]["rmse"], "best_step_val36": best["val36"]["step"],
+        "best_val4_rmse": best["val4"]["rmse"], "best_step_val4": best["val4"]["step"],
+        "best_step_same": bool(best["val36"]["step"] == best["val4"]["step"]),
+        "best_step_fraction_of_budget": best_frac,
+        "budget_ceiling_warning": budget_warning,
+        "late_best_step": late_best,
+        "still_improving_at_end": still_improving,
+        "plateau": plateau,
+        "epochs": stream.epoch,
         "ended_utc": datetime.now(timezone.utc).isoformat(),
     }, indent=2, ensure_ascii=False), encoding="utf-8")
 
     train_ds.close()
     val_ds.close()
-    print(f"\nKONIEC: krok {step}/{spec.total_steps}, najlepszy val RMSE {best_rmse:.5f}")
+    print(f"\nKONIEC: krok {step}/{spec.total_steps}, najlepszy val RMSE {best_rmse:.5f} "
+          f"na kroku {best_step} ({best_frac*100:.0f} % budzetu)")
+    if plateau["plateau_sd"] is not None:
+        print(f"  plateau: rozrzut RMSE w ostatniej cwiartce {plateau['plateau_sd']:.5f}, "
+              f"poprawa w tej cwiartce {plateau['improvement_last_quarter']:+.5f}")
+    if budget_warning:
+        print("  UWAGA: najlepszy checkpoint padl w ostatnich 10 % budzetu ORAZ krzywa nadal\n"
+              "         opada szybciej niz szumi -- warunek jest NIEDOTRENOWANY. Budzet nalezy\n"
+              "         podniesc WSZYSTKIM warunkom jednakowo, nigdy pojedynczemu.")
+    elif late_best:
+        print("  (pozny best_step, ale krzywa stoi w granicach wlasnego szumu -- to selekcja\n"
+              "   minimum z plateau, NIE niedotrenowanie; budzetu nie trzeba podnosic)")
     return 0 if step >= spec.total_steps else 1
 
 

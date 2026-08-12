@@ -1,0 +1,35 @@
+{
+  "opis": "Luka `test@36` - `test@4` per warunek. Kontrola mechanizmu: jesli kara bierze sie z BRAKU POKRYCIA orientacji, luke ma miec tylko warunek `cardinal`. Warunki o pelnym pokryciu katowym zbioru (D, B) nie moga miec luki, mimo ze roznia sie licznoscia zbioru i zbieznoscia -- co wyklucza te dwa wyjasnienia.",
+  "ziarno": 0,
+  "uwaga": "checkpointy sprzed decyzji o walidacji na 36 katach",
+  "wiersze": [
+    {
+      "warunek": "EA",
+      "pokrycie_katowe_zbioru_treningowego": "4 katy kardynalne",
+      "test36": 0.8026481918490214,
+      "test4": 0.5779184340312347,
+      "luka": 0.2247297578177867
+    },
+    {
+      "warunek": "ED",
+      "pokrycie_katowe_zbioru_treningowego": "36 katow (globalnie, 4 na lokalizacje)",
+      "test36": 0.6630791379130241,
+      "test4": 0.6621467589173633,
+      "luka": 0.0009323789956607875
+    },
+    {
+      "warunek": "EB",
+      "pokrycie_katowe_zbioru_treningowego": "36 katow",
+      "test36": 0.5778291809134892,
+      "test4": 0.5764202834687359,
+      "luka": 0.0014088974447533653
+    },
+    {
+      "warunek": "ESE",
+      "pokrycie_katowe_zbioru_treningowego": "36 katow (echo permutowane)",
+      "test36": 1.1659073208755675,
+      "test4": 1.1619186300883555,
+      "luka": 0.003988690787211979
+    }
+  ]
+}

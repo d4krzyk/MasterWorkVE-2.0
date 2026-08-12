@@ -12,6 +12,18 @@ Skladnia `--angle-subset`:
     cardinal    -> {0, 90, 180, 270}, baseline VisualEchoes (Gao i in. 2020)
     every_N     -> co N-ta orientacja, N in {2,3,4,6,9,12,18} -> 18/12/9/6/4/3/2
     random_K    -> K orientacji losowanych NA LOKALIZACJE, z ziarna
+    random_K_of_G -> K orientacji losowanych NA LOKALIZACJE, ale WYLACZNIE z
+                     podsiatki G rownomiernie rozlozonych orientacji
+
+KRZYWA PRZY STALYM BUDZECIE PROBEK (`random_K_of_G`). Krzywa nasycenia
+`every_N` idzie na naturalnej licznosci (6 960 -> 62 640 probek), wiec rosnie
+po DWOCH zmiennych naraz: roznorodnosci katowej i rozmiarze zbioru. To, co na
+niej widac, jest w duzej mierze nasyceniem po rozmiarze zbioru -- zjawiskiem
+znanym i nieciekawym. `random_4_of_G` trzyma licznosc STALA (4 probki na
+lokalizacje, czyli 5 496 treningowych w kazdym punkcie) i zmienia wylacznie to,
+z jak gestej siatki te 4 katy pochodza. Koncami tej krzywej sa dokladnie
+istniejace warunki: `random_4_of_4` == `cardinal` (warunek A, wybor 4 z 4 jest
+deterministyczny), a `random_4_of_36` == `random_4` (warunek D).
 
 Roznica `cardinal` vs `every_9` jest zerowa co do zbioru katow (oba daja
 {0,90,180,270}) i to jest zamierzone: `every_9` istnieje po to, zeby krzywa
@@ -37,6 +49,11 @@ EVERY_N_ALLOWED = (2, 3, 4, 6, 9, 12, 18)
 
 _EVERY_RE = re.compile(r"^every_(\d+)$")
 _RANDOM_RE = re.compile(r"^random_(\d+)$")
+_RANDOM_OF_RE = re.compile(r"^random_(\d+)_of_(\d+)$")
+
+# Dopuszczalne rozmiary podsiatki G dla random_K_of_G: liczby orientacji, ktore
+# rownomiernie dziela 36 (te same, ktore daje every_N, plus pelne 36).
+GRID_SIZES_ALLOWED = (2, 3, 4, 6, 9, 12, 18, 36)
 
 
 class AngleSubsetError(ValueError):
@@ -59,6 +76,16 @@ def parse(spec: str) -> tuple[str, int]:
                 f"every_{n}: N musi dzielic 36 bez reszty, dozwolone {EVERY_N_ALLOWED}"
             )
         return "every", n
+    m = _RANDOM_OF_RE.match(spec)
+    if m:
+        k, g = int(m.group(1)), int(m.group(2))
+        if g not in GRID_SIZES_ALLOWED:
+            raise AngleSubsetError(
+                f"random_{k}_of_{g}: G musi rownomiernie dzielic {N_ANGLES}, "
+                f"dozwolone {GRID_SIZES_ALLOWED}")
+        if not 1 <= k <= g:
+            raise AngleSubsetError(f"random_{k}_of_{g}: K musi byc w zakresie 1..{g}")
+        return "random_of", k
     m = _RANDOM_RE.match(spec)
     if m:
         k = int(m.group(1))
@@ -66,8 +93,20 @@ def parse(spec: str) -> tuple[str, int]:
             raise AngleSubsetError(f"random_{k}: K musi byc w zakresie 1..{N_ANGLES}")
         return "random", k
     raise AngleSubsetError(
-        f"nieznany --angle-subset {spec!r}; oczekiwano: all | cardinal | every_N | random_K"
+        f"nieznany --angle-subset {spec!r}; oczekiwano: "
+        f"all | cardinal | every_N | random_K | random_K_of_G"
     )
+
+
+def grid_size(spec: str) -> int:
+    """Z ilu orientacji POCHODZA katy tego podzbioru (os krzywej stalego budzetu)."""
+    m = _RANDOM_OF_RE.match(spec.strip())
+    if m:
+        return int(m.group(2))
+    if spec.strip() == "cardinal":
+        return len(CARDINAL_DEG)
+    return N_ANGLES if spec.strip() in ("all",) or spec.strip().startswith("random_") \
+        else angles_per_location(spec)
 
 
 def angles_per_location(spec: str) -> int:
@@ -80,7 +119,7 @@ def angles_per_location(spec: str) -> int:
         return len(CARDINAL_DEG)
     if kind == "every":
         return N_ANGLES // n
-    return n  # random_K
+    return n  # random_K, random_K_of_G
 
 
 def select_angles(spec: str, *, scene: str, location_id: int, seed: int) -> np.ndarray:
@@ -103,16 +142,25 @@ def select_angles(spec: str, *, scene: str, location_id: int, seed: int) -> np.n
     if kind == "every":
         return grid[::n].copy()
 
-    # random_K
+    # random_K / random_K_of_G -- losowanie zakotwiczone w (seed, scene, location)
+    if kind == "random_of":
+        g = grid_size(spec)
+        pool = grid[::N_ANGLES // g]
+    else:
+        pool = grid
     h = hashlib.sha256(f"{seed}|{scene}|{location_id}".encode()).digest()
     rng = np.random.default_rng(int.from_bytes(h[:8], "big"))
-    chosen = rng.choice(N_ANGLES, size=n, replace=False)
-    return np.sort(grid[chosen])
+    chosen = rng.choice(pool.size, size=n, replace=False)
+    return np.sort(pool[chosen])
 
 
 def describe(spec: str) -> str:
     kind, n = parse(spec)
     per_loc = angles_per_location(spec)
+    if kind == "random_of":
+        g = grid_size(spec)
+        return (f"{spec}: {per_loc} katow/lokalizacje losowanych z podsiatki {g} orientacji "
+                f"(co {N_ANGLES // g * ANGLE_STEP_DEG} stopni); licznosc zbioru NIEZALEZNA od G")
     if kind == "random":
         return f"{spec}: {per_loc} katow/lokalizacje, losowane per lokalizacja (zalezne od --angle-seed)"
     if kind == "every":

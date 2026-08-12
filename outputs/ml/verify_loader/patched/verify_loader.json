@@ -1,5 +1,5 @@
 {
-  "utc": "2026-08-05T15:34:41.330760+00:00",
+  "utc": "2026-08-11T13:24:53.547115+00:00",
   "variant": "patched",
   "split_fingerprint": "e0bf7547668d9e0a",
   "all_passed": true,
@@ -513,7 +513,7 @@
       "passed": true,
       "detail": {
         "train": {
-          "samples_checked": 320,
+          "samples_checked": 1280,
           "nonfinite": {
             "img": 0,
             "depth": 0,
@@ -522,7 +522,7 @@
           "ok": true
         },
         "val": {
-          "samples_checked": 320,
+          "samples_checked": 1280,
           "nonfinite": {
             "img": 0,
             "depth": 0,
@@ -531,7 +531,7 @@
           "ok": true
         },
         "test": {
-          "samples_checked": 320,
+          "samples_checked": 1280,
           "nonfinite": {
             "img": 0,
             "depth": 0,
@@ -545,11 +545,11 @@
       "name": "statystyki echa (magnituda STFT, nieujemna)",
       "passed": true,
       "detail": {
-        "max": 9.64844,
+        "max": 9.71875,
         "min": 0.0,
-        "srednia": 0.146714,
-        "procent_zer": 0.0014,
-        "probek": 320
+        "srednia": 0.14781,
+        "procent_zer": 0.0016,
+        "probek": 960
       }
     },
     {
@@ -557,84 +557,84 @@
       "passed": true,
       "detail": {
         "apartment_0": {
-          "probek": 1024,
-          "max_m": 12.5008,
+          "probek": 7596,
+          "max_m": 14.7779,
           "min_m": 0.0,
-          "pikseli_powyzej_max_depth": 0,
-          "procent_powyzej": 0.0,
-          "procent_zerowych": 0.001442
+          "pikseli_powyzej_max_depth": 131,
+          "procent_powyzej": 0.000105,
+          "procent_zerowych": 0.000673
         },
         "apartment_1": {
-          "probek": 1024,
+          "probek": 6336,
           "max_m": 10.0301,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.028634
+          "procent_zerowych": 1.035914
         },
         "apartment_2": {
-          "probek": 1024,
-          "max_m": 10.8535,
+          "probek": 5112,
+          "max_m": 11.3568,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 1.331782
+          "procent_zerowych": 1.21965
         },
         "frl_apartment_0": {
-          "probek": 1024,
+          "probek": 4680,
           "max_m": 12.5551,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.001925
+          "procent_zerowych": 0.002735
         },
         "frl_apartment_1": {
-          "probek": 1024,
+          "probek": 4680,
           "max_m": 12.6269,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.005513
+          "procent_zerowych": 0.00379
         },
         "frl_apartment_2": {
-          "probek": 1024,
+          "probek": 4500,
           "max_m": 13.2022,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.00025
+          "procent_zerowych": 0.000724
         },
         "frl_apartment_3": {
-          "probek": 1024,
+          "probek": 5292,
           "max_m": 13.2053,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.027949
+          "procent_zerowych": 0.0663
         },
         "frl_apartment_4": {
-          "probek": 1024,
+          "probek": 4572,
           "max_m": 13.0696,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.002491
+          "procent_zerowych": 0.002356
         },
         "frl_apartment_5": {
-          "probek": 1024,
+          "probek": 5328,
           "max_m": 13.1887,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.005966
+          "procent_zerowych": 0.003827
         },
         "hotel_0": {
-          "probek": 1024,
-          "max_m": 7.3139,
+          "probek": 1728,
+          "max_m": 8.5277,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.000852
+          "procent_zerowych": 0.001498
         },
         "office_0": {
           "probek": 936,
@@ -653,63 +653,63 @@
           "procent_zerowych": 0.001473
         },
         "office_2": {
-          "probek": 1024,
-          "max_m": 7.534,
+          "probek": 1332,
+          "max_m": 7.6019,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.002682
+          "procent_zerowych": 0.004697
         },
         "office_3": {
-          "probek": 1024,
+          "probek": 2232,
           "max_m": 8.6472,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.001013
+          "procent_zerowych": 0.003106
         },
         "office_4": {
-          "probek": 1024,
-          "max_m": 7.1396,
+          "probek": 2736,
+          "max_m": 7.7233,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.001961
+          "procent_zerowych": 0.001207
         },
         "room_0": {
-          "probek": 1024,
+          "probek": 2052,
           "max_m": 8.1709,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.001204
+          "procent_zerowych": 0.001008
         },
         "room_1": {
-          "probek": 1024,
-          "max_m": 6.0662,
+          "probek": 1260,
+          "max_m": 6.1285,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.000477
+          "procent_zerowych": 0.000446
         },
         "room_2": {
-          "probek": 1024,
-          "max_m": 6.1375,
+          "probek": 1692,
+          "max_m": 6.6152,
           "min_m": 0.0,
           "pikseli_powyzej_max_depth": 0,
           "procent_powyzej": 0.0,
-          "procent_zerowych": 0.006557
+          "procent_zerowych": 0.004141
         },
         "_RAZEM": {
           "wariant": "patched",
           "max_depth_modelu_m": 14.104,
-          "pikseli": 293208064,
-          "global_max_m": 13.2053,
+          "pikseli": 1026293760,
+          "global_max_m": 14.7779,
           "global_min_m": 0.0,
-          "pikseli_powyzej_max_depth": 0,
-          "procent_powyzej": 0.0,
-          "procent_zerowych_(maskowanych_w_stracie)": 0.083302,
-          "pelny_skan": false
+          "pikseli_powyzej_max_depth": 131,
+          "procent_powyzej": 1.3e-05,
+          "procent_zerowych_(maskowanych_w_stracie)": 0.212069,
+          "pelny_skan": true
         }
       }
     },

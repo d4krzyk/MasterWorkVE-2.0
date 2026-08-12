@@ -20,11 +20,11 @@ from pathlib import Path
 # Uruchamiany jako skrypt (`python my-operations/ml/echo_data.py`), wiec pakiet
 # `ml` musi byc widoczny na sciezce -- inaczej dzialaloby tylko `python -m`.
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    __package__ = "ml"
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    __package__ = "ml.dataset"
 
 from . import angles as angles_mod  # noqa: E402
-from . import paths  # noqa: E402
+from .. import paths  # noqa: E402
 from .echo_h5_dataset import DatasetConfig, EchoH5Dataset, expected_n_samples  # noqa: E402
 from .splits import build_splits, load_splits, save_splits, split_path  # noqa: E402
 
@@ -114,7 +114,7 @@ def cmd_verify(args) -> int:
 
 
 def cmd_bench(args) -> int:
-    from . import bench
+    from ..checks import bench
 
     workers = [int(x) for x in args.workers.split(",")]
     payload: dict = {"geometry": args.geometry, "batch_size": args.batch_size,
@@ -223,7 +223,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--build-index", action="store_true", help="--stats: potwierdz licznosc budujac indeks")
     p.add_argument("--quick", action="store_true", help="--verify-loader: skrocona wersja")
     p.add_argument("--no-full-depth-scan", action="store_true",
-                   help="--verify-loader: nie skanuj calej glebi (szybciej, ale % powyzej max_depth bedzie z probki)")
+                   help="--verify-loader: nie skanuj calej glebi (szybciej, ale %% powyzej max_depth bedzie z probki)")
 
     p.add_argument("--workers", default="0,2,4,8", help="--bench: lista num_workers")
     p.add_argument("--batch-size", type=int, default=32)

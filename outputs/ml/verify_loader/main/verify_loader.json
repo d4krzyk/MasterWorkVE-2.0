@@ -1,5 +1,5 @@
 {
-  "utc": "2026-08-05T14:46:11.472365+00:00",
+  "utc": "2026-08-10T20:09:07.888255+00:00",
   "variant": "main",
   "split_fingerprint": "e0bf7547668d9e0a",
   "all_passed": true,
@@ -545,10 +545,10 @@
       "name": "statystyki echa (magnituda STFT, nieujemna)",
       "passed": true,
       "detail": {
-        "max": 9.64062,
+        "max": 9.66406,
         "min": 0.0,
-        "srednia": 0.138509,
-        "procent_zer": 0.0017,
+        "srednia": 0.136578,
+        "procent_zer": 0.0015,
         "probek": 960
       }
     },

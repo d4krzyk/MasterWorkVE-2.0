@@ -7,6 +7,15 @@
     2
   ],
   "zasada": "stala liczba krokow gradientu we wszystkich warunkach, NIE stala liczba epok",
+  "kolejnosc_grup": [
+    "bramka",
+    "echo",
+    "glowne",
+    "krzywa",
+    "krzywa_staly",
+    "geometria_echo",
+    "geometria"
+  ],
   "conditions": [
     {
       "id": "A",
@@ -15,7 +24,8 @@
       "geometry": "main",
       "angle_seed": 0,
       "isolates": "baseline VisualEchoes (Gao 2020): 4 kierunki kardynalne",
-      "group": "glowne"
+      "group": "glowne",
+      "shuffle_echo_seed": null
     },
     {
       "id": "B",
@@ -24,7 +34,8 @@
       "geometry": "main",
       "angle_seed": 0,
       "isolates": "efekt laczny gestosci i ilosci danych (36 orientacji)",
-      "group": "glowne"
+      "group": "glowne",
+      "shuffle_echo_seed": null
     },
     {
       "id": "D",
@@ -33,7 +44,8 @@
       "geometry": "main",
       "angle_seed": 0,
       "isolates": "SAMA gestosc katowa przy licznosci probek rownej A",
-      "group": "glowne"
+      "group": "glowne",
+      "shuffle_echo_seed": null
     },
     {
       "id": "C6",
@@ -42,7 +54,8 @@
       "geometry": "main",
       "angle_seed": 0,
       "isolates": "krzywa nasycenia: 6 orientacji",
-      "group": "krzywa"
+      "group": "krzywa",
+      "shuffle_echo_seed": null
     },
     {
       "id": "C9",
@@ -51,7 +64,8 @@
       "geometry": "main",
       "angle_seed": 0,
       "isolates": "krzywa nasycenia: 9 orientacji",
-      "group": "krzywa"
+      "group": "krzywa",
+      "shuffle_echo_seed": null
     },
     {
       "id": "C12",
@@ -60,7 +74,8 @@
       "geometry": "main",
       "angle_seed": 0,
       "isolates": "krzywa nasycenia: 12 orientacji",
-      "group": "krzywa"
+      "group": "krzywa",
+      "shuffle_echo_seed": null
     },
     {
       "id": "C18",
@@ -69,7 +84,8 @@
       "geometry": "main",
       "angle_seed": 0,
       "isolates": "krzywa nasycenia: 18 orientacji",
-      "group": "krzywa"
+      "group": "krzywa",
+      "shuffle_echo_seed": null
     },
     {
       "id": "EA",
@@ -78,7 +94,8 @@
       "geometry": "main",
       "angle_seed": 0,
       "isolates": "echo2depth, 4 kierunki: hipoteza bez priora wizualnego",
-      "group": "echo"
+      "group": "echo",
+      "shuffle_echo_seed": null
     },
     {
       "id": "EB",
@@ -87,7 +104,8 @@
       "geometry": "main",
       "angle_seed": 0,
       "isolates": "echo2depth, 36 orientacji: hipoteza bez priora wizualnego",
-      "group": "echo"
+      "group": "echo",
+      "shuffle_echo_seed": null
     },
     {
       "id": "ED",
@@ -96,7 +114,68 @@
       "geometry": "main",
       "angle_seed": 0,
       "isolates": "echo2depth, sama gestosc przy licznosci rownej EA",
-      "group": "echo"
+      "group": "echo",
+      "shuffle_echo_seed": null
+    },
+    {
+      "id": "SE",
+      "angle_subset": "all",
+      "model": "full",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "BRAMKA: echo z losowo innej probki -> calkowity wklad echa (vs B)",
+      "group": "bramka",
+      "shuffle_echo_seed": 20260810
+    },
+    {
+      "id": "ESE",
+      "angle_subset": "all",
+      "model": "echo2depth",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "BRAMKA: echo2depth z permutowanym echem -> podloga zadania (vs EB)",
+      "group": "bramka",
+      "shuffle_echo_seed": 20260810
+    },
+    {
+      "id": "EK6",
+      "angle_subset": "random_4_of_6",
+      "model": "echo2depth",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "staly budzet 4 probek/lok., katy z siatki 6 orientacji",
+      "group": "krzywa_staly",
+      "shuffle_echo_seed": null
+    },
+    {
+      "id": "EK9",
+      "angle_subset": "random_4_of_9",
+      "model": "echo2depth",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "staly budzet 4 probek/lok., katy z siatki 9 orientacji",
+      "group": "krzywa_staly",
+      "shuffle_echo_seed": null
+    },
+    {
+      "id": "EK12",
+      "angle_subset": "random_4_of_12",
+      "model": "echo2depth",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "staly budzet 4 probek/lok., katy z siatki 12 orientacji",
+      "group": "krzywa_staly",
+      "shuffle_echo_seed": null
+    },
+    {
+      "id": "EK18",
+      "angle_subset": "random_4_of_18",
+      "model": "echo2depth",
+      "geometry": "main",
+      "angle_seed": 0,
+      "isolates": "staly budzet 4 probek/lok., katy z siatki 18 orientacji",
+      "group": "krzywa_staly",
+      "shuffle_echo_seed": null
     },
     {
       "id": "PB",
@@ -105,7 +184,8 @@
       "geometry": "patched",
       "angle_seed": 0,
       "isolates": "wplyw domkniecia dziur w geometrii, przy 36 orientacjach",
-      "group": "geometria"
+      "group": "geometria",
+      "shuffle_echo_seed": null
     },
     {
       "id": "PA",
@@ -114,7 +194,48 @@
       "geometry": "patched",
       "angle_seed": 0,
       "isolates": "wplyw domkniecia dziur, przy 4 kierunkach",
-      "group": "geometria"
+      "group": "geometria",
+      "shuffle_echo_seed": null
+    },
+    {
+      "id": "PD",
+      "angle_subset": "random_4",
+      "model": "full",
+      "geometry": "patched",
+      "angle_seed": 0,
+      "isolates": "patched: SAMA gestosc przy licznosci rownej PA",
+      "group": "geometria",
+      "shuffle_echo_seed": null
+    },
+    {
+      "id": "EPA",
+      "angle_subset": "cardinal",
+      "model": "echo2depth",
+      "geometry": "patched",
+      "angle_seed": 0,
+      "isolates": "echo2depth patched, 4 kierunki",
+      "group": "geometria_echo",
+      "shuffle_echo_seed": null
+    },
+    {
+      "id": "EPB",
+      "angle_subset": "all",
+      "model": "echo2depth",
+      "geometry": "patched",
+      "angle_seed": 0,
+      "isolates": "echo2depth patched, 36 orientacji",
+      "group": "geometria_echo",
+      "shuffle_echo_seed": null
+    },
+    {
+      "id": "EPD",
+      "angle_subset": "random_4",
+      "model": "echo2depth",
+      "geometry": "patched",
+      "angle_seed": 0,
+      "isolates": "echo2depth patched, sama gestosc przy licznosci rownej EPA",
+      "group": "geometria_echo",
+      "shuffle_echo_seed": null
     }
   ],
   "summary": {
@@ -125,8 +246,8 @@
       1,
       2
     ],
-    "warunkow": 12,
-    "przebiegow_razem": 36,
+    "warunkow": 22,
+    "przebiegow_razem": 66,
     "warunki": [
       {
         "id": "A",
@@ -269,6 +390,90 @@
         "przebiegow": 3
       },
       {
+        "id": "SE",
+        "grupa": "bramka",
+        "angle_subset": "all",
+        "katow_na_lokalizacje": 36,
+        "model": "full",
+        "geometria": "main",
+        "probek_train": 49464,
+        "probek_val": 6588,
+        "probek_test": 6588,
+        "rownowaznik_epok": 25.9,
+        "izoluje": "BRAMKA: echo z losowo innej probki -> calkowity wklad echa (vs B)",
+        "przebiegow": 3
+      },
+      {
+        "id": "ESE",
+        "grupa": "bramka",
+        "angle_subset": "all",
+        "katow_na_lokalizacje": 36,
+        "model": "echo2depth",
+        "geometria": "main",
+        "probek_train": 49464,
+        "probek_val": 6588,
+        "probek_test": 6588,
+        "rownowaznik_epok": 25.9,
+        "izoluje": "BRAMKA: echo2depth z permutowanym echem -> podloga zadania (vs EB)",
+        "przebiegow": 3
+      },
+      {
+        "id": "EK6",
+        "grupa": "krzywa_staly",
+        "angle_subset": "random_4_of_6",
+        "katow_na_lokalizacje": 4,
+        "model": "echo2depth",
+        "geometria": "main",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "staly budzet 4 probek/lok., katy z siatki 6 orientacji",
+        "przebiegow": 3
+      },
+      {
+        "id": "EK9",
+        "grupa": "krzywa_staly",
+        "angle_subset": "random_4_of_9",
+        "katow_na_lokalizacje": 4,
+        "model": "echo2depth",
+        "geometria": "main",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "staly budzet 4 probek/lok., katy z siatki 9 orientacji",
+        "przebiegow": 3
+      },
+      {
+        "id": "EK12",
+        "grupa": "krzywa_staly",
+        "angle_subset": "random_4_of_12",
+        "katow_na_lokalizacje": 4,
+        "model": "echo2depth",
+        "geometria": "main",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "staly budzet 4 probek/lok., katy z siatki 12 orientacji",
+        "przebiegow": 3
+      },
+      {
+        "id": "EK18",
+        "grupa": "krzywa_staly",
+        "angle_subset": "random_4_of_18",
+        "katow_na_lokalizacje": 4,
+        "model": "echo2depth",
+        "geometria": "main",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "staly budzet 4 probek/lok., katy z siatki 18 orientacji",
+        "przebiegow": 3
+      },
+      {
         "id": "PB",
         "grupa": "geometria",
         "angle_subset": "all",
@@ -295,10 +500,353 @@
         "rownowaznik_epok": 232.9,
         "izoluje": "wplyw domkniecia dziur, przy 4 kierunkach",
         "przebiegow": 3
+      },
+      {
+        "id": "PD",
+        "grupa": "geometria",
+        "angle_subset": "random_4",
+        "katow_na_lokalizacje": 4,
+        "model": "full",
+        "geometria": "patched",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "patched: SAMA gestosc przy licznosci rownej PA",
+        "przebiegow": 3
+      },
+      {
+        "id": "EPA",
+        "grupa": "geometria_echo",
+        "angle_subset": "cardinal",
+        "katow_na_lokalizacje": 4,
+        "model": "echo2depth",
+        "geometria": "patched",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "echo2depth patched, 4 kierunki",
+        "przebiegow": 3
+      },
+      {
+        "id": "EPB",
+        "grupa": "geometria_echo",
+        "angle_subset": "all",
+        "katow_na_lokalizacje": 36,
+        "model": "echo2depth",
+        "geometria": "patched",
+        "probek_train": 49464,
+        "probek_val": 6588,
+        "probek_test": 6588,
+        "rownowaznik_epok": 25.9,
+        "izoluje": "echo2depth patched, 36 orientacji",
+        "przebiegow": 3
+      },
+      {
+        "id": "EPD",
+        "grupa": "geometria_echo",
+        "angle_subset": "random_4",
+        "katow_na_lokalizacje": 4,
+        "model": "echo2depth",
+        "geometria": "patched",
+        "probek_train": 5496,
+        "probek_val": 732,
+        "probek_test": 732,
+        "rownowaznik_epok": 232.9,
+        "izoluje": "echo2depth patched, sama gestosc przy licznosci rownej EPA",
+        "przebiegow": 3
+      }
+    ]
+  },
+  "budzet": {
+    "na_model": {
+      "full": {
+        "parameters": 316918781,
+        "best_weights_GB": 1.181,
+        "best_weights_val4_GB": 1.181,
+        "checkpoint_weights_only_GB": 1.181,
+        "checkpoint_with_adam_GB": 3.542,
+        "per_run_total_GB": 5.903
+      },
+      "echo2depth": {
+        "parameters": 8984073,
+        "best_weights_GB": 0.033,
+        "best_weights_val4_GB": 0.033,
+        "checkpoint_weights_only_GB": 0.033,
+        "checkpoint_with_adam_GB": 0.1,
+        "per_run_total_GB": 0.167
+      }
+    },
+    "s_na_krok": {
+      "full": 0.07757,
+      "echo2depth": 0.0116
+    },
+    "warunki": [
+      {
+        "id": "A",
+        "grupa": "glowne",
+        "model": "full",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.862,
+        "godzin_razem": 2.59,
+        "GB_razem_z_adamem": 17.7,
+        "GB_razem_same_wagi": 3.5
+      },
+      {
+        "id": "B",
+        "grupa": "glowne",
+        "model": "full",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.862,
+        "godzin_razem": 2.59,
+        "GB_razem_z_adamem": 17.7,
+        "GB_razem_same_wagi": 3.5
+      },
+      {
+        "id": "D",
+        "grupa": "glowne",
+        "model": "full",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.862,
+        "godzin_razem": 2.59,
+        "GB_razem_z_adamem": 17.7,
+        "GB_razem_same_wagi": 3.5
+      },
+      {
+        "id": "C6",
+        "grupa": "krzywa",
+        "model": "full",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.862,
+        "godzin_razem": 2.59,
+        "GB_razem_z_adamem": 17.7,
+        "GB_razem_same_wagi": 3.5
+      },
+      {
+        "id": "C9",
+        "grupa": "krzywa",
+        "model": "full",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.862,
+        "godzin_razem": 2.59,
+        "GB_razem_z_adamem": 17.7,
+        "GB_razem_same_wagi": 3.5
+      },
+      {
+        "id": "C12",
+        "grupa": "krzywa",
+        "model": "full",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.862,
+        "godzin_razem": 2.59,
+        "GB_razem_z_adamem": 17.7,
+        "GB_razem_same_wagi": 3.5
+      },
+      {
+        "id": "C18",
+        "grupa": "krzywa",
+        "model": "full",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.862,
+        "godzin_razem": 2.59,
+        "GB_razem_z_adamem": 17.7,
+        "GB_razem_same_wagi": 3.5
+      },
+      {
+        "id": "EA",
+        "grupa": "echo",
+        "model": "echo2depth",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.129,
+        "godzin_razem": 0.39,
+        "GB_razem_z_adamem": 0.5,
+        "GB_razem_same_wagi": 0.1
+      },
+      {
+        "id": "EB",
+        "grupa": "echo",
+        "model": "echo2depth",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.129,
+        "godzin_razem": 0.39,
+        "GB_razem_z_adamem": 0.5,
+        "GB_razem_same_wagi": 0.1
+      },
+      {
+        "id": "ED",
+        "grupa": "echo",
+        "model": "echo2depth",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.129,
+        "godzin_razem": 0.39,
+        "GB_razem_z_adamem": 0.5,
+        "GB_razem_same_wagi": 0.1
+      },
+      {
+        "id": "SE",
+        "grupa": "bramka",
+        "model": "full",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.862,
+        "godzin_razem": 2.59,
+        "GB_razem_z_adamem": 17.7,
+        "GB_razem_same_wagi": 3.5
+      },
+      {
+        "id": "ESE",
+        "grupa": "bramka",
+        "model": "echo2depth",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.129,
+        "godzin_razem": 0.39,
+        "GB_razem_z_adamem": 0.5,
+        "GB_razem_same_wagi": 0.1
+      },
+      {
+        "id": "EK6",
+        "grupa": "krzywa_staly",
+        "model": "echo2depth",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.129,
+        "godzin_razem": 0.39,
+        "GB_razem_z_adamem": 0.5,
+        "GB_razem_same_wagi": 0.1
+      },
+      {
+        "id": "EK9",
+        "grupa": "krzywa_staly",
+        "model": "echo2depth",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.129,
+        "godzin_razem": 0.39,
+        "GB_razem_z_adamem": 0.5,
+        "GB_razem_same_wagi": 0.1
+      },
+      {
+        "id": "EK12",
+        "grupa": "krzywa_staly",
+        "model": "echo2depth",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.129,
+        "godzin_razem": 0.39,
+        "GB_razem_z_adamem": 0.5,
+        "GB_razem_same_wagi": 0.1
+      },
+      {
+        "id": "EK18",
+        "grupa": "krzywa_staly",
+        "model": "echo2depth",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.129,
+        "godzin_razem": 0.39,
+        "GB_razem_z_adamem": 0.5,
+        "GB_razem_same_wagi": 0.1
+      },
+      {
+        "id": "PB",
+        "grupa": "geometria",
+        "model": "full",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.862,
+        "godzin_razem": 2.59,
+        "GB_razem_z_adamem": 17.7,
+        "GB_razem_same_wagi": 3.5
+      },
+      {
+        "id": "PA",
+        "grupa": "geometria",
+        "model": "full",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.862,
+        "godzin_razem": 2.59,
+        "GB_razem_z_adamem": 17.7,
+        "GB_razem_same_wagi": 3.5
+      },
+      {
+        "id": "PD",
+        "grupa": "geometria",
+        "model": "full",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.862,
+        "godzin_razem": 2.59,
+        "GB_razem_z_adamem": 17.7,
+        "GB_razem_same_wagi": 3.5
+      },
+      {
+        "id": "EPA",
+        "grupa": "geometria_echo",
+        "model": "echo2depth",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.129,
+        "godzin_razem": 0.39,
+        "GB_razem_z_adamem": 0.5,
+        "GB_razem_same_wagi": 0.1
+      },
+      {
+        "id": "EPB",
+        "grupa": "geometria_echo",
+        "model": "echo2depth",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.129,
+        "godzin_razem": 0.39,
+        "GB_razem_z_adamem": 0.5,
+        "GB_razem_same_wagi": 0.1
+      },
+      {
+        "id": "EPD",
+        "grupa": "geometria_echo",
+        "model": "echo2depth",
+        "przebiegow": 3,
+        "godzin_na_przebieg": 0.129,
+        "godzin_razem": 0.39,
+        "GB_razem_z_adamem": 0.5,
+        "GB_razem_same_wagi": 0.1
       }
     ],
-    "godzin_na_przebieg": 0.86,
-    "godzin_cala_macierz": 31.0,
-    "dni_cala_macierz": 1.29
+    "grupy": {
+      "glowne": {
+        "przebiegow": 9,
+        "godzin": 7.77,
+        "GB": 53.1
+      },
+      "krzywa": {
+        "przebiegow": 12,
+        "godzin": 10.36,
+        "GB": 70.8
+      },
+      "echo": {
+        "przebiegow": 9,
+        "godzin": 1.17,
+        "GB": 1.5
+      },
+      "bramka": {
+        "przebiegow": 6,
+        "godzin": 2.98,
+        "GB": 18.2
+      },
+      "krzywa_staly": {
+        "przebiegow": 12,
+        "godzin": 1.56,
+        "GB": 2.0
+      },
+      "geometria": {
+        "przebiegow": 9,
+        "godzin": 7.77,
+        "GB": 53.1
+      },
+      "geometria_echo": {
+        "przebiegow": 9,
+        "godzin": 1.17,
+        "GB": 1.5
+      }
+    },
+    "razem": {
+      "przebiegow": 66,
+      "godzin": 32.8,
+      "dni": 1.37,
+      "GB_z_adamem": 200.2,
+      "GB_same_wagi": 39.6
+    }
   }
 }

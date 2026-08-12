@@ -34,10 +34,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    __package__ = "ml"
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    __package__ = "ml.matrix"
 
-from . import paths  # noqa: E402
+from .. import paths  # noqa: E402
 from .experiments import (  # noqa: E402
     BATCH_SIZE,
     CONDITIONS,
@@ -49,10 +49,15 @@ from .experiments import (  # noqa: E402
     RunSpec,
     dump_config,
     matrix_summary,
+    plan_status,
 )
-from .splits import load_splits  # noqa: E402
+from ..dataset.splits import load_splits  # noqa: E402
 
-TRAIN_SCRIPT = Path(__file__).resolve().parent / "train_condition.py"
+# `train_condition.py` mieszka w `depth_model/`, nie obok tego pliku -- po
+# reorganizacji z 2026-08-12 `parent` wskazywalby `matrix/` i `start`/`next`
+# proponowalyby nieistniejaca sciezke.
+TRAIN_SCRIPT = Path(__file__).resolve().parents[1] / "depth_model" / "train_condition.py"
+assert TRAIN_SCRIPT.exists(), f"nie znaleziono {TRAIN_SCRIPT}"
 
 # Zmierzone na tym sprzecie (RTX 5070 Ti, batch 32, AMP) -- patrz
 # outputs/ml/bench/bench_main.json. Sluzy TYLKO do planowania czasu.
@@ -99,13 +104,30 @@ def find_running() -> dict[str, int]:
     return out
 
 
+def _block(rec: dict, name: str) -> dict:
+    """Blok metryk z rekordu walidacji, niezaleznie od WERSJI formatu.
+
+    Do 2026-08-11 `evaluate()` zwracalo `overall`/`edge`/`smooth`; po przejsciu
+    na tabele statystyk per probka klucz `overall` nazywa sie `all`. Na dysku
+    leza pliki OBU formatow -- przebiegi sprzed i po zmianie protokolu -- wiec
+    czytnik musi znac oba. Wczesniej `["overall"]` rzucalo `KeyError`, ktory byl
+    po cichu polykany przez `except`: dla DZIALAJACEGO przebiegu kolumna
+    `best RMSE` pokazywala wtedy `-`, mimo ze wynik byl juz w `metrics.jsonl`.
+    """
+    return rec.get(name) or rec.get({"overall": "all", "all": "overall"}.get(name, name)) or {}
+
+
+def _rmse_of(rec: dict) -> float:
+    return _block(rec, "overall")["RMSE"]
+
+
 def run_state(cond_id: str, seed: int, running: dict) -> dict:
     spec = RunSpec(condition=cond_id, seed=seed)
     d = spec.run_dir()
     st = {"run_id": spec.run_id, "condition": cond_id, "seed": seed,
           "dir": d, "exists": d.exists(), "pid": running.get(spec.run_id),
           "step": 0, "total": TOTAL_STEPS, "best_rmse": None,
-          "finished": False, "state": "nie zaczety"}
+          "finished": False, "state": "nie zaczety", "val_subset": None}
     if not d.exists():
         return st
 
@@ -114,12 +136,20 @@ def run_state(cond_id: str, seed: int, running: dict) -> dict:
         try:
             s = json.loads(sfp.read_text(encoding="utf-8"))
             st.update(step=s.get("step", 0), total=s.get("total_steps", TOTAL_STEPS),
-                      best_rmse=s.get("best_val_rmse"), finished=s.get("finished", False))
+                      best_rmse=s.get("best_val_rmse"), finished=s.get("finished", False),
+                      val_subset=s.get("val_angle_subset", "<sprzed 2026-08-11>"))
         except (json.JSONDecodeError, OSError):
             pass
 
-    # `metrics.jsonl` jest dopisywany na biezaco, wiec dla dzialajacego przebiegu
+    # `metrics.jsonl` jest dopisywany na biezaco, wiec dla DZIALAJACEGO przebiegu
     # jest swiezszy niz `status.json` (ten powstaje dopiero na koncu).
+    #
+    # Ale tylko dla dzialajacego. Gdy `status.json` juz istnieje, jest ZRODLEM
+    # PRAWDY i nie wolno go "poprawiac" minimum z pliku logu: przy ponownym
+    # uruchomieniu z `--force` log potrafil zawierac wpisy dwoch przebiegow
+    # naraz, a minimum po calosci pokazywalo wynik tego STARSZEGO. Od 2026-08-12
+    # `train_condition.py` kasuje logi na swiezym starcie, ale stare katalogi na
+    # dysku nadal moga byc zanieczyszczone -- wiec czytnik tez musi byc odporny.
     mfp = d / "metrics.jsonl"
     if mfp.exists():
         try:
@@ -127,8 +157,8 @@ def run_state(cond_id: str, seed: int, running: dict) -> dict:
             if lines:
                 last = json.loads(lines[-1])
                 st["step"] = max(st["step"], last.get("step", 0))
-                best = min(json.loads(ln)["overall"]["RMSE"] for ln in lines)
-                st["best_rmse"] = best if st["best_rmse"] is None else min(st["best_rmse"], best)
+                if st["best_rmse"] is None:
+                    st["best_rmse"] = min(_rmse_of(json.loads(ln)) for ln in lines)
         except (json.JSONDecodeError, OSError, KeyError):
             pass
 
@@ -179,9 +209,9 @@ def cmd_plan(args) -> int:
     print(f"PLAN MACIERZY   {TOTAL_STEPS} krokow/przebieg, batch {BATCH_SIZE}, "
           f"ziarna {list(SEEDS)}, fast_bilinear={args.fast_bilinear}")
     print("=" * 100)
-    print(f"{'id':<5}{'grupa':<10}{'subset':<11}{'kat':>4}  {'model':<11}{'geom':<9}"
+    print(f"{'id':<5}{'grupa':<15}{'subset':<16}{'kat':>4}  {'model':<11}{'geom':<9}"
           f"{'train':>8}{'ep.rown':>9}{'h/przeb':>10}{'h x3':>9}  izoluje")
-    print("-" * 100)
+    print("-" * 105)
     tot = 0.0
     for c in CONDITIONS:
         if c.group not in groups:
@@ -191,11 +221,11 @@ def cmd_plan(args) -> int:
         sps = sec_per_step(c, args.fast_bilinear)
         h = TOTAL_STEPS * sps / 3600
         tot += h * len(SEEDS)
-        from . import angles as A
-        print(f"{c.id:<5}{c.group:<10}{c.angle_subset:<11}"
+        from ..dataset import angles as A
+        print(f"{c.id:<5}{c.group:<15}{c.angle_subset:<16}"
               f"{A.angles_per_location(c.angle_subset):>4}  {c.model:<11}{c.geometry:<9}"
               f"{n:>8}{c.epochs_equivalent(sp):>9.1f}{h:>10.2f}{h*len(SEEDS):>9.2f}  {c.isolates}")
-    print("-" * 100)
+    print("-" * 105)
     n_runs = sum(len(SEEDS) for c in CONDITIONS if c.group in groups)
     print(f"RAZEM: {n_runs} przebiegow, {tot:.1f} h = {tot/24:.2f} dni GPU")
     if not args.fast_bilinear:
@@ -212,20 +242,64 @@ def cmd_status(args) -> int:
     groups = args.groups.split(",") if args.groups else None
     states = all_states(groups)
     running = [s for s in states if s["state"] == "DZIALA"]
-    print("=" * 92)
+    print("=" * 97)
+    # Postep liczony wobec PLANU, nie wobec przestrzeni projektowej. "14/66"
+    # czyta sie jako 21 %, podczas gdy 35 z tych 66 nigdy nie mialo pojsc.
+    in_plan = [s for s in states if plan_status(s["condition"], s["seed"])[0]]
+    done_plan = sum(1 for s in in_plan if s["finished"])
+    done_all = sum(1 for s in states if s["finished"])
     print(f"STATUS   {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}   "
-          f"dziala: {len(running)}   gotowych: {sum(1 for s in states if s['finished'])}/{len(states)}")
-    print("=" * 92)
-    print(f"{'run_id':<14}{'grupa':<10}{'stan':<11}{'postep':<24}{'krok':>13}{'best RMSE':>12}")
-    print("-" * 92)
+          f"dziala: {len(running)}   "
+          f"gotowych: {done_plan}/{len(in_plan)} wg PLANU"
+          f"   ({done_all}/{len(states)} calej przestrzeni projektowej)")
+    print("=" * 97)
+    print(f"{'run_id':<14}{'grupa':<15}{'stan':<11}{'postep':<24}{'krok':>13}"
+          f"{'best val RMSE':>15}{'prot':>6}{'plan':>6}")
+    print("-" * 109)
+    stale = 0
     for s in states:
         col = {"DZIALA": 32, "gotowy": 36, "przerwany": 33}.get(s["state"], 90)
         rmse = f"{s['best_rmse']:.5f}" if s["best_rmse"] is not None else "-"
         state_cell = C(f"{s['state']:<11}", col)
         progress = bar(s["step"] / max(1, s["total"]))
-        print(f"{s['run_id']:<14}{s['group']:<10}{state_cell}"
-              f"{progress:<24}{s['step']:>6}/{s['total']:<6}{rmse:>12}")
-    print("-" * 92)
+        # Protokol walidacji: 'all' = po decyzji 2026-08-11 §1 (36 katow),
+        # cokolwiek innego = checkpoint sprzed niej, NIEPOROWNYWALNY z reszta.
+        prot = s.get("val_subset")
+        if prot is None:
+            cell = ""
+        elif prot == "all":
+            cell = "36"
+        else:
+            cell = C("STARY", 31)
+            stale += 1
+        in_plan, _ = plan_status(s["condition"], s["seed"])
+        plan_cell = "tak" if in_plan else C("—", 90)
+        print(f"{s['run_id']:<14}{s['group']:<15}{state_cell}"
+              f"{progress:<24}{s['step']:>6}/{s['total']:<6}{rmse:>15}{cell:>6}{plan_cell:>6}")
+    print("-" * 109)
+    # `best val RMSE` to WALIDACJA, nie test -- liczby do pracy daje `evaluate.py`
+    # na `test@36`. Bez tej adnotacji latwo zestawic ze soba dwie rozne wielkosci.
+    print(C("  kolumna 'best val RMSE' to walidacja (val@36), NIE zbior testowy; "
+              "liczby do pracy: evaluate.py --run-dir ...", 90))
+    if stale:
+        print(C(f"  UWAGA: {stale} przebieg(ow) sprzed zmiany protokolu walidacji "
+                f"(2026-08-11 §1) -- nieporownywalne z reszta bez przeliczenia.", 31))
+
+    # Kolumna `plan` = "—" nie znaczy "zapomniane". Kazdy taki przebieg ma powod,
+    # ktory tu wypisujemy -- inaczej za miesiac nikt nie odtworzy, czemu 35 z 66
+    # nie poszlo.
+    powody: dict[str, list[str]] = {}
+    for s in states:
+        ok, why = plan_status(s["condition"], s["seed"])
+        if not ok:
+            powody.setdefault(why, []).append(s["run_id"])
+    if powody:
+        print(C(f"\n  POZA PLANEM ({sum(len(v) for v in powody.values())} przebiegow) "
+                f"— nie zapomniane, tylko odwolane albo odsuniete:", 90))
+        for why, runs in sorted(powody.items(), key=lambda x: -len(x[1])):
+            print(C(f"    {len(runs):2d}x  {', '.join(runs[:6])}"
+                    f"{' ...' if len(runs) > 6 else ''}", 90))
+            print(C(f"         powod: {why}", 90))
     for s in running:
         print(f"  PID {s['pid']}  {s['run_id']}  -> {s['dir']}")
     return 0
@@ -241,13 +315,16 @@ def cmd_next(args) -> int:
             print(f"  {s['run_id']} (PID {s['pid']}, krok {s['step']}/{s['total']})")
         print()
     order = {g: i for i, g in enumerate(GROUPS)}
-    todo = [s for s in states if not s["finished"] and s["state"] != "DZIALA"]
+    # Tylko przebiegi Z PLANU. Bez tego `next` proponowal np. `SE --seed 1`,
+    # odwolane decyzja z 2026-08-11 §2 -- czyli podpowiadal robote, ktora zapadla
+    # decyzja, zeby jej nie robic.
+    todo = [s for s in states if not s["finished"] and s["state"] != "DZIALA"
+            and plan_status(s["condition"], s["seed"])[0]]
     todo.sort(key=lambda s: (order.get(s["group"], 99), s["seed"], s["condition"]))
     if not todo:
         print("Wszystko gotowe.")
         return 0
-    print("Kolejnosc sugerowana (grupa 'glowne' odpowiada na pytanie pracy, "
-          "'echo' jest tani i najczystszy):")
+    print("Kolejnosc sugerowana. Grupa 'bramka' idzie PIERWSZA: mierzy calkowity wklad\necha, czyli GORNE OGRANICZENIE na efekt gestosci. Jesli wyjdzie znikomy, macierz na\npelnym modelu nie jest w stanie wykryc efektu i ciezar dowodu idzie na 'echo' i Model 2.")
     for s in todo[:10]:
         flag = " [wznowic --resume]" if s["state"] == "przerwany" else ""
         print(f"  python {TRAIN_SCRIPT.relative_to(paths.REPO_ROOT)} "
@@ -344,11 +421,11 @@ def cmd_results(args) -> int:
     print("=" * 104)
     print("WYNIKI (najlepszy checkpoint wg RMSE walidacyjnego)")
     print("=" * 104)
-    print(f"{'run_id':<14}{'subset':<11}{'krok':>7}{'RMSE':>9}{'krawedz':>9}{'gladkie':>9}"
+    print(f"{'run_id':<14}{'subset':<16}{'krok':>7}{'RMSE':>9}{'krawedz':>9}{'gladkie':>9}"
           f"{'REL':>8}{'log10':>8}{'d1':>8}{'%px kraw':>10}")
     print("-" * 104)
     for s, b in sorted(rows, key=lambda r: (r[0]["group"], r[0]["condition"], r[0]["seed"])):
-        o, e, sm = b["overall"], b["edge"], b["smooth"]
+        o, e, sm = _block(b, "overall"), _block(b, "edge"), _block(b, "smooth")
         print(f"{s['run_id']:<14}{s['angle_subset']:<11}{b['step']:>7}"
               f"{o['RMSE']:>9.4f}{e['RMSE']:>9.4f}{sm['RMSE']:>9.4f}"
               f"{o['ABS_REL']:>8.4f}{o['LOG10']:>8.4f}{o['DELTA1']:>8.4f}"

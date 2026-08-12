@@ -1,0 +1,42 @@
+{
+  "wolne_GB": 227.1,
+  "zajete_teraz": {
+    "outputs/ml": 0.542,
+    "echoes_36deg": 15.0,
+    "echoes_36deg_patched": 11.0
+  },
+  "na_przebieg_GB": {
+    "echo2depth": {
+      "best_wagi_x2": 0.067,
+      "checkpoint": 0.1005,
+      "npz_eval": 0.0005,
+      "razem": 0.168
+    },
+    "full": {
+      "best_wagi_x2": 2.361,
+      "checkpoint": 3.542,
+      "npz_eval": 0.0005,
+      "razem": 5.904
+    }
+  },
+  "ta_sesja_GB": {
+    "par2_pelny_model_2_przebiegi": 11.81,
+    "par3_echo_12_przebiegow": 2.02,
+    "razem": 13.82
+  },
+  "pozostala_macierz_GB": {
+    "bramka": 12.1,
+    "echo": 1.0,
+    "geometria": 53.1,
+    "geometria_echo": 1.5,
+    "glowne": 47.2,
+    "krzywa": 70.8,
+    "krzywa_staly": 2.0
+  },
+  "pozostala_macierz_razem_GB": 187.9,
+  "wszystko_razem_GB": 201.7,
+  "zapas_wymagany_GB": 20.0,
+  "werdykt_sesja": "OK",
+  "werdykt_cala_macierz": "MIESCI SIE",
+  "brakuje_na_cala_macierz_GB": 0.0
+}

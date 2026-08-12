@@ -31,7 +31,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 
-from . import paths
+from .. import paths
 
 # Podzial scen dokladnie jak w `options/base_options.py` Paridy dla Repliki.
 # Przepisany tu, a nie zaimportowany, bo import wymagalby uruchomienia

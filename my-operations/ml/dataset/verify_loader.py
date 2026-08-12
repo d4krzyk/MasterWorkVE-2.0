@@ -29,7 +29,7 @@ import numpy as np
 import torch
 
 from . import angles as angles_mod
-from . import paths
+from .. import paths
 from .echo_h5_dataset import (
     EXPECTED_IMAGE_SHAPE,
     EXPECTED_SPEC_SHAPE,

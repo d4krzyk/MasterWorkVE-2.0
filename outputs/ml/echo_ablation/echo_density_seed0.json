@@ -1,0 +1,191 @@
+{
+  "opis": "Grupa `echo` (echo2depth), ziarno 0, 40 000 krokow. Wszystkie warunki oceniane na IDENTYCZNYM zbiorze testowym (183 lokalizacje held-out). CI z bootstrapu sparowanego po lokalizacjach, 2000 losowan.",
+  "zastrzezenie": "n=1 ziarno na warunek. CI opisuja zmiennosc po LOKALIZACJACH, nie po ziarnach. Podloga szumu miedzy ziarnami zmierzona w determinism_check: 0.0023-0.0073 RMSE, czyli 20-60x mniej niz raportowane efekty -- ale pelna macierz z 3 ziarnami musi to potwierdzic.",
+  "test_set": "test@36 (6588 probek, 183 lokalizacje)",
+  "RMSE": {
+    "EA": 0.8026481918490214,
+    "EB": 0.5778291809134892,
+    "ED": 0.6630791379130241,
+    "ESE": 1.1659073208755675
+  },
+  "RMSE_test4": {
+    "EA": 0.5779184340312347,
+    "EB": 0.5764202834687359,
+    "ED": 0.6621467589173633,
+    "ESE": 1.1619186300883555
+  },
+  "rozklad_efektu": {
+    "gestosc_katowa_D_minus_A": {
+      "metric": "RMSE",
+      "stratum": "all",
+      "delta_point": 0.13956905393599728,
+      "ci_low": 0.11403419072274351,
+      "ci_high": 0.1659938853526595,
+      "ci_excludes_zero": true,
+      "boot_sd": 0.012814483744408797,
+      "n_locations": 183,
+      "n_samples": 6588,
+      "n_boot": 2000,
+      "alpha": 0.05,
+      "seed": 0
+    },
+    "ilosc_danych_B_minus_D": {
+      "metric": "RMSE",
+      "stratum": "all",
+      "delta_point": 0.08524995699953486,
+      "ci_low": 0.07012384525105865,
+      "ci_high": 0.1033710954171505,
+      "ci_excludes_zero": true,
+      "boot_sd": 0.008618926344617367,
+      "n_locations": 183,
+      "n_samples": 6588,
+      "n_boot": 2000,
+      "alpha": 0.05,
+      "seed": 0
+    },
+    "laczny_B_minus_A": {
+      "metric": "RMSE",
+      "stratum": "all",
+      "delta_point": 0.22481901093553214,
+      "ci_low": 0.1970636892658644,
+      "ci_high": 0.2554109137455234,
+      "ci_excludes_zero": true,
+      "boot_sd": 0.014951859192584198,
+      "n_locations": 183,
+      "n_samples": 6588,
+      "n_boot": 2000,
+      "alpha": 0.05,
+      "seed": 0
+    },
+    "wklad_echa_SE_minus_B": {
+      "metric": "RMSE",
+      "stratum": "all",
+      "delta_point": 0.5880781399620783,
+      "ci_low": 0.5470568989383989,
+      "ci_high": 0.6293636821167248,
+      "ci_excludes_zero": true,
+      "boot_sd": 0.021405811895439757,
+      "n_locations": 183,
+      "n_samples": 6588,
+      "n_boot": 2000,
+      "alpha": 0.05,
+      "seed": 0
+    }
+  },
+  "krzywa_katowa_EA": {
+    "0": {
+      "n_samples": 732,
+      "all": {
+        "RMSE": 0.577918387053735,
+        "MAE": 0.2882396731786843,
+        "DELTA1": 0.7497946311679585,
+        "n_pixels": 10789125
+      },
+      "edge": {
+        "RMSE": 1.0617736229378318,
+        "MAE": 0.6441601817145218,
+        "DELTA1": 0.6527178538762923,
+        "n_pixels": 1291221
+      },
+      "smooth": {
+        "RMSE": 0.4755335084849297,
+        "MAE": 0.23985299379695674,
+        "DELTA1": 0.7629920243455819,
+        "n_pixels": 9497904
+      }
+    },
+    "10": {
+      "n_samples": 1464,
+      "all": {
+        "RMSE": 0.6590593716895979,
+        "MAE": 0.34770537711916966,
+        "DELTA1": 0.696836171725916,
+        "n_pixels": 21565551
+      },
+      "edge": {
+        "RMSE": 1.2123009419464317,
+        "MAE": 0.7853489233453586,
+        "DELTA1": 0.56429198070722,
+        "n_pixels": 2564690
+      },
+      "smooth": {
+        "RMSE": 0.5427845312210491,
+        "MAE": 0.28863331602992814,
+        "DELTA1": 0.7147266642285316,
+        "n_pixels": 19000861
+      }
+    },
+    "20": {
+      "n_samples": 1464,
+      "all": {
+        "RMSE": 0.7917845251259273,
+        "MAE": 0.438918674950563,
+        "DELTA1": 0.6148262737392499,
+        "n_pixels": 21533273
+      },
+      "edge": {
+        "RMSE": 1.4065734332293456,
+        "MAE": 0.954395916584994,
+        "DELTA1": 0.473390141045283,
+        "n_pixels": 2532520
+      },
+      "smooth": {
+        "RMSE": 0.6684192168880806,
+        "MAE": 0.37021316340439264,
+        "DELTA1": 0.6336776231973543,
+        "n_pixels": 19000753
+      }
+    },
+    "30": {
+      "n_samples": 1464,
+      "all": {
+        "RMSE": 0.8951641028214155,
+        "MAE": 0.5182512787551798,
+        "DELTA1": 0.5537322498351275,
+        "n_pixels": 21496913
+      },
+      "edge": {
+        "RMSE": 1.5502411925716713,
+        "MAE": 1.0799941208320727,
+        "DELTA1": 0.41420176115975427,
+        "n_pixels": 2478594
+      },
+      "smooth": {
+        "RMSE": 0.7697692617591465,
+        "MAE": 0.4450412106457881,
+        "DELTA1": 0.5719167924357563,
+        "n_pixels": 19018319
+      }
+    },
+    "40": {
+      "n_samples": 1464,
+      "all": {
+        "RMSE": 0.933322607686685,
+        "MAE": 0.5543405482725954,
+        "DELTA1": 0.5225507652718765,
+        "n_pixels": 21468318
+      },
+      "edge": {
+        "RMSE": 1.5995105898382176,
+        "MAE": 1.1296788170313115,
+        "DELTA1": 0.3871759688545508,
+        "n_pixels": 2454548
+      },
+      "smooth": {
+        "RMSE": 0.8082491045819094,
+        "MAE": 0.48006830306062787,
+        "DELTA1": 0.5400267279976564,
+        "n_pixels": 19013770
+      }
+    }
+  },
+  "luka_katowa_EA": {
+    "rmse_at_0deg": 0.577918387053735,
+    "rmse_at_max": 0.933322607686685,
+    "max_distance_deg": 40.0,
+    "delta_rmse": 0.35540422063294996,
+    "relative_pct": 61.49730283627477,
+    "monotonic": true
+  },
+  "udzial_gestosci_w_efekcie_lacznym": 0.6208062803728789
+}

@@ -50,9 +50,30 @@ outputs/**
 !outputs/ml/verify_loader/*/*.json
 !outputs/ml/bench/*.json
 !outputs/ml/experiments.json
-# Przebiegi treningowe zostaja poza gitem: checkpointy pelnego modelu to ~1.3 GB
-# na przebieg (317 M parametrow + stan Adama), a jest ich 36 w macierzy.
+# Sesja 2026-08-10: rozstrzygniecie geometrii main-vs-patched (Blok 0), kontrola
+# niedeterminizmu decydujaca o --fast-bilinear (Blok 1.1) i kontrola permutacyjna
+# echa (Blok 1.2). Bez tych plikow decyzji z raportu nie da sie zweryfikowac.
+!outputs/ml/geometry_check/*.json
+!outputs/ml/determinism/*.json
+!outputs/ml/echo_ablation/*.json
+# Sesja 2026-08-11: budzet dysku, kontrola maski scislej, eksport liczb do pracy.
+!outputs/ml/disk_budget.json
+!outputs/ml/thesis_numbers.json
+!outputs/ml/mask_check/*.json
+# Zdjecia wag z kontroli niedeterminizmu: ~15 GB, kasowane automatycznie po
+# zapisaniu liczb do JSON-a. Wymienione jawnie na wypadek przerwanego przebiegu.
+outputs/ml/determinism/_snapshots/**
+# Przebiegi treningowe zostaja poza gitem. Zmierzone 2026-08-10: pelny model to
+# 316 918 781 parametrow, czyli 1.18 GB samych wag, ale `checkpoint.pt` zawiera
+# TAKZE dwa momenty Adama -> 3.54 GB. Razem z `best_*.pth` daje to 4.72 GB na
+# przebieg pelnego modelu i 0.13 GB na przebieg echo2depth; cala macierz
+# (66 przebiegow) to 161 GB, albo 40 GB po skasowaniu checkpointow wznowieniowych.
 outputs/ml/runs/**
+outputs/ml/pretext/**
+outputs/ml/pretext_transfer/**
+outputs/ml/eval/**/*.npz
+# Wyniki ewaluacji (male JSON-y) zostaja w gicie -- to na nich stoja tabele pracy.
+!outputs/ml/eval/**/*.json
 
 # Zagniezdzone repozytoria wendorowanych zaleznosci (habitat-sim,
 # beyond-image-to-depth). Git NIE zaglada do katalogu ".git", wiec sam z siebie

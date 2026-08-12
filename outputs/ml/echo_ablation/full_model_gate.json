@@ -1,0 +1,43 @@
+{
+  "regula": "ZAPISANA PRZED POMIAREM (prompt sesji 2026-08-11 §2). Nie przepisywana po zobaczeniu wyniku.",
+  "progi": {
+    ">=0.05": "3 ziarna",
+    "0.015-0.05": "5 ziaren",
+    "<0.015": "degradacja, 1 ziarno"
+  },
+  "SE_RMSE_test36": 0.2643338033191152,
+  "B_RMSE_test36": 0.2420510500788796,
+  "c_full": 0.022282753240235625,
+  "c_full_CI": [
+    0.018396976296585165,
+    0.026433255813862928
+  ],
+  "c_full_istotne": true,
+  "c_full_per_warstwa": {
+    "all": 0.022282753240235625,
+    "edge": 0.017562999573853988,
+    "smooth": 0.027677061204593678
+  },
+  "f_ang": 0.23733165555706703,
+  "f_ang_zrodlo": "(ED-EA)/(ESE-EB) = 0.13957/0.58808, grupa echo, ziarno 0",
+  "bound": 0.005288402716874721,
+  "bound_wzgledem_podlogi": [
+    0.7224593875511914,
+    2.27948392968738
+  ],
+  "podloga_szumu": [
+    0.00232,
+    0.00732
+  ],
+  "prog_praktyczny_c_full_dla_3x_podlogi": 0.063,
+  "c_full_przekracza_prog": false,
+  "DECYZJA_glowne": "DEGRADACJA: 1 ziarno dla protokolu; ciezar dowodu na grupe `echo` i Model 2",
+  "ziaren_dla_glowne": 1,
+  "zastrzezenie_bound": "bound jest HEURYSTYKA ALOKACJI BUDZETU, nie twierdzeniem naukowym. Multiplikatywnosc frakcji orientacyjnej miedzy architekturami nie jest niczym gwarantowana -- f_ang zmierzono na echo2depth i przeniesiono na pelny model bez dowodu. NIE cytowac jako wynik.",
+  "kontekst": {
+    "wklad_echa_echo2depth": 0.58808,
+    "iloraz_echo2depth_do_full": 26.391711726992202,
+    "wklad_wzgledny_full_pct": 9.205807300969825,
+    "gao_wklad_wzgledny_pct": 7.486631016042788
+  }
+}

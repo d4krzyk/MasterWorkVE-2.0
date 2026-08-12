@@ -1,0 +1,27 @@
+{
+  "probek": 400,
+  "frac_kadru": {
+    "full_patched": 0.9961288452148438,
+    "intersection": 0.9084378051757812,
+    "strict": 0.8924517822265625,
+    "roznica_zmienione_a_wazne": 0.01598602294921875
+  },
+  "per_scene_roznica": {
+    "apartment_2": 0.006524701490469858,
+    "frl_apartment_5": 0.034430353896422954,
+    "office_4": 0.0
+  },
+  "oczekiwane_z_raportu_2026_08_10_par_2_2": {
+    "frl_apartment_5": 3.28,
+    "apartment_2": 0.94
+  },
+  "narzut_ms_na_probke": {
+    "bez_maski": 1.9378333200074849,
+    "przeciecie": 2.652961924977717,
+    "scisla": 2.385751265028375
+  },
+  "narzut_wzgledny": {
+    "przeciecie": 0.3690351474436768,
+    "scisla": 0.23114369042800864
+  }
+}
