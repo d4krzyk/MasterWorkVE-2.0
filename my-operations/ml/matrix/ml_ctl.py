@@ -63,6 +63,24 @@ NUMBERS = ML / "analysis" / "thesis_numbers.py"
 LOGS = paths.ML_OUTPUTS / "logs"
 QUEUE = paths.ML_OUTPUTS / "logs" / "ml_ctl_queue.json"
 
+# Katalog logow powstaje JUZ PRZY IMPORCIE, a nie dopiero przy pierwszym kroku.
+# Powod praktyczny: typowe uruchomienie na noc to
+#     nohup python ... ml_ctl.py run > outputs/ml/logs/ml_ctl_nohup.log 2>&1 &
+# a przekierowanie powloki wykonuje sie ZANIM Python w ogole wystartuje. Gdy
+# katalogu nie ma, bash zglasza blad, potomek konczy sie natychmiast i kolejka
+# NIE RUSZA -- przy czym `[1] <pid>` w terminalu wyglada, jakby ruszyla.
+LOGS.mkdir(parents=True, exist_ok=True)
+
+# Wyjscie nadzorcy linia po linii, nawet gdy idzie do PLIKU. Bez tego Python
+# buforuje stdout blokowo przy przekierowaniu, wiec `tail -f` na logu nocnej
+# kolejki nie pokazuje nic przez godziny -- a to jedyny sposob, zeby sprawdzic,
+# czy cos sie dzieje, bez zabijania procesu.
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+except (AttributeError, ValueError):   # nie-TextIO albo starszy Python
+    pass
+
 # Ponizej tego progu kolejka sie ZATRZYMUJE, zamiast zapisywac na pelny dysk.
 MIN_FREE_GB = 15.0
 

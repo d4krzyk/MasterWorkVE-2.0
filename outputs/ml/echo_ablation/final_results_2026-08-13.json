@@ -1,0 +1,290 @@
+{
+  "opis": "Wyniki kolejki nocnej 2026-08-13 (47 krokow, 0 bledow, 10 h 42 min).",
+  "krzywa_stalego_budzetu": {
+    "opis": "echo2depth, 4 probki/lokalizacje (5 496 probek) w KAZDYM punkcie; zmienia sie wylacznie siatka K, z ktorej losowane sa katy. Konce to warunki EA i ED.",
+    "punkty": {
+      "4": {
+        "values": [
+          0.7789529938314443,
+          0.7991048534168891,
+          0.7950756944220105
+        ],
+        "mean": 0.7910445138901148,
+        "sd": 0.010663591024998219,
+        "n": 3
+      },
+      "6": {
+        "values": [
+          0.704495675808995,
+          0.7082840985533275,
+          0.705899056681465
+        ],
+        "mean": 0.7062262770145958,
+        "sd": 0.0019152915136487008,
+        "n": 3
+      },
+      "9": {
+        "values": [
+          0.6631054203653641,
+          0.6598645008499721,
+          0.667285167928561
+        ],
+        "mean": 0.6634183630479656,
+        "sd": 0.003720218382670392,
+        "n": 3
+      },
+      "12": {
+        "values": [
+          0.6529990141280333,
+          0.6583669592528839,
+          0.648576955106748
+        ],
+        "mean": 0.6533143094958883,
+        "sd": 0.004902611923463141,
+        "n": 3
+      },
+      "18": {
+        "values": [
+          0.6637191054235636,
+          0.6391563683404883,
+          0.641247874604794
+        ],
+        "mean": 0.6480411161229486,
+        "sd": 0.01361774985069323,
+        "n": 3
+      },
+      "36": {
+        "values": [
+          0.6469504859683798,
+          0.6423228601500534,
+          0.643689412306835
+        ],
+        "mean": 0.6443209194750894,
+        "sd": 0.0023775683284141098,
+        "n": 3
+      }
+    },
+    "kontrasty": {
+      "K4_do_K6": {
+        "metric": "RMSE",
+        "stratum": "all",
+        "delta_point": 0.07445731802244937,
+        "ci_low": 0.06166046351136845,
+        "ci_high": 0.08802964036326112,
+        "ci_excludes_zero": true,
+        "boot_sd": 0.006572542685045382,
+        "n_locations": 183,
+        "n_samples": 6588,
+        "n_boot": 1000,
+        "alpha": 0.05,
+        "seed": 0
+      },
+      "K4_do_K9": {
+        "metric": "RMSE",
+        "stratum": "all",
+        "delta_point": 0.11584757346608021,
+        "ci_low": 0.09923044637765131,
+        "ci_high": 0.13464403070570546,
+        "ci_excludes_zero": true,
+        "boot_sd": 0.009074219671509384,
+        "n_locations": 183,
+        "n_samples": 6588,
+        "n_boot": 1000,
+        "alpha": 0.05,
+        "seed": 0
+      },
+      "K4_do_K36": {
+        "metric": "RMSE",
+        "stratum": "all",
+        "delta_point": 0.13200250786306456,
+        "ci_low": 0.11231236253503095,
+        "ci_high": 0.1517812154830765,
+        "ci_excludes_zero": true,
+        "boot_sd": 0.010099634252767142,
+        "n_locations": 183,
+        "n_samples": 6588,
+        "n_boot": 1000,
+        "alpha": 0.05,
+        "seed": 0
+      }
+    }
+  },
+  "glowne_pelny_model_1_ziarno": {
+    "opis": "po degradacji z 2026-08-11 §2 -- 1 ziarno, z jawnym ograniczeniem mocy",
+    "punkty": {
+      "A": {
+        "values": [
+          0.2873915282440937
+        ],
+        "mean": 0.2873915282440937,
+        "sd": null,
+        "n": 1
+      },
+      "B": {
+        "values": [
+          0.2420510500788796
+        ],
+        "mean": 0.2420510500788796,
+        "sd": null,
+        "n": 1
+      },
+      "D": {
+        "values": [
+          0.2690855715065368
+        ],
+        "mean": 0.2690855715065368,
+        "sd": null,
+        "n": 1
+      }
+    },
+    "D_minus_A": -0.018305956737556917,
+    "B_minus_D": -0.027034521427657193,
+    "B_minus_A": -0.04534047816521411
+  },
+  "geometria_echo2depth": {
+    "opis": "wariant `patched`, echo2depth, 1 ziarno",
+    "punkty": {
+      "EPA": {
+        "values": [
+          0.7935707241372404
+        ],
+        "mean": 0.7935707241372404,
+        "sd": null,
+        "n": 1
+      },
+      "EPB": {
+        "values": [
+          0.5932537111964544
+        ],
+        "mean": 0.5932537111964544,
+        "sd": null,
+        "n": 1
+      },
+      "EPD": {
+        "values": [
+          0.6620183293997735
+        ],
+        "mean": 0.6620183293997735,
+        "sd": null,
+        "n": 1
+      }
+    },
+    "main_dla_porownania": {
+      "EA": {
+        "values": [
+          0.7789529938314443
+        ],
+        "mean": 0.7789529938314443,
+        "sd": null,
+        "n": 1
+      },
+      "EB": {
+        "values": [
+          0.5831115457213547
+        ],
+        "mean": 0.5831115457213547,
+        "sd": null,
+        "n": 1
+      },
+      "ED": {
+        "values": [
+          0.6469504859683798
+        ],
+        "mean": 0.6469504859683798,
+        "sd": null,
+        "n": 1
+      }
+    },
+    "patched_minus_main": {
+      "A": 0.01461773030579605,
+      "B": 0.010142165475099718,
+      "D": 0.015067843431393668
+    },
+    "kontrasty_wewnatrz_patched": {
+      "EPA_do_EPD": {
+        "metric": "RMSE",
+        "stratum": "all",
+        "delta_point": 0.13155239473746694,
+        "ci_low": 0.11398705827934234,
+        "ci_high": 0.1509473058610147,
+        "ci_excludes_zero": true,
+        "boot_sd": 0.009271900947973147,
+        "n_locations": 183,
+        "n_samples": 6588,
+        "n_boot": 1000,
+        "alpha": 0.05,
+        "seed": 0
+      },
+      "EPA_do_EPB": {
+        "metric": "RMSE",
+        "stratum": "all",
+        "delta_point": 0.20031701294078597,
+        "ci_low": 0.17672423879054305,
+        "ci_high": 0.22646994393219963,
+        "ci_excludes_zero": true,
+        "boot_sd": 0.01256182450946012,
+        "n_locations": 183,
+        "n_samples": 6588,
+        "n_boot": 1000,
+        "alpha": 0.05,
+        "seed": 0
+      }
+    }
+  },
+  "model2_pretekst": {
+    "MAAE": {
+      "K4": 61.22950819672131,
+      "K12": 55.72745901639344,
+      "K36": 25.129781420765028,
+      "K36_p16": 61.77254098360656
+    },
+    "poziom_losowy_MAAE": 90.0,
+    "rozklad": {
+      "ilosc_par_K36_minus_K36p16": -36.64275956284153,
+      "rozdzielczosc_K36p16_minus_K4": 0.5430327868852487,
+      "laczny_K36_minus_K4": -36.099726775956285
+    },
+    "wniosek": "cala przewaga K=36 pochodzi z 81x wiekszej LICZBY PAR, nie z rozdzielczosci katowej"
+  },
+  "model2_transfer": {
+    "opis": "RGB2Depth bez audio, 5 ziaren, test Welcha wobec `scratch`",
+    "punkty": {
+      "pretext_K12_seed0": {
+        "mean": 0.29687680230217023,
+        "sd": 0.006574709137613277,
+        "n": 5,
+        "delta": 0.007017539569295517,
+        "p": 0.07421278463086362
+      },
+      "pretext_K36_p16_seed0": {
+        "mean": 0.28927120392903544,
+        "sd": 0.0033985566428725083,
+        "n": 5,
+        "delta": -0.0005880588038392753,
+        "p": 0.750559302045164
+      },
+      "pretext_K36_seed0": {
+        "mean": 0.29439346596342736,
+        "sd": 0.0066403511891954805,
+        "n": 5,
+        "delta": 0.004534203230552647,
+        "p": 0.20726094458394562
+      },
+      "pretext_K4_seed0": {
+        "mean": 0.2869891651015536,
+        "sd": 0.004328587395004623,
+        "n": 5,
+        "delta": -0.0028700976313211224,
+        "p": 0.2309848749512705
+      },
+      "scratch": {
+        "mean": 0.2898592627328747,
+        "sd": 0.002044005218660235,
+        "n": 5,
+        "delta": null,
+        "p": null
+      }
+    },
+    "wniosek": "WYNIK NEGATYWNY: zadna roznica nie jest istotna; K=12 nominalnie GORSZY od losowej inicjalizacji (p=0,074). U Gao 0,360 -> 0,332 (-7,8 %); u nas najlepszy wariant -1,0 % i mieści sie w szumie ziaren."
+  }
+}

@@ -133,7 +133,8 @@ def load_model(run_dir: Path, device, splits):
 @torch.no_grad()
 def collect_table(model, cond, splits, *, angle_subset: str, device, batch_size: int,
                   num_workers: int, amp: bool, edge_threshold: float,
-                  mask_variant: str | None, shuffle_echo_seed: int | None) -> SampleTable:
+                  mask_variant: str | None, shuffle_echo_seed: int | None,
+                  mask_mode: str = "intersection") -> SampleTable:
     # KONTROLA PERMUTACYJNA (Blok 1.2, wersja bez treningu): echo brane z LOSOWO
     # INNEJ probki tego samego zbioru, obraz i glebia na miejscu.
     #
@@ -147,6 +148,7 @@ def collect_table(model, cond, splits, *, angle_subset: str, device, batch_size:
     ds = EchoH5Dataset(
         DatasetConfig(variant=cond.geometry, mode="test", angle_subset=angle_subset,
                       angle_seed=cond.angle_seed, augment=False, mask_variant=mask_variant,
+                      mask_mode=mask_mode,
                       shuffle_echo_seed=shuffle_echo_seed),
         splits=splits)
     loader = torch.utils.data.DataLoader(ds, batch_size=batch_size, shuffle=False,
@@ -306,6 +308,11 @@ def main(argv=None) -> int:
     ap.add_argument("--num-workers", type=int, default=8)
     ap.add_argument("--no-amp", action="store_true")
     ap.add_argument("--edge-threshold", type=float, default=0.10)
+    ap.add_argument("--mask-mode", choices=("intersection", "strict"), default="intersection",
+                    help="dziala tylko z --intersection-mask. `intersection` = piksele wazne w OBU "
+                         "wariantach; `strict` = przeciecie MINUS piksele o roznej wartosci glebi "
+                         "(te, ktore latka PRZESLANIA). Kontrola wrazliwosci -- jesli Delta wychodzi "
+                         "ta sama na obu maskach, zastrzezenie o tych pikselach mozna zdjac")
     ap.add_argument("--intersection-mask", action="store_true",
                     help="punktuj wylacznie piksele wazne w OBU wariantach geometrii "
                          "(wymagane przy porownaniu main vs patched, patrz Blok 0.5)")
@@ -356,13 +363,17 @@ def main(argv=None) -> int:
     grid = training_angle_grid(cond, splits)
     mask_variant = ("main" if cond.geometry == "patched" else "patched") if args.intersection_mask else None
 
-    out_dir = _eval_dir(run_id + ("_shuffled_echo" if args.shuffle_echo else ""))
+    suffix = ("_shuffled_echo" if args.shuffle_echo else "")
+    if mask_variant:
+        suffix += "_mask-" + args.mask_mode
+    out_dir = _eval_dir(run_id + suffix)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 74)
     print(f"EWALUACJA {run_id}   warunek {cond.id} ({cond.model}, geometria {cond.geometry})")
     print(f"  siatka katow treningowych: {grid.tolist() if grid.size <= 8 else str(grid.size) + ' katow (pelna)'}")
-    print(f"  maska przeciecia: {mask_variant or 'wylaczona'}")
+    print(f"  maska przeciecia: {mask_variant or 'wylaczona'}"
+          f"{' (' + args.mask_mode + ')' if mask_variant else ''}")
     print(f"  permutacja echa : {'TAK, ziarno ' + str(args.shuffle_seed) if args.shuffle_echo else 'nie'}")
     print("=" * 74)
 
@@ -372,6 +383,7 @@ def main(argv=None) -> int:
         "seed": cfg["spec"]["seed"], "weights": loaded,
         "split_fingerprint": splits.meta.get("location_fingerprint"),
         "intersection_mask_variant": mask_variant,
+        "mask_mode": args.mask_mode if mask_variant else None,
         "shuffled_echo": bool(args.shuffle_echo),
         "shuffle_seed": args.shuffle_seed if args.shuffle_echo else None,
         "edge_threshold_m_per_px": args.edge_threshold,
@@ -385,6 +397,7 @@ def main(argv=None) -> int:
             model, cond, splits, angle_subset=subset, device=device,
             batch_size=args.batch_size, num_workers=args.num_workers,
             amp=amp, edge_threshold=args.edge_threshold, mask_variant=mask_variant,
+            mask_mode=args.mask_mode,
             shuffle_echo_seed=args.shuffle_seed if args.shuffle_echo else None)
         tab.save(out_dir / f"samples_{label}.npz")
         payload["test_sets"][label] = analyse(tab, train_grid=grid, label=label)

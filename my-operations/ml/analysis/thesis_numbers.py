@@ -31,6 +31,7 @@ from .. import paths  # noqa: E402
 R10 = "RAPORT_SESJI_2026-08-10.md"
 R11 = "RAPORT_SESJI_2026-08-11.md"
 R05 = "RAPORT_SESJI_2026-08-05.md"
+R13 = "RAPORT_SESJI_2026-08-13.md"
 GP = "docs/GENERATOR_PARAMS.md"
 
 GRUPY = [
@@ -249,6 +250,69 @@ def collect() -> tuple[list[dict], list[dict]]:
         "eval/compare_EA_seed0_vs_EB_seed0_test4.json", f"{R11} §4.1",
         "95 % CI [−0,01325; +0,01731] — OBEJMUJE ZERO")
 
+    # ---- 5a. Wyniki kolejki nocnej 2026-08-13
+    fr = _load(O / "echo_ablation" / "final_results_2026-08-13.json") or {}
+    if fr:
+        kr = fr.get("krzywa_stalego_budzetu", {})
+        pts = kr.get("punkty", {})
+        if pts:
+            add("wyniki_echo", "KRZYWA STAŁEGO BUDŻETU: RMSE w funkcji siatki K",
+                {f"K={k}": f"{v['mean']:.5f}" for k, v in
+                 sorted(pts.items(), key=lambda x: int(x[0]))},
+                "RMSE", "[Z]", "echo_ablation/final_results_2026-08-13.json", f"{R13} §1",
+                "echo2depth, 4 próbki/lokalizację (5 496) w KAŻDYM punkcie — liczność stała, "
+                "zmienia się wyłącznie siatka; 3 ziarna")
+            k4, k9, k36 = pts["4"]["mean"], pts["9"]["mean"], pts["36"]["mean"]
+            add("wyniki_echo", "Nasycenie krzywej stałego budżetu",
+                f"4→9: {k4-k9:.3f} · 9→36: {k9-k36:.3f}", "RMSE", "[Z]",
+                "echo_ablation/final_results_2026-08-13.json", f"{R13} §1",
+                "przejście 4→9 daje 6,7× więcej niż 9→36 — punkt odcięcia ok. K = 9–12")
+            c = kr.get("kontrasty", {}).get("K4_do_K36", {})
+            if c:
+                add("wyniki_echo", "Krzywa stałego budżetu: K=4 → K=36", c.get("delta_point"),
+                    "RMSE", "[Z]", "echo_ablation/final_results_2026-08-13.json", f"{R13} §1",
+                    f"95 % CI [{c.get('ci_low'):.5f}; {c.get('ci_high'):.5f}], bootstrap po lokalizacjach")
+        gl = fr.get("glowne_pelny_model_1_ziarno", {})
+        if gl.get("punkty"):
+            add("wyniki_echo", "PEŁNY MODEL: RMSE test@36 (A / B / D)",
+                {k: f"{v['mean']:.5f}" for k, v in gl["punkty"].items()}, "RMSE", "[Z-]",
+                "echo_ablation/final_results_2026-08-13.json", f"{R13} §2",
+                "1 ziarno (degradacja 2026-08-11 §2) — bez oszacowania rozrzutu po ziarnach")
+            add("wyniki_echo", "Pełny model: gęstość (D−A) / ilość danych (B−D)",
+                f"{gl['D_minus_A']:+.5f} / {gl['B_minus_D']:+.5f}", "RMSE", "[Z-]",
+                "echo_ablation/final_results_2026-08-13.json", f"{R13} §2",
+                "n=1 ziarno; oba porównywalne z podłogą szumu 0,0023–0,0073 — patrz zastrzeżenie")
+        ge = fr.get("geometria_echo2depth", {})
+        if ge.get("patched_minus_main"):
+            add("geometria", "Wpływ domknięcia geometrii (echo2depth, patched − main)",
+                {k: f"{v:+.5f}" for k, v in ge["patched_minus_main"].items()}, "RMSE", "[Z-]",
+                "echo_ablation/final_results_2026-08-13.json", f"{R13} §3",
+                "1 ziarno; wartości DODATNIE = `patched` GORSZY mimo +46 % energii pogłosu")
+        m2 = fr.get("model2_pretekst", {})
+        if m2.get("MAAE"):
+            add("wyniki_echo", "Model 2: MAAE zadania pretekstowego",
+                {k: f"{v:.2f}" for k, v in m2["MAAE"].items()}, "stopnie", "[Z]",
+                "echo_ablation/final_results_2026-08-13.json", f"{R13} §4",
+                "poziom losowy 90° NIEZALEŻNIE od K")
+            r = m2["rozklad"]
+            add("wyniki_echo", "Model 2: rozkład efektu pretreningu",
+                f"ilość par {r['ilosc_par_K36_minus_K36p16']:+.2f}° · "
+                f"rozdzielczość {r['rozdzielczosc_K36p16_minus_K4']:+.2f}°", "stopnie", "[Z]",
+                "echo_ablation/final_results_2026-08-13.json", f"{R13} §4",
+                "CAŁA przewaga K=36 pochodzi z 81× większej liczby par, NIE z rozdzielczości kątowej")
+        tr = fr.get("model2_transfer", {}).get("punkty", {})
+        if tr:
+            add("wyniki_echo", "Model 2: transfer RGB2Depth (5 ziaren)",
+                {k: f"{v['mean']:.5f}" for k, v in sorted(tr.items(), key=lambda x: x[1]["mean"])},
+                "RMSE", "[Z]", "echo_ablation/final_results_2026-08-13.json", f"{R13} §5",
+                "WYNIK NEGATYWNY — żadna różnica wobec `scratch` nie jest istotna")
+            for k, v in tr.items():
+                if v.get("p") is not None:
+                    add("wyniki_echo", f"Model 2: transfer {k} vs scratch",
+                        f"{v['delta']:+.5f} (p={v['p']:.3f})", "RMSE", "[Z]",
+                        "echo_ablation/final_results_2026-08-13.json", f"{R13} §5",
+                        "test Welcha, 5 ziaren; wartość ujemna = lepiej niż scratch")
+
     # ---- 5b. Model 2 (pretekst + transfer). Puste, dopoki kolejka nie policzy.
     pm = _load(O / "pretext" / "summary.json") or {}
     if pm.get("pretext_by_K"):
@@ -314,22 +378,24 @@ def collect() -> tuple[list[dict], list[dict]]:
 
     # ---- czego brakuje
     BRAK = [
+        {"czego": "Krzywa nasycenia na NATURALNEJ liczności (C6/C9/C12/C18)",
+         "da_to": "grupa `krzywa`, 12 przebiegow, 10,4 h",
+         "po_co": "odsunieta: rosnie po gestosci I rozmiarze zbioru naraz -- krzywa stalego budzetu jest ostrzejsza"},
+        {"czego": "Rozrzut po ziarnach dla PELNEGO modelu",
+         "da_to": "A/B/D x 3 ziarna (odwolane degradacja 2026-08-11 §2)",
+         "po_co": "liczby A/B/D maja n=1; podloga szumu zmierzona tylko na warunku A"},
+        {"czego": "Delta(main vs patched) na masce SCISLEJ",
+         "da_to": "evaluate.py --intersection-mask na EPA/EPB/EPD (juz sa checkpointy)",
+         "po_co": "zamkniecie zastrzezenia o pikselach zmienionych a waznych"},
+        {"czego": "Diagnoza NEGATYWNEGO transferu Modelu 2",
+         "da_to": "porownanie wag enkodera przed/po pretreningu",
+         "po_co": "czy enkoder w ogole sie uczy, czy zamiera na trywialnym rozwiazaniu"},
         {"czego": "c_full — całkowity wkład echa w PEŁNYM modelu", "da_to": "SE + B, ziarno 0",
          "po_co": "górne ograniczenie na efekt gęstości w warunkach A/B/D; decyduje o liczbie ziaren grupy glowne"},
-        {"czego": "Efekt gęstości w pełnym modelu (D − A)", "da_to": "grupa `glowne`, 3 ziarna",
-         "po_co": "główna tabela pracy dla modelu porównywalnego z Paridą"},
         {"czego": "Krzywa nasycenia 4/6/9/12/18/36", "da_to": "grupa `krzywa` (C6/C9/C12/C18)",
          "po_co": "kształt zależności od gęstości, nie tylko dwa końce"},
-        {"czego": "Krzywa przy stałym budżecie próbek", "da_to": "grupa `krzywa_staly` (EK6/EK9/EK12/EK18)",
-         "po_co": "rozdzielenie gęstości od rozmiaru zbioru wzdłuż całej osi"},
-        {"czego": "Δ(main vs patched) na masce przecięcia i ścisłej", "da_to": "EPA/EPB/EPD (0,4 h)",
-         "po_co": "zamknięcie zastrzeżenia o pikselach zmienionych a ważnych"},
         {"czego": "Transfer geometrii na office_4", "da_to": "dowolny warunek `patched` + `main`",
          "po_co": "sonda przy danych testowych trzymanych dosłownie stałych"},
-        {"czego": "MAAE zadania pretekstowego dla K = 4/12/36", "da_to": "pretext/train_pretext.py",
-         "po_co": "przedłużenie osi ablacji Gao; metryka porównywalna między K"},
-        {"czego": "RGB2Depth po pretreningu, 5 inicjalizacji", "da_to": "pretext/transfer.py",
-         "po_co": "liczba do pracy — tabela §6.7 raportu 2026-08-10"},
         {"czego": "Rozrzut po ziarnach dla pełnego modelu", "da_to": "dowolny warunek `glowne` × 3 ziarna",
          "po_co": "podłoga szumu zmierzona na warunku A; nie wiadomo, czy przenosi się na inne"},
     ]

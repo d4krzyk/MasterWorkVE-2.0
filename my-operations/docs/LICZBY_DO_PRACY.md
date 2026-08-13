@@ -69,12 +69,14 @@ Uwagi:
 | Granica części późnej spektrogramu | **ramka 30 (10,9 ms)** | — | [W] | `geometry_check.py::LATE_FRAME_START` | RAPORT_SESJI_2026-08-10.md §2.5 |
 | Piksele zmienione, a ważne w obu wariantach | **1.599** | % kadru | [Z] | `mask_check/mask_check.json` | RAPORT_SESJI_2026-08-11.md §5 |
 | Narzut maski przecięcia w ewaluacji | **37** | % | [Z] | `mask_check/mask_check.json` | RAPORT_SESJI_2026-08-11.md §5 |
+| Wpływ domknięcia geometrii (echo2depth, patched − main) | **A: +0.01462, B: +0.01014, D: +0.01507** | RMSE | [Z-] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §3 |
 
 Uwagi:
 - **Pikseli usuniętych przez łatkę (+ → 0)** — we WSZYSTKICH 10 scenach — dlatego maska przecięcia = maska main
 - **Energia PÓŹNA (pogłos): otwarte vs szczelne** — to jest właściwa liczba — całkowita jest zdominowana przez ścieżkę bezpośrednią
 - **Względny kontrast kątowy późny: patched / main** — domknięcie sufitu OBNIŻA kontrast kątowy przy jednoczesnym wzroście SNR — kompromis
 - **Granica części późnej spektrogramu** — za pierwszym odbiciem podłoga/sufit przy 1,25 m (7,3 ms)
+- **Wpływ domknięcia geometrii (echo2depth, patched − main)** — 1 ziarno; wartości DODATNIE = `patched` GORSZY mimo +46 % energii pogłosu
 
 ## 4. Determinizm i wydajność
 
@@ -122,6 +124,29 @@ Uwagi:
 | Całkowity wkład echa (echo2depth, walidacja) | **0.6074** | RMSE | [Z-] | `echo_ablation/echo_ablation.json` | RAPORT_SESJI_2026-08-10.md §3.3 |
 | Luka test@36 − test@4 per warunek | **EA: 0.22473, ED: 0.00093, EB: 0.00141, ESE: 0.00399** | RMSE | [Z-] | `echo_ablation/gap_table_seed0.json` | RAPORT_SESJI_2026-08-11.md §4.2 |
 | EA vs EB na test@4 (sparowane, te same 732 próbki) | **0.0015** | RMSE | [Z-] | `eval/compare_EA_seed0_vs_EB_seed0_test4.json` | RAPORT_SESJI_2026-08-11.md §4.1 |
+| KRZYWA STAŁEGO BUDŻETU: RMSE w funkcji siatki K | **K=4: 0.79104, K=6: 0.70623, K=9: 0.66342, K=12: 0.65331, K=18: 0.64804, K=36: 0.64432** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §1 |
+| Nasycenie krzywej stałego budżetu | **4→9: 0.128 · 9→36: 0.019** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §1 |
+| Krzywa stałego budżetu: K=4 → K=36 | **0.132** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §1 |
+| PEŁNY MODEL: RMSE test@36 (A / B / D) | **A: 0.28739, B: 0.24205, D: 0.26909** | RMSE | [Z-] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §2 |
+| Pełny model: gęstość (D−A) / ilość danych (B−D) | **-0.01831 / -0.02703** | RMSE | [Z-] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §2 |
+| Model 2: MAAE zadania pretekstowego | **K4: 61.23, K12: 55.73, K36: 25.13, K36_p16: 61.77** | stopnie | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: rozkład efektu pretreningu | **ilość par -36.64° · rozdzielczość +0.54°** | stopnie | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: transfer RGB2Depth (5 ziaren) | **pretext_K4_seed0: 0.28699, pretext_K36_p16_seed0: 0.28927, scratch: 0.28986, pretext_K36_seed0: 0.29439, pretext_K12_seed0: 0.29688** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §5 |
+| Model 2: transfer pretext_K12_seed0 vs scratch | **+0.00702 (p=0.074)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §5 |
+| Model 2: transfer pretext_K36_p16_seed0 vs scratch | **-0.00059 (p=0.751)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §5 |
+| Model 2: transfer pretext_K36_seed0 vs scratch | **+0.00453 (p=0.207)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §5 |
+| Model 2: transfer pretext_K4_seed0 vs scratch | **-0.00287 (p=0.231)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §5 |
+| Model 2: MAAE zadania pretekstowego, K=4 | **61.23** | stopnie | [Z] | `pretext/summary.json` | Model 2 |
+| Model 2: MAAE zadania pretekstowego, K=12 | **55.73** | stopnie | [Z] | `pretext/summary.json` | Model 2 |
+| Model 2: MAAE zadania pretekstowego, K=36 | **43.45 ± 25.91** | stopnie | [Z] | `pretext/summary.json` | Model 2 |
+| Model 2: RGB2Depth po pretreningu — pretext_K4_seed0 | **0.28699 ± 0.00433** | RMSE | [Z] | `pretext/summary.json` | Model 2 |
+| Model 2: RGB2Depth po pretreningu — pretext_K36_p16_seed0 | **0.28927 ± 0.00340** | RMSE | [Z] | `pretext/summary.json` | Model 2 |
+| Model 2: RGB2Depth po pretreningu — scratch | **0.28986 ± 0.00204** | RMSE | [Z] | `pretext/summary.json` | Model 2 |
+| Model 2: RGB2Depth po pretreningu — pretext_K36_seed0 | **0.29439 ± 0.00664** | RMSE | [Z] | `pretext/summary.json` | Model 2 |
+| Model 2: RGB2Depth po pretreningu — pretext_K12_seed0 | **0.29688 ± 0.00657** | RMSE | [Z] | `pretext/summary.json` | Model 2 |
+| Model 2: SAMA rozdzielczość kątowa zadania | **0.00228** | RMSE | [Z] | `pretext/summary.json` | Model 2 |
+| Model 2: SAMA liczba par | **0.00512** | RMSE | [Z] | `pretext/summary.json` | Model 2 |
+| Model 2: efekt łączny K36 − K4 | **0.0074** | RMSE | [Z] | `pretext/summary.json` | Model 2 |
 
 Uwagi:
 - **RMSE test@36: EA** — średnia ± sd po 3 ziarnach
@@ -143,6 +168,29 @@ Uwagi:
 - **Całkowity wkład echa (echo2depth, walidacja)** — ziarno 0
 - **Luka test@36 − test@4 per warunek** — lukę ma WYŁĄCZNIE warunek bez pokrycia kątowego
 - **EA vs EB na test@4 (sparowane, te same 732 próbki)** — 95 % CI [−0,01325; +0,01731] — OBEJMUJE ZERO
+- **KRZYWA STAŁEGO BUDŻETU: RMSE w funkcji siatki K** — echo2depth, 4 próbki/lokalizację (5 496) w KAŻDYM punkcie — liczność stała, zmienia się wyłącznie siatka; 3 ziarna
+- **Nasycenie krzywej stałego budżetu** — przejście 4→9 daje 6,7× więcej niż 9→36 — punkt odcięcia ok. K = 9–12
+- **Krzywa stałego budżetu: K=4 → K=36** — 95 % CI [0.11231; 0.15178], bootstrap po lokalizacjach
+- **PEŁNY MODEL: RMSE test@36 (A / B / D)** — 1 ziarno (degradacja 2026-08-11 §2) — bez oszacowania rozrzutu po ziarnach
+- **Pełny model: gęstość (D−A) / ilość danych (B−D)** — n=1 ziarno; oba porównywalne z podłogą szumu 0,0023–0,0073 — patrz zastrzeżenie
+- **Model 2: MAAE zadania pretekstowego** — poziom losowy 90° NIEZALEŻNIE od K
+- **Model 2: rozkład efektu pretreningu** — CAŁA przewaga K=36 pochodzi z 81× większej liczby par, NIE z rozdzielczości kątowej
+- **Model 2: transfer RGB2Depth (5 ziaren)** — WYNIK NEGATYWNY — żadna różnica wobec `scratch` nie jest istotna
+- **Model 2: transfer pretext_K12_seed0 vs scratch** — test Welcha, 5 ziaren; wartość ujemna = lepiej niż scratch
+- **Model 2: transfer pretext_K36_p16_seed0 vs scratch** — test Welcha, 5 ziaren; wartość ujemna = lepiej niż scratch
+- **Model 2: transfer pretext_K36_seed0 vs scratch** — test Welcha, 5 ziaren; wartość ujemna = lepiej niż scratch
+- **Model 2: transfer pretext_K4_seed0 vs scratch** — test Welcha, 5 ziaren; wartość ujemna = lepiej niż scratch
+- **Model 2: MAAE zadania pretekstowego, K=4** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1
+- **Model 2: MAAE zadania pretekstowego, K=12** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1
+- **Model 2: MAAE zadania pretekstowego, K=36** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1
+- **Model 2: RGB2Depth po pretreningu — pretext_K4_seed0** — n_ziaren=5; zadanie docelowe BEZ audio w czasie testu
+- **Model 2: RGB2Depth po pretreningu — pretext_K36_p16_seed0** — n_ziaren=5; zadanie docelowe BEZ audio w czasie testu
+- **Model 2: RGB2Depth po pretreningu — scratch** — n_ziaren=5; zadanie docelowe BEZ audio w czasie testu
+- **Model 2: RGB2Depth po pretreningu — pretext_K36_seed0** — n_ziaren=5; zadanie docelowe BEZ audio w czasie testu
+- **Model 2: RGB2Depth po pretreningu — pretext_K12_seed0** — n_ziaren=5; zadanie docelowe BEZ audio w czasie testu
+- **Model 2: SAMA rozdzielczość kątowa zadania** — wartość ujemna = poprawa
+- **Model 2: SAMA liczba par** — wartość ujemna = poprawa
+- **Model 2: efekt łączny K36 − K4** — wartość ujemna = poprawa
 
 ## 6. Budżet obliczeniowy i dyskowy
 
@@ -199,12 +247,11 @@ Zostaw w tekście lukę i wróć, gdy odpowiedni warunek się policzy.
 
 | czego brakuje | da to | po co |
 |---|---|---|
+| Krzywa nasycenia na NATURALNEJ liczności (C6/C9/C12/C18) | grupa `krzywa`, 12 przebiegow, 10,4 h | odsunieta: rosnie po gestosci I rozmiarze zbioru naraz -- krzywa stalego budzetu jest ostrzejsza |
+| Rozrzut po ziarnach dla PELNEGO modelu | A/B/D x 3 ziarna (odwolane degradacja 2026-08-11 §2) | liczby A/B/D maja n=1; podloga szumu zmierzona tylko na warunku A |
+| Delta(main vs patched) na masce SCISLEJ | evaluate.py --intersection-mask na EPA/EPB/EPD (juz sa checkpointy) | zamkniecie zastrzezenia o pikselach zmienionych a waznych |
+| Diagnoza NEGATYWNEGO transferu Modelu 2 | porownanie wag enkodera przed/po pretreningu | czy enkoder w ogole sie uczy, czy zamiera na trywialnym rozwiazaniu |
 | c_full — całkowity wkład echa w PEŁNYM modelu | SE + B, ziarno 0 | górne ograniczenie na efekt gęstości w warunkach A/B/D; decyduje o liczbie ziaren grupy glowne |
-| Efekt gęstości w pełnym modelu (D − A) | grupa `glowne`, 3 ziarna | główna tabela pracy dla modelu porównywalnego z Paridą |
 | Krzywa nasycenia 4/6/9/12/18/36 | grupa `krzywa` (C6/C9/C12/C18) | kształt zależności od gęstości, nie tylko dwa końce |
-| Krzywa przy stałym budżecie próbek | grupa `krzywa_staly` (EK6/EK9/EK12/EK18) | rozdzielenie gęstości od rozmiaru zbioru wzdłuż całej osi |
-| Δ(main vs patched) na masce przecięcia i ścisłej | EPA/EPB/EPD (0,4 h) | zamknięcie zastrzeżenia o pikselach zmienionych a ważnych |
 | Transfer geometrii na office_4 | dowolny warunek `patched` + `main` | sonda przy danych testowych trzymanych dosłownie stałych |
-| MAAE zadania pretekstowego dla K = 4/12/36 | pretext/train_pretext.py | przedłużenie osi ablacji Gao; metryka porównywalna między K |
-| RGB2Depth po pretreningu, 5 inicjalizacji | pretext/transfer.py | liczba do pracy — tabela §6.7 raportu 2026-08-10 |
 | Rozrzut po ziarnach dla pełnego modelu | dowolny warunek `glowne` × 3 ziarna | podłoga szumu zmierzona na warunku A; nie wiadomo, czy przenosi się na inne |

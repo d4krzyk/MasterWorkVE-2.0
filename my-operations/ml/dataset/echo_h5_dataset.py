@@ -46,8 +46,17 @@ from . import angles as angles_mod
 from .. import paths
 from .splits import Splits, load_splits
 
-# Statystyki ImageNet -- te same, ktorych uzywa `AudioVisualDataset`, bo
+# Statystyki ImageNet -- DOKLADNIE te, ktorych uzywa `AudioVisualDataset` Paridy.
+#
+# SPROSTOWANIE (2026-08-13). Wczesniejszy komentarz uzasadnial je tym, ze
 # `MaterialPropertyNet` startuje z wag ResNetu pretrenowanego na ImageNecie.
+# To NIEPRAWDA dla naszej sciezki: `ModelBuilder.build_material_property()`
+# wolane bez `init_weights` idzie galezia `resnet18(pretrained=False)` i stosuje
+# `weights_init`, wiec material startuje z wag LOSOWYCH.
+#
+# Prawdziwy powod jest prostszy i wystarczajacy: tak normalizuje Parida, a my
+# odtwarzamy jego potok co do znaku. Wartosci zostaja niezmienione -- zmienia sie
+# wylacznie uzasadnienie, zeby nie trafilo bledne do rozdzialu o implementacji.
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
