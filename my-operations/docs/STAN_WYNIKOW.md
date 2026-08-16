@@ -91,6 +91,21 @@ losowane są kąty. Końcami są `EA` i `ED`.
 > losować kąty z siatki **9–12 orientacji** zamiast przybijać je do 4 kierunków kardynalnych.
 > Rozszerzanie siatki powyżej 12 nie zwraca kosztu.
 
+**Uwaga terminologiczna — „nasycenie" NIE znaczy „dalej jest gorzej".** RMSE spada monotonicznie
+na całej krzywej; najniższe jest przy K = 36. Nasycenie oznacza, że **dalsza poprawa przestaje się
+opłacać**, a nie że coś się psuje. Stąd dwa różne zalecenia, których nie wolno mylić:
+
+- **generujesz nowy zbiór przy ograniczonym budżecie** → losuj z siatki 9–12; powyżej 12 nie zwraca kosztu;
+- **masz już wyrenderowane 36** → używaj wszystkich 36, bo są minimalnie najlepsze i nic nie tracisz.
+
+Zdanie, którego **nie wolno** napisać: „wystarczy 9–12 orientacji, więcej szkodzi". Nie szkodzi —
+przestaje pomagać.
+
+**Co czyni ten wynik darmowym.** Liczba renderów jest identyczna w każdym punkcie krzywej — 4 na
+lokalizację. Zmienia się wyłącznie to, **z jakiej siatki losowane są te 4 kąty**: baseline bierze
+zawsze te same cztery kierunki kardynalne, warunek gęstszy losuje 4 kąty z szerszej siatki, inne
+dla każdej lokalizacji. Ten sam koszt generowania, RMSE niższe o 16 %.
+
 ### Luka generalizacji kątowej [Z]
 
 `EA` − `EB` na 4 kątach, **które oba modele widziały** (sparowane, 732 próbki): **+0,01787 ±
@@ -117,6 +132,29 @@ modele są na kątach treningowych identyczne. Różnica jest niezerowa (~2,4× 
 | **gęstość kątowa** (D − A) | **−0,02048 ± 0,00350** | **0,0096** | **3/3 ziarna** |
 | ilość danych (B − D) | −0,02833 ± 0,00153 | **0,0010** | — |
 | łączny (B − A) | −0,04881 ± 0,00357 | **0,0018** | **3/3 ziarna** |
+
+Względnie wobec baseline'u 4-kierunkowego: `D` daje **−7,0 %**, `B` daje **−16,7 %**.
+
+### Sformułowanie do pracy — wersja obowiązująca
+
+> Przy stałej architekturze, stałym silniku akustycznym i stałym budżecie optymalizacji rozszerzenie
+> siatki orientacji z 4 kierunków kardynalnych do 36 obniża RMSE predykcji głębi o **16,7 %**
+> (0,29248 → 0,24367; p = 0,0018), z czego **7,0 punktu procentowego pochodzi z samej gęstości
+> kątowej**, przy niezmienionej liczbie próbek treningowych.
+
+**To zdanie celowo nie wspomina Gao — i to jest jego siła.** Baseline 4-kierunkowy jest tu
+odtworzony **wewnętrznie**, jako warunek `A` we własnym zbiorze i własnym protokole, a nie
+przepisany z cudzej tabeli. Porównanie jest więc odporne na zarzut o niezgodność silników
+akustycznych, architektur i przetworzenia scen. Konstrukcja „własny baseline zamiast cytowanego"
+warto nazwać w pracy wprost, bo jest mocniejsza niż porównanie międzypracowe.
+
+> **[!] Czego NIE wolno napisać.** Zestawienia naszego 0,24367 z 0,346 Gao — wyglądałoby na ~30 %
+> przewagi i byłoby bezwartościowe, bo miesza **trzy** rzeczy naraz: (1) inny silnik akustyczny
+> (sam wariant geometrii zmienia energię pogłosu późnego o 46 %, dwa silniki to różnica większego
+> rzędu), (2) **inną architekturę** — nasz model pełny to sieć Paridy, 316,9 M parametrów
+> z mechanizmem uwagi i siecią materiału, podczas gdy Gao używał prostszej sieci, więc większość tej
+> różnicy to prawdopodobnie architektura, nie kąty, (3) inne przetworzenie scen i inny zbiór
+> lokalizacji. Na pytanie „ile z tego to Parida, a ile echo" nie mielibyśmy odpowiedzi.
 
 **Odwrócenie proporcji wobec `echo2depth`:** udział gęstości spada z 70,2 % do **42,0 %** — w pełnym
 modelu ilość danych waży więcej niż gęstość. Zgodne z obrazem, w którym prior wizualny przykrywa
