@@ -458,5 +458,54 @@ Numeracja „Model 1 / Model 2" w raportach jest **odwrotna do intuicji**; szcze
 | Krzywa na naturalnej liczności (`C6/C9/C12/C18`) | rośnie po gęstości **i** rozmiarze zbioru naraz; krzywa stałego budżetu jest ostrzejsza i jest policzona | **NIE** |
 | `patched` na pełnym modelu (`PA/PB/PD`) | wada geometrii jest akustyczna — `geometria_echo` bada ją ostrzej i ~20× taniej | **NIE** |
 | Warunek `ESA` (permutacja kątów w obrębie lokalizacji) | rozdzieliłby „echo niesie pozycję" od „echo niesie orientację"; `ESE` odpowiada na słabszą wersję i jest policzony | **NIE** |
-| Protokoły chroniące pretrenowane cechy (zamrożenie enkodera, niższy `lr` na enkoderze, stopniowe odmrażanie) | sonda pokazała, że jest co chronić — ale samych protokołów nie zmierzono | **TAK** — kandydat nr 1 do „dalszych prac" |
+| Protokoły chroniące pretrenowane cechy | sonda pokazała, że jest co chronić — samych protokołów nie zmierzono | **TAK** — rozwinięte w §10.1 |
 | Sonda geometrii na `office_4` | niski priorytet, nigdy nie był w planie | nie |
+| Dłuższe okno czasowe echa (> 60 ms) | wartość odziedziczona z implementacji referencyjnej; zmiana wymaga regeneracji zbioru | **TAK** — rozwinięte w §10.2 |
+
+---
+
+## 10. Dalsze prace — dwie pozycje z dowodem liczbowym
+
+Obie mają **zmierzoną przesłankę**, a nie tylko przypuszczenie, i obie są tanie. Podawać
+w tej kolejności i z liczbami — brzmi to inaczej niż ogólnikowe „warto rozszerzyć".
+
+### 10.1 Protokół dostrajania chroniący pretrenowane cechy — **kandydat nr 1** [W]
+
+**Dowód, że jest co zyskać:** zamrożony koder z pretreningu `K=36` niesie **63,4 %** informacji
+o głębi względem kodera trenowanego wprost na głębi (Δ = −0,16787 wobec losowego, p = 0,0004,
+23× podłoga szumu). Jednocześnie standardowe dostrajanie całej sieci nie daje **nic** (wszystkie
+p > 0,07), a odległość wag końcowych od startowych wynosi 0,95–0,98 — **optymalizacja przepisuje
+koder i wyrzuca to, co pretrening zbudował**.
+
+**Co zrobić:** zamrożenie enkodera, niższy krok uczenia na enkoderze albo stopniowe odmrażanie.
+To jest zmiana kilku linii w `ml/pretext_model/transfer.py` — infrastruktura sondy
+(`probe.py::freeze_encoder`, kontrola sumą kontrolną z buforami BatchNormu) już istnieje
+i jest zweryfikowana na 27 przebiegach.
+
+**Dlaczego to jest mocna pozycja:** żadne wzmocnienie sygnału echa tego nie odzyska. To jedyne
+miejsce w pracy, gdzie mamy **zmierzony dowód**, że użyteczna reprezentacja istnieje i jest
+tracona przez protokół, a nie przez brak informacji w danych.
+
+### 10.2 Wydłużenie okna czasowego echa [W]
+
+**Dowód, że jest co zyskać** — arytmetyka, nie hipoteza (343 m/s):
+
+| wielkość | wartość |
+|---|---|
+| okno echa `ECHO_MS = 60` → droga akustyczna | 20,6 m |
+| promień dwustronny (echo tam i z powrotem) | **10,29 m** |
+| `max_depth` Repliki, którą model ma przewidzieć | **14,104 m** |
+| echo od najdalszych powierzchni wraca po | **82,2 ms** |
+
+**Okno pokrywa 73 % zakresu głębi.** Powierzchnie dalsze niż ~10,3 m **nie mają swojego echa
+pierwszego rzędu w sygnale w ogóle** — model musi je odtwarzać z pogłosu i z obrazu.
+
+**To jest ograniczenie ODZIEDZICZONE, nie błąd projektowy.** `audio_length = 0.06` pochodzi wprost
+z `beyond-image-to-depth/options/base_options.py:21`; trzymanie tej wartości było **warunkiem
+porównywalności** z implementacją referencyjną, a zamrożenie referencji jest fundamentem całej
+atrybucji efektu w tej pracy. Zmiana tutaj wymaga ponownego wygenerowania zbioru, ale **nie** ruszania
+sieci.
+
+**Przewidywanie do sprawdzenia:** zysk powinien być największy na dużych głębiach — czyli dokładnie
+tam, gdzie wariant „samo echo" jest dziś najsłabszy. Da się to zweryfikować metryką stratyfikowaną
+po odległości, którą `evaluate.py` już liczy.
