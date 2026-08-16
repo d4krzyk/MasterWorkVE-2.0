@@ -466,9 +466,20 @@ def build_dataloader(
     drop_last: bool | None = None,
     persistent_workers: bool | None = None,
     generator: torch.Generator | None = None,
+    dataset_filter=None,
 ) -> tuple[data.DataLoader, EchoH5Dataset]:
-    """Fabryka DataLoadera z domyslnymi ustawieniami bezpiecznymi dla h5py."""
+    """Fabryka DataLoadera z domyslnymi ustawieniami bezpiecznymi dla h5py.
+
+    `dataset_filter` -- opcjonalna funkcja wolana na gotowym `EchoH5Dataset`
+    ZANIM powstanie DataLoader. Sluzy do ograniczania zbioru treningowego
+    (§2 z 2026-08-15: transfer na 10 % / 25 % danych). Musi byc wolana przed
+    konstrukcja DataLoadera, bo `drop_last` i liczba batchy licza sie z
+    `len(dataset)`; przycinanie indeksu po fakcie dziala tylko przypadkiem.
+    Gdy None (domyslnie) -- zachowanie bez zmian.
+    """
     ds = EchoH5Dataset(cfg, splits=splits)
+    if dataset_filter is not None:
+        dataset_filter(ds)
     if shuffle is None:
         shuffle = cfg.mode == "train"
     if drop_last is None:

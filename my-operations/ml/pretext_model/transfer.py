@@ -20,6 +20,27 @@ przetworzone inaczej, a `geometry_check.py` pokazal, ze same warianty geometrii
 zmieniaja energie pozna o 46 %. Sluzy wylacznie do sprawdzenia, czy odtwarzamy
 wlasciwy PORZADEK warunkow i rzad wielkosci efektu.
 
+OGRANICZONY ZBIOR DOCELOWY (--train-fraction, 2026-08-15 §2). Test przewidywania
+z 2026-08-13 §5.1: skoro pretrening daje przewage startowa, ktora zostaje
+nadgoniona w pierwszych ~10 % budzetu, to przy MNIEJSZYM zbiorze docelowym
+powinien zaczac pomagac -- bo siec nie ma z czego nadrobic.
+
+BUDZET KROKOW ZOSTAJE STALY (40 000), a nie skalowany do rozmiaru zbioru.
+To jest wybor, nie przeoczenie, i ma dwa powody:
+  1. Zasada nadrzedna calej macierzy (`experiments.py`) brzmi "stala liczba
+     krokow gradientu, nie epok". Skalowanie budzetu tutaj zlamaloby ja w
+     jedynym miejscu, w ktorym akurat zmienia sie rozmiar zbioru.
+  2. Wazniejszy: stala liczba EPOK dalaby przy 10 % danych ~4 000 krokow --
+     czyli dokladnie ten punkt, w ktorym §5.1 pokazuje, ze przewaga startowa
+     jeszcze NIE zniknela. Wynik pozytywny bylby wtedy gwarantowany przez
+     konstrukcje eksperymentu, a nie przez brak danych. Staly budzet daje
+     `scratch` PELNA szanse nadgonienia; jesli mimo tego pretrening wygrywa,
+     przewaga bierze sie z niedoboru danych, a nie z przedwczesnego stopu.
+Cena: przy 10 % danych to ~259 przejsc przez zbior. Ryzyko przeuczenia jest
+realne, ale JEDNAKOWE we wszystkich trzech warunkach, a checkpoint wybiera sie
+po najlepszym RMSE walidacyjnym (walidacja jest pelna) -- ten sam mechanizm,
+ktory obsluguje warunek `cardinal` z 233 epokami w Modelu 1.
+
 Siec zadania docelowego to `RGBDepthNet` Paridy, strata `LogDepthLoss`,
 maskowanie `depth_gt != 0`, skala `max_depth` -- czyli dokladnie ten sam uklad,
 co w Modelu 1, tylko bez galezi audio, materialu i uwagi. Rozni sie WYLACZNIE
@@ -53,6 +74,90 @@ from .train_pretext import set_seed  # noqa: E402
 
 DEFAULT_STEPS = 40_000
 DEFAULT_BATCH = 32
+
+# Ziarno losowania PODZBIORU zbioru treningowego (--train-fraction). Celowo
+# ODDZIELNE od `--seed` i celowo STALE: wszystkie inicjalizacje enkodera i
+# wszystkie ziarna sieci musza widziec DOKLADNIE TEN SAM podzbior. Gdyby
+# podzbior zalezal od `--seed`, porownanie `scratch` z `pretext_K36` mierzyloby
+# jednoczesnie inicjalizacje i inny zbior danych -- czyli nic.
+SUBSET_SEED = 20260815
+
+
+def stratified_location_subset(index_scene: np.ndarray, index_loc: np.ndarray,
+                               fraction: float, seed: int) -> np.ndarray:
+    """Indeksy podzbioru zbioru treningowego, STRATYFIKOWANEGO PO LOKALIZACJI.
+
+    DLACZEGO NIE LOSOWANIE GLOBALNE. Zbior docelowy to 36 orientacji z kazdej
+    z 1 374 lokalizacji. Losujac 10 % globalnie, czesc lokalizacji wypadlaby
+    w calosci (przy 36 probkach na lokalizacje i p = 0,1 okolo 2 % lokalizacji
+    zniknieloby bez sladu), a inne zostalyby z kilkoma kadrami. Wtedy warunek
+    "10 % danych" mieszalby DWIE rzeczy: mniejszy zbior i gorsze pokrycie
+    PRZESTRZENNE sceny. Efekt pretreningu nie bylby przypisywalny zadnej z nich.
+
+    Tutaj KAZDA lokalizacja zostaje w zbiorze i traci ten sam ulamek swoich
+    orientacji. Zmienia sie wylacznie liczba probek, a mapa pomieszczen, ktore
+    siec widzi, jest identyczna jak przy 100 %.
+
+    Reszta z dzielenia (przy 10 % wychodzi 3,6 probki na lokalizacje) jest
+    rozdzielana losowo miedzy lokalizacje, zeby SUMA trafila dokladnie w
+    `round(n * fraction)` -- inaczej samo zaokraglanie w dol dawaloby 8,3 %
+    zamiast 10 % i dwa warunki roznilyby sie nie tym, czym mialy.
+    """
+    n = int(index_scene.size)
+    target = int(round(n * fraction))
+    key = index_scene.astype(np.int64) * 100_000 + index_loc.astype(np.int64)
+    uniq, inv = np.unique(key, return_inverse=True)
+    counts = np.bincount(inv, minlength=uniq.size).astype(np.int64)
+
+    rng = np.random.default_rng(seed)
+    # Co najmniej 1 probka na lokalizacje -- gdyby ktoras spadla do zera,
+    # podzbior przestalby byc stratyfikowany po lokalizacji, czyli robilby
+    # dokladnie to, przed czym ta funkcja ma chronic.
+    per_loc = np.maximum(np.floor(counts * fraction).astype(np.int64), 1)
+    per_loc = np.minimum(per_loc, counts)
+    delta = target - int(per_loc.sum())
+    if delta > 0:
+        room = np.flatnonzero(per_loc < counts)
+        pick = rng.choice(room, size=min(delta, room.size), replace=False)
+        per_loc[pick] += 1
+    elif delta < 0:
+        room = np.flatnonzero(per_loc > 1)
+        pick = rng.choice(room, size=min(-delta, room.size), replace=False)
+        per_loc[pick] -= 1
+
+    # Grupowanie przez sortowanie, a nie `inv == i` w petli: przy 1 374
+    # lokalizacjach i 49 464 probkach to roznica miedzy 0,2 s a ~70 M porownan.
+    order = np.argsort(inv, kind="stable")
+    bounds = np.concatenate(([0], np.cumsum(counts)))
+    keep = [rng.choice(order[bounds[i]:bounds[i + 1]], size=int(per_loc[i]), replace=False)
+            for i in range(uniq.size)]
+    out = np.sort(np.concatenate(keep))
+    if out.size != target:
+        raise RuntimeError(f"podzbior ma {out.size} probek, oczekiwano {target}")
+    return out
+
+
+def apply_train_subset(ds, fraction: float, seed: int) -> dict:
+    """Przycina indeks datasetu w miejscu. Zwraca opis do `config.json`."""
+    if ds.index_echo_src is not None:
+        # Permutacja echa jest bijekcja na PELNYM indeksie; po przycieciu
+        # przestalaby nia byc, cicho. Zadanie docelowe i tak nie uzywa echa.
+        raise RuntimeError("--train-fraction nie laczy sie z permutacja echa")
+    n_before = len(ds)
+    keep = stratified_location_subset(ds.index_scene, ds.index_loc, fraction, seed)
+    ds.index_scene = ds.index_scene[keep]
+    ds.index_row = ds.index_row[keep]
+    ds.index_loc = ds.index_loc[keep]
+    ds.index_angle = ds.index_angle[keep]
+    if ds.index_row_mask is not None:
+        ds.index_row_mask = ds.index_row_mask[keep]
+    loc_key = ds.index_scene.astype(np.int64) * 100_000 + ds.index_loc.astype(np.int64)
+    per_loc = np.bincount(np.unique(loc_key, return_inverse=True)[1])
+    return {"fraction": fraction, "subset_seed": seed,
+            "n_before": n_before, "n_after": len(ds),
+            "n_locations": int(np.unique(loc_key).size),
+            "probek_na_lokalizacje_min": int(per_loc.min()),
+            "probek_na_lokalizacje_max": int(per_loc.max())}
 
 
 class RGBOnlyModel(torch.nn.Module):
@@ -114,6 +219,11 @@ def main(argv=None) -> int:
     ap.add_argument("--variant", default="main", choices=("main", "patched"))
     ap.add_argument("--angle-subset", default="all",
                     help="podzbior katow zadania DOCELOWEGO (domyslnie pelne 36)")
+    ap.add_argument("--train-fraction", type=float, default=1.0,
+                    help="ulamek zbioru TRENINGOWEGO (0<f<=1), stratyfikowany po "
+                         "lokalizacji. Walidacja i test ZAWSZE pelne.")
+    ap.add_argument("--subset-seed", type=int, default=SUBSET_SEED,
+                    help="ziarno podzbioru -- STALE miedzy warunkami i ziarnami sieci")
     ap.add_argument("--steps", type=int, default=DEFAULT_STEPS)
     ap.add_argument("--batch-size", type=int, default=DEFAULT_BATCH)
     ap.add_argument("--num-workers", type=int, default=8)
@@ -127,6 +237,8 @@ def main(argv=None) -> int:
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
 
+    if not 0.0 < args.train_fraction <= 1.0:
+        ap.error("--train-fraction musi byc w (0, 1]")
     scratch = args.init.lower() == "scratch"
     label = args.label or ("scratch" if scratch else Path(args.init).parent.name)
     rid = f"transfer_{label}_seed{args.seed}"
@@ -164,9 +276,21 @@ def main(argv=None) -> int:
     scaler = torch.amp.GradScaler("cuda", enabled=amp)
     loss_fn = criterion.LogDepthLoss()
 
+    subset_report = None
+    def _shrink(ds):
+        nonlocal subset_report
+        subset_report = apply_train_subset(ds, args.train_fraction, args.subset_seed)
+
     train_loader, train_ds = build_dataloader(
         DatasetConfig(variant=args.variant, mode="train", angle_subset=args.angle_subset),
-        batch_size=args.batch_size, num_workers=args.num_workers, splits=splits)
+        batch_size=args.batch_size, num_workers=args.num_workers, splits=splits,
+        dataset_filter=None if args.train_fraction >= 1.0 else _shrink)
+    if subset_report:
+        print(f"  PODZBIOR {args.train_fraction:.0%}: {subset_report['n_before']} -> "
+              f"{subset_report['n_after']} probek, {subset_report['n_locations']} lokalizacji "
+              f"(bez zmian), {subset_report['probek_na_lokalizacje_min']}-"
+              f"{subset_report['probek_na_lokalizacje_max']} probek/lokalizacje, "
+              f"ziarno podzbioru {args.subset_seed}")
     val_loader, val_ds = build_dataloader(
         DatasetConfig(variant=args.variant, mode="val", angle_subset=args.angle_subset,
                       augment=False),
@@ -188,6 +312,7 @@ def main(argv=None) -> int:
     (out_dir / "config.json").write_text(json.dumps({
         "run_id": rid, "label": label, "seed": args.seed, "init": args.init,
         "transfer": transfer_report, "variant": args.variant,
+        "train_fraction": args.train_fraction, "subset": subset_report,
         "angle_subset": args.angle_subset, "steps": args.steps,
         "batch_size": args.batch_size, "lr": args.lr, "weight_decay": args.weight_decay,
         "amp": amp, "n_train": len(train_ds), "n_val": len(val_ds),

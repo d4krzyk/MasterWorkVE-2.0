@@ -1,0 +1,512 @@
+{
+  "opis": "Wyniki sesji 2026-08-15/16: transfer na ograniczonym zbiorze docelowym oraz domkniecie istotnosci `geometria_echo` i `glowne`.",
+  "podloga_szumu": [
+    0.0023,
+    0.0073
+  ],
+  "transfer_ograniczony": {
+    "opis": "zadanie docelowe RGB2Depth bez audio; ograniczany WYLACZNIE zbior treningowy, walidacja i test pelne; podzbior stratyfikowany po lokalizacji, ziarno podzbioru 20260815 STALE miedzy warunkami i ziarnami sieci; budzet 40 000 krokow we wszystkich warunkach",
+    "n_probek_treningowych": {
+      "10%": 4946,
+      "25%": 12366,
+      "100%": 49464
+    },
+    "rownowaznik_epok": {
+      "10%": 258.8,
+      "25%": 103.5,
+      "100%": 25.9
+    },
+    "punkty": {
+      "10%": {
+        "scratch": {
+          "values": [
+            0.35788211219743765,
+            0.3487222882392636,
+            0.3552627450258626
+          ],
+          "mean": 0.35395571515418794,
+          "sd": 0.004717715448209249,
+          "n": 3
+        },
+        "pretext_K4_seed0": {
+          "values": [
+            0.36566354932652234,
+            0.34708455419199175,
+            0.36229783813508987
+          ],
+          "mean": 0.358348647217868,
+          "sd": 0.009899083125609602,
+          "n": 3
+        },
+        "pretext_K36_seed0": {
+          "values": [
+            0.35614464768268733,
+            0.34754319330468186,
+            0.35801795310418
+          ],
+          "mean": 0.3539019313638498,
+          "sd": 0.005585918060568102,
+          "n": 3
+        }
+      },
+      "25%": {
+        "scratch": {
+          "values": [
+            0.3031282135363382,
+            0.2968046747906549,
+            0.30255190599911735
+          ],
+          "mean": 0.30082826477537017,
+          "sd": 0.003496425298528471,
+          "n": 3
+        },
+        "pretext_K4_seed0": {
+          "values": [
+            0.30455294355858215,
+            0.3112897822706515,
+            0.3012340931183321
+          ],
+          "mean": 0.30569227298252194,
+          "sd": 0.005123746162156141,
+          "n": 3
+        },
+        "pretext_K36_seed0": {
+          "values": [
+            0.30552342094774126,
+            0.3038831420240344,
+            0.30606147797045014
+          ],
+          "mean": 0.3051560136474086,
+          "sd": 0.0011346928955074415,
+          "n": 3
+        }
+      },
+      "100%": {
+        "scratch": {
+          "values": [
+            0.29248505608740094,
+            0.28682119109236326,
+            0.28988324463876647,
+            0.28954784335529077,
+            0.2905589784905521
+          ],
+          "mean": 0.2898592627328747,
+          "sd": 0.002044005218660235,
+          "n": 5
+        },
+        "pretext_K4_seed0": {
+          "values": [
+            0.2909722876950076,
+            0.2875450928834242,
+            0.2833904047808298,
+            0.2817556596264062,
+            0.2912823805221001
+          ],
+          "mean": 0.2869891651015536,
+          "sd": 0.004328587395004623,
+          "n": 5
+        },
+        "pretext_K36_seed0": {
+          "values": [
+            0.2960965676472963,
+            0.28796373406412845,
+            0.2872550980666428,
+            0.3026486425358581,
+            0.29800328750321103
+          ],
+          "mean": 0.29439346596342736,
+          "sd": 0.0066403511891954805,
+          "n": 5
+        }
+      }
+    },
+    "kontrasty": {
+      "pretext_K4_seed0_vs_scratch@10%": {
+        "delta": 0.004392932063680077,
+        "p": 0.5398336224690865,
+        "t": 0.6938649420645865,
+        "df": 2.8639487714083525,
+        "krotnosc_podlogi_szumu": "0.6-1.9x podlogi szumu",
+        "kierunek": "pretrening GORSZY"
+      },
+      "pretext_K36_seed0_vs_scratch@10%": {
+        "delta": -5.378379033815772e-05,
+        "p": 0.9904608723948334,
+        "t": -0.012740906217902057,
+        "df": 3.8910461674782484,
+        "krotnosc_podlogi_szumu": "0.0-0.0x podlogi szumu",
+        "kierunek": "pretrening LEPSZY"
+      },
+      "pretext_K4_seed0_vs_scratch@25%": {
+        "delta": 0.004864008207151771,
+        "p": 0.2547023158752066,
+        "t": 1.3581571043699012,
+        "df": 3.530729767799645,
+        "krotnosc_podlogi_szumu": "0.7-2.1x podlogi szumu",
+        "kierunek": "pretrening GORSZY"
+      },
+      "pretext_K36_seed0_vs_scratch@25%": {
+        "delta": 0.004327748872038406,
+        "p": 0.15584703227636656,
+        "t": 2.03917519258202,
+        "df": 2.416655778891144,
+        "krotnosc_podlogi_szumu": "0.6-1.9x podlogi szumu",
+        "kierunek": "pretrening GORSZY"
+      },
+      "pretext_K4_seed0_vs_scratch@100%": {
+        "delta": -0.0028700976313211224,
+        "p": 0.2309848749512705,
+        "t": -1.340680473697245,
+        "df": 5.699368488699312,
+        "krotnosc_podlogi_szumu": "0.4-1.2x podlogi szumu",
+        "kierunek": "pretrening LEPSZY"
+      },
+      "pretext_K36_seed0_vs_scratch@100%": {
+        "delta": 0.004534203230552647,
+        "p": 0.20726094458394562,
+        "t": 1.4592756727695095,
+        "df": 4.7512601178889575,
+        "krotnosc_podlogi_szumu": "0.6-2.0x podlogi szumu",
+        "kierunek": "pretrening GORSZY"
+      }
+    },
+    "trend": {
+      "pretext_K4_seed0": {
+        "delta_wg_ulamka": {
+          "10%": 0.004392932063680077,
+          "25%": 0.004864008207151771,
+          "100%": -0.0028700976313211224
+        },
+        "uporzadkowanie_monotoniczne": false,
+        "pretrening_lepszy_przy_10pct_ponad_szumem": false,
+        "istotny_przy_10pct": false,
+        "werdykt": "OBALONE",
+        "przewidywanie_5_1": "przy 10 % zbioru pretrening ma byc LEPSZY od `scratch` o wiecej niz podloga szumu (0,0073); samo uporzadkowanie trzech nieistotnych roznic nie wystarcza"
+      },
+      "pretext_K36_seed0": {
+        "delta_wg_ulamka": {
+          "10%": -5.378379033815772e-05,
+          "25%": 0.004327748872038406,
+          "100%": 0.004534203230552647
+        },
+        "uporzadkowanie_monotoniczne": true,
+        "pretrening_lepszy_przy_10pct_ponad_szumem": false,
+        "istotny_przy_10pct": false,
+        "werdykt": "OBALONE",
+        "przewidywanie_5_1": "przy 10 % zbioru pretrening ma byc LEPSZY od `scratch` o wiecej niz podloga szumu (0,0073); samo uporzadkowanie trzech nieistotnych roznic nie wystarcza"
+      }
+    }
+  },
+  "geometria_echo_3ziarna": {
+    "opis": "echo2depth, 3 ziarna, RMSE test@36, maska pelna",
+    "punkty": {
+      "main": {
+        "EA": {
+          "values": [
+            0.7789529938314443,
+            0.7991048534168891,
+            0.7950756944220105
+          ],
+          "mean": 0.7910445138901148,
+          "sd": 0.010663591024998219,
+          "n": 3
+        },
+        "EB": {
+          "values": [
+            0.5831115457213547,
+            0.5851857459918031,
+            0.5783860139070194
+          ],
+          "mean": 0.5822277685400591,
+          "sd": 0.0034849513175715,
+          "n": 3
+        },
+        "ED": {
+          "values": [
+            0.6469504859683798,
+            0.6423228601500534,
+            0.643689412306835
+          ],
+          "mean": 0.6443209194750894,
+          "sd": 0.0023775683284141098,
+          "n": 3
+        }
+      },
+      "patched": {
+        "EPA": {
+          "values": [
+            0.7935707241372404,
+            0.7920767243372039,
+            0.783803662309757
+          ],
+          "mean": 0.789817036928067,
+          "sd": 0.005261037404897402,
+          "n": 3
+        },
+        "EPB": {
+          "values": [
+            0.5932537111964544,
+            0.5965310376708093,
+            0.5939532038211385
+          ],
+          "mean": 0.5945793175628008,
+          "sd": 0.0017260449061367263,
+          "n": 3
+        },
+        "EPD": {
+          "values": [
+            0.6620183293997735,
+            0.650078585667556,
+            0.6522227348391972
+          ],
+          "mean": 0.6547732166355088,
+          "sd": 0.006365382010747203,
+          "n": 3
+        }
+      }
+    },
+    "patched_minus_main": {
+      "EPA_minus_EA": {
+        "delta": -0.0012274769620477244,
+        "p": 0.8697819423328145,
+        "t": -0.17879837733946707,
+        "df": 2.9191751443555716,
+        "uwaga": "wartosc DODATNIA = `patched` GORSZY; maska pelna",
+        "krotnosc_podlogi_szumu": "0.2-0.5x podlogi szumu"
+      },
+      "EPB_minus_EB": {
+        "delta": 0.012351549022741715,
+        "p": 0.012626034719860384,
+        "t": 5.501068385332078,
+        "df": 2.9255350614481097,
+        "uwaga": "wartosc DODATNIA = `patched` GORSZY; maska pelna",
+        "krotnosc_podlogi_szumu": "1.7-5.4x podlogi szumu"
+      },
+      "EPD_minus_ED": {
+        "delta": 0.0104522971604194,
+        "p": 0.09049661998871293,
+        "t": 2.6643306125876363,
+        "df": 2.547400420838464,
+        "uwaga": "wartosc DODATNIA = `patched` GORSZY; maska pelna",
+        "krotnosc_podlogi_szumu": "1.4-4.5x podlogi szumu"
+      }
+    },
+    "efekt_gestosci_w_obu_geometriach": {
+      "gestosc_D_minus_A": {
+        "main": {
+          "values": [
+            -0.13200250786306456,
+            -0.15678199326683573,
+            -0.15138628211517557
+          ],
+          "mean": -0.14672359441502528,
+          "sd": 0.01303116328885402,
+          "n": 3
+        },
+        "patched": {
+          "values": [
+            -0.13155239473746694,
+            -0.14199813866964783,
+            -0.13158092747055972
+          ],
+          "mean": -0.13504382029255815,
+          "sd": 0.006022633277617007,
+          "n": 3
+        },
+        "patched_minus_main": {
+          "delta": 0.011679774122467124,
+          "p": 0.25906560912274046,
+          "t": 1.4092032674887311,
+          "df": 2.8171279383796652
+        },
+        "znak_zgodny": true
+      },
+      "laczny_B_minus_A": {
+        "main": {
+          "values": [
+            -0.19584144811008963,
+            -0.21391910742508602,
+            -0.21668968051499116
+          ],
+          "mean": -0.2088167453500556,
+          "sd": 0.011322003915417447,
+          "n": 3
+        },
+        "patched": {
+          "values": [
+            -0.20031701294078597,
+            -0.1955456866663946,
+            -0.18985045848861848
+          ],
+          "mean": -0.19523771936526635,
+          "sd": 0.0052400690280730005,
+          "n": 3
+        },
+        "patched_minus_main": {
+          "delta": 0.013579025984789245,
+          "p": 0.16175991777148263,
+          "t": 1.8852117184344532,
+          "df": 2.8192268340965874
+        },
+        "znak_zgodny": true
+      },
+      "ilosc_danych_B_minus_D": {
+        "main": {
+          "values": [
+            -0.06383894024702508,
+            -0.05713711415825029,
+            -0.06530339839981558
+          ],
+          "mean": -0.06209315093503032,
+          "sd": 0.0043540653210437435,
+          "n": 3
+        },
+        "patched": {
+          "values": [
+            -0.06876461820331903,
+            -0.05354754799674677,
+            -0.05826953101805876
+          ],
+          "mean": -0.06019389907270819,
+          "sd": 0.007788915247019554,
+          "n": 3
+        },
+        "patched_minus_main": {
+          "delta": 0.001899251862322128,
+          "p": 0.7358575423793253,
+          "t": 0.368653390385185,
+          "df": 3.138759646922792
+        },
+        "znak_zgodny": true
+      }
+    }
+  },
+  "glowne_3ziarna": {
+    "opis": "pelny model (RGB + echo + material + uwaga), 3 ziarna, RMSE test@36",
+    "punkty": {
+      "A": {
+        "values": [
+          0.2873915282440937,
+          0.29712460797375756,
+          0.29291634528931426
+        ],
+        "mean": 0.2924774938357218,
+        "sd": 0.004881357721447849,
+        "n": 3
+      },
+      "B": {
+        "values": [
+          0.2420510500788796,
+          0.24469804015592048,
+          0.24425269684174591
+        ],
+        "mean": 0.24366726235884864,
+        "sd": 0.001417282352713148,
+        "n": 3
+      },
+      "D": {
+        "values": [
+          0.2690855715065368,
+          0.2726048479932003,
+          0.27428755082163186
+        ],
+        "mean": 0.27199265677378964,
+        "sd": 0.0026544737266569235,
+        "n": 3
+      }
+    },
+    "skladowe": {
+      "gestosc_D_minus_A": {
+        "values": [
+          -0.018305956737556917,
+          -0.024519759980557276,
+          -0.018628794467682397
+        ],
+        "mean": -0.020484837061932198,
+        "sd": 0.003498072078936138,
+        "n": 3,
+        "p_sparowany": 0.00958064770852072,
+        "t": -10.142952396460405,
+        "krotnosc_podlogi_szumu": "2.8-8.9x podlogi szumu"
+      },
+      "ilosc_danych_B_minus_D": {
+        "values": [
+          -0.027034521427657193,
+          -0.027906807837279807,
+          -0.03003485397988595
+        ],
+        "mean": -0.028325394414940985,
+        "sd": 0.0015433437394953382,
+        "n": 3,
+        "p_sparowany": 0.0009881163175491953,
+        "t": -31.788784970967054,
+        "krotnosc_podlogi_szumu": "3.9-12.3x podlogi szumu"
+      },
+      "laczny_B_minus_A": {
+        "values": [
+          -0.04534047816521411,
+          -0.05242656781783708,
+          -0.04866364844756835
+        ],
+        "mean": -0.04881023147687318,
+        "sd": 0.0035453182621046487,
+        "n": 3,
+        "p_sparowany": 0.001753976145235236,
+        "t": -23.84603993125133,
+        "krotnosc_podlogi_szumu": "6.7-21.2x podlogi szumu"
+      }
+    },
+    "udzial_gestosci_pct": 41.96832598845211,
+    "bootstrap_po_lokalizacjach": {
+      "A_vs_D_seed0": {
+        "delta_point": 0.018305956737556917,
+        "ci_low": 0.013825643626193967,
+        "ci_high": 0.022569296669032683,
+        "ci_excludes_zero": true,
+        "n_locations": 183
+      },
+      "A_vs_D_seed1": {
+        "delta_point": 0.024519759980557276,
+        "ci_low": 0.02022940690166536,
+        "ci_high": 0.0285678311309235,
+        "ci_excludes_zero": true,
+        "n_locations": 183
+      },
+      "A_vs_D_seed2": {
+        "delta_point": 0.018628794467682397,
+        "ci_low": 0.014725112616888376,
+        "ci_high": 0.022742960289534504,
+        "ci_excludes_zero": true,
+        "n_locations": 183
+      },
+      "A_vs_B_seed0": {
+        "delta_point": 0.04534047816521411,
+        "ci_low": 0.040138728457205834,
+        "ci_high": 0.05088464733670248,
+        "ci_excludes_zero": true,
+        "n_locations": 183
+      },
+      "A_vs_B_seed1": {
+        "delta_point": 0.05242656781783708,
+        "ci_low": 0.04678365062856428,
+        "ci_high": 0.05786407301730019,
+        "ci_excludes_zero": true,
+        "n_locations": 183
+      },
+      "A_vs_B_seed2": {
+        "delta_point": 0.04866364844756835,
+        "ci_low": 0.04308852095684679,
+        "ci_high": 0.05478444410020532,
+        "ci_excludes_zero": true,
+        "n_locations": 183
+      }
+    },
+    "przedrejestrowana_regula": {
+      "data": "2026-08-11 §2",
+      "bound_przewidziany": 0.00529,
+      "prog": 0.015,
+      "decyzja": "1 ziarno",
+      "co_sie_okazalo": "zmierzone D-A = 0,01831, czyli 3,46x wiecej niz bound; ziarna 1-2 dolozone POST HOC 2026-08-15 §3.2"
+    }
+  }
+}

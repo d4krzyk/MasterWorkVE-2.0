@@ -32,6 +32,7 @@ R10 = "RAPORT_SESJI_2026-08-10.md"
 R11 = "RAPORT_SESJI_2026-08-11.md"
 R05 = "RAPORT_SESJI_2026-08-05.md"
 R13 = "RAPORT_SESJI_2026-08-13.md"
+R15 = "RAPORT_SESJI_2026-08-15.md"
 GP = "docs/GENERATOR_PARAMS.md"
 
 GRUPY = [
@@ -242,10 +243,14 @@ def collect() -> tuple[list[dict], list[dict]]:
     # `echo_density_seed0.json` (1 ziarno, stary protokol) NIE wchodzi juz do zestawienia
     # -- zastapiony przez `echo_3seeds.json`. Zostaje na dysku jako slad historyczny.
     if gap:
-        add("wyniki_echo", "Luka test@36 − test@4 per warunek",
+        # Ta sama WIELKOSC co pozycja z `echo_3seeds.json` powyzej, ale z 1 ziarna
+        # i starszego protokolu -- dlatego INNA NAZWA. Wersja 3-ziarnowa jest
+        # obowiazujaca; ta zostaje jako slad historyczny, zeby przy pisaniu bylo
+        # widac, ze rozjazd miedzy raportami bierze sie z protokolu, nie z bledu.
+        add("wyniki_echo", "Luka test@36 − test@4 per warunek (1 ziarno, stary protokół)",
             {r["warunek"]: round(r["luka"], 5) for r in gap.get("wiersze", [])},
             "RMSE", "[Z-]", "echo_ablation/gap_table_seed0.json", f"{R11} §4.2",
-            "lukę ma WYŁĄCZNIE warunek bez pokrycia kątowego")
+            "ZASTĄPIONE przez wersję z 3 ziaren (`echo_3seeds.json`) — nie cytować obu naraz")
     add("wyniki_echo", "EA vs EB na test@4 (sparowane, te same 732 próbki)", 0.00150, "RMSE", "[Z-]",
         "eval/compare_EA_seed0_vs_EB_seed0_test4.json", f"{R11} §4.1",
         "95 % CI [−0,01325; +0,01731] — OBEJMUJE ZERO")
@@ -272,22 +277,31 @@ def collect() -> tuple[list[dict], list[dict]]:
                 add("wyniki_echo", "Krzywa stałego budżetu: K=4 → K=36", c.get("delta_point"),
                     "RMSE", "[Z]", "echo_ablation/final_results_2026-08-13.json", f"{R13} §1",
                     f"95 % CI [{c.get('ci_low'):.5f}; {c.get('ci_high'):.5f}], bootstrap po lokalizacjach")
+        # POZYCJE ZASTAPIONE 2026-08-15/16 przez wersje z 3 ziaren.
+        #
+        # Zostaja w eksporcie, bo raporty 2026-08-13 sie do nich odwoluja i autor
+        # musi umiec je odnalezc -- ale nazwa NIESIE "1 ziarno, ZASTAPIONE", zeby
+        # nie dalo sie ich wziac za obowiazujace. To jest ta sama konwencja, co
+        # przy `gap_table_seed0.json`. Wartosci obowiazujace sa nizej, z
+        # `final_results_2026-08-15.json`.
         gl = fr.get("glowne_pelny_model_1_ziarno", {})
         if gl.get("punkty"):
-            add("wyniki_echo", "PEŁNY MODEL: RMSE test@36 (A / B / D)",
+            add("wyniki_echo", "PEŁNY MODEL: RMSE test@36 (A / B / D) — 1 ziarno, ZASTĄPIONE",
                 {k: f"{v['mean']:.5f}" for k, v in gl["punkty"].items()}, "RMSE", "[Z-]",
                 "echo_ablation/final_results_2026-08-13.json", f"{R13} §2",
-                "1 ziarno (degradacja 2026-08-11 §2) — bez oszacowania rozrzutu po ziarnach")
-            add("wyniki_echo", "Pełny model: gęstość (D−A) / ilość danych (B−D)",
+                f"ZASTĄPIONE przez wersję z 3 ziaren ({R15} §3.2) — nie cytować")
+            add("wyniki_echo", "Pełny model: gęstość / ilość danych — 1 ziarno, ZASTĄPIONE",
                 f"{gl['D_minus_A']:+.5f} / {gl['B_minus_D']:+.5f}", "RMSE", "[Z-]",
                 "echo_ablation/final_results_2026-08-13.json", f"{R13} §2",
-                "n=1 ziarno; oba porównywalne z podłogą szumu 0,0023–0,0073 — patrz zastrzeżenie")
+                f"ZASTĄPIONE: na 3 ziarnach gęstość wynosi −0,02048 (p = 0,0096), a nie −0,01831; "
+                f"patrz {R15} §3.2 — nie cytować tej wersji")
         ge = fr.get("geometria_echo2depth", {})
         if ge.get("patched_minus_main"):
-            add("geometria", "Wpływ domknięcia geometrii (echo2depth, patched − main)",
+            add("geometria", "Wpływ domknięcia geometrii (patched − main) — 1 ziarno, ZASTĄPIONE",
                 {k: f"{v:+.5f}" for k, v in ge["patched_minus_main"].items()}, "RMSE", "[Z-]",
                 "echo_ablation/final_results_2026-08-13.json", f"{R13} §3",
-                "1 ziarno; wartości DODATNIE = `patched` GORSZY mimo +46 % energii pogłosu")
+                f"ZASTĄPIONE: na 3 ziarnach `EPA − EA` ZMIENIA ZNAK (−0,00123, p = 0,87), więc "
+                f"teza o pogorszeniu we wszystkich trzech warunkach NIE utrzymuje się; {R15} §3.1")
         m2 = fr.get("model2_pretekst", {})
         if m2.get("MAAE"):
             add("wyniki_echo", "Model 2: MAAE zadania pretekstowego",
@@ -295,11 +309,13 @@ def collect() -> tuple[list[dict], list[dict]]:
                 "echo_ablation/final_results_2026-08-13.json", f"{R13} §4",
                 "poziom losowy 90° NIEZALEŻNIE od K")
             r = m2["rozklad"]
-            add("wyniki_echo", "Model 2: rozkład efektu pretreningu",
+            add("wyniki_echo", "Model 2: rozkład MAAE pretekstu (stopnie)",
                 f"ilość par {r['ilosc_par_K36_minus_K36p16']:+.2f}° · "
                 f"rozdzielczość {r['rozdzielczosc_K36p16_minus_K4']:+.2f}°", "stopnie", "[Z]",
                 "echo_ablation/final_results_2026-08-13.json", f"{R13} §4",
-                "CAŁA przewaga K=36 pochodzi z 81× większej liczby par, NIE z rozdzielczości kątowej")
+                "CAŁA przewaga K=36 pochodzi z 81× większej liczby par, NIE z rozdzielczości "
+                "kątowej. NIE mylić z rozkładem RMSE zadania docelowego (§5) — ta sama "
+                "arytmetyka, inna wielkość i inna jednostka")
         tr = fr.get("model2_transfer", {}).get("punkty", {})
         if tr:
             add("wyniki_echo", "Model 2: transfer RGB2Depth (5 ziaren)",
@@ -313,28 +329,114 @@ def collect() -> tuple[list[dict], list[dict]]:
                         "echo_ablation/final_results_2026-08-13.json", f"{R13} §5",
                         "test Welcha, 5 ziaren; wartość ujemna = lepiej niż scratch")
 
-    # ---- 5b. Model 2 (pretekst + transfer). Puste, dopoki kolejka nie policzy.
+    # ---- 5c. Wyniki sesji 2026-08-15/16 (`ml/analysis/final_results.py`)
+    f15 = _load(O / "echo_ablation" / "final_results_2026-08-15.json") or {}
+    if f15:
+        tt = f15.get("transfer_ograniczony", {})
+        if tt.get("punkty"):
+            for pct in ("10%", "25%"):
+                pt = tt["punkty"].get(pct, {})
+                if not any(v.get("n") for v in pt.values()):
+                    continue
+                add("wyniki_echo", f"Model 2: transfer przy {pct} zbioru treningowego",
+                    {k: f"{v['mean']:.5f}" for k, v in pt.items() if v.get("n")},
+                    "RMSE", "[Z]", "echo_ablation/final_results_2026-08-15.json", f"{R15} §2",
+                    f"n_probek_train={tt['n_probek_treningowych'][pct]}, "
+                    f"{tt['rownowaznik_epok'][pct]} epok; walidacja i test PEŁNE; "
+                    "podzbiór stratyfikowany po lokalizacji, ziarno 20260815 stałe")
+        for k, v in tt.get("kontrasty", {}).items():
+            if v.get("delta") is not None:
+                p = "—" if v.get("p") is None else f"p={v['p']:.3f}"
+                add("wyniki_echo", f"Model 2: {k}", f"{v['delta']:+.5f} ({p})", "RMSE", "[Z]",
+                    "echo_ablation/final_results_2026-08-15.json", f"{R15} §2",
+                    f"{v.get('kierunek') or ''}; {v.get('krotnosc_podlogi_szumu') or ''}")
+        for b, tr in tt.get("trend", {}).items():
+            add("wyniki_echo", f"Model 2: WERDYKT przewidywania §5.1 — {b}",
+                tr.get("werdykt"), "—", "[Z]",
+                "echo_ablation/final_results_2026-08-15.json", f"{R15} §2.4",
+                "przewidywanie z 2026-08-13 §5.1 WYCOFANE — pretrening nie zaczyna pomagać "
+                "przy mniejszym zbiorze docelowym")
+
+        ge = f15.get("geometria_echo_3ziarna", {})
+        for geo, m in ge.get("punkty", {}).items():
+            rows = {c: f"{v['mean']:.5f} ± {v['sd']:.5f}" for c, v in m.items()
+                    if v.get("n", 0) > 1}
+            if rows:
+                add("wyniki_echo", f"echo2depth RMSE test@36, geometria `{geo}` (3 ziarna)",
+                    rows, "RMSE", "[Z]", "echo_ablation/final_results_2026-08-15.json",
+                    f"{R15} §3.1", "średnia ± sd po 3 ziarnach")
+        for lab, e in ge.get("efekt_gestosci_w_obu_geometriach", {}).items():
+            mm, pp = e.get("main", {}), e.get("patched", {})
+            if mm.get("n", 0) > 1 and pp.get("n", 0) > 1:
+                pm = e["patched_minus_main"]
+                add("geometria", f"Efekt gęstości `{lab}`: main vs patched",
+                    f"main {mm['mean']:+.5f} · patched {pp['mean']:+.5f} · "
+                    f"różnica {pm['delta']:+.5f}", "RMSE", "[Z]",
+                    "echo_ablation/final_results_2026-08-15.json", f"{R15} §3.1",
+                    f"p={pm['p']:.3f} (Welch po ziarnach); znak zgodny w obu geometriach: "
+                    f"{e['znak_zgodny']}. To jest WŁAŚCIWA wielkość porównywana między "
+                    "wariantami — surowe RMSE liczą się na różnych zbiorach pikseli ważnych")
+        for k, v in ge.get("patched_minus_main", {}).items():
+            if v.get("p") is not None:
+                add("geometria", f"Wpływ domknięcia geometrii: {k} (3 ziarna)",
+                    f"{v['delta']:+.5f} (p={v['p']:.3f})", "RMSE", "[Z]",
+                    "echo_ablation/final_results_2026-08-15.json", f"{R15} §3.1",
+                    f"wartość DODATNIA = `patched` GORSZY; {v.get('krotnosc_podlogi_szumu')}")
+
+        gl = f15.get("glowne_3ziarna", {})
+        rows = {c: f"{v['mean']:.5f} ± {v['sd']:.5f}" for c, v in gl.get("punkty", {}).items()
+                if v.get("n", 0) > 1}
+        if rows:
+            add("wyniki_echo", "PEŁNY MODEL: RMSE test@36 A/B/D (3 ziarna)", rows, "RMSE", "[Z]",
+                "echo_ablation/final_results_2026-08-15.json", f"{R15} §3.2",
+                "ZASTĘPUJE wersję z 1 ziarna z 2026-08-13 §2; ziarna 1-2 dołożone POST HOC")
+        for lab, st in gl.get("skladowe", {}).items():
+            if st.get("n", 0) > 1:
+                p = "—" if st.get("p_sparowany") is None else f"p={st['p_sparowany']:.4f}"
+                add("wyniki_echo", f"Pełny model: {lab} (3 ziarna)",
+                    f"{st['mean']:+.5f} ± {st['sd']:.5f} ({p})", "RMSE", "[Z]",
+                    "echo_ablation/final_results_2026-08-15.json", f"{R15} §3.2",
+                    f"test SPAROWANY po ziarnie; {st.get('krotnosc_podlogi_szumu')}")
+
+    # ---- 5b. Model 2 (pretekst + transfer).
+    #
+    # NAZWY MUSZA SIE ROZNIC OD POZYCJI Z `final_results_*.json` POWYZEJ.
+    # `summary.json` i `final_results_*.json` licza te same przebiegi, wiec
+    # wartosci sa identyczne -- ale gdyby kiedys sie rozjechaly, autor musi
+    # widziec, KTORA sciezka dala ktora liczbe, zamiast wybierac na chybil
+    # trafil. Kontrola `_duplikaty_nazw()` na koncu pilnuje, ze zadne dwie
+    # pozycje nie nosza tej samej nazwy.
     pm = _load(O / "pretext" / "summary.json") or {}
-    if pm.get("pretext_by_K"):
-        for k, v in sorted(pm["pretext_by_K"].items(), key=lambda x: int(float(x[0]))):
-            add("wyniki_echo", f"Model 2: MAAE zadania pretekstowego, K={k}",
+    if pm.get("pretext_by_variant"):
+        for k, v in sorted(pm["pretext_by_variant"].items(),
+                           key=lambda x: (int(float(x[0].split("@")[0][1:])), "@" in x[0])):
+            add("wyniki_echo", f"Model 2: MAAE pretekstu wg wariantu — {k}",
                 f"{v['mean']:.2f}" + (f" ± {v['sd']:.2f}" if v.get("sd") else ""), "stopnie", "[Z]",
-                "pretext/summary.json", "Model 2",
-                "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1")
-    if pm.get("transfer_by_label"):
-        for lab, v in sorted(pm["transfer_by_label"].items(), key=lambda x: x[1]["mean"]):
-            add("wyniki_echo", f"Model 2: RGB2Depth po pretreningu — {lab}",
+                "pretext/summary.json", f"{R13} §4",
+                "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; "
+                f"n_ziaren={v['n_seeds']}, sd=— przy n=1")
+    if pm.get("transfer_by_fraction"):
+        for flab, v in sorted(pm["transfer_by_fraction"].items(),
+                              key=lambda x: (-float(x[0].rsplit("|", 1)[1].rstrip("%")),
+                                             x[1]["mean"])):
+            lab, pct = flab.rsplit("|", 1)
+            add("wyniki_echo", f"Model 2: RGB2Depth po pretreningu — {lab} @ {pct} zbioru",
                 f"{v['mean']:.5f}" + (f" ± {v['sd']:.5f}" if v.get("sd") else ""), "RMSE", "[Z]",
-                "pretext/summary.json", "Model 2",
-                f"n_ziaren={v['n_seeds']}; zadanie docelowe BEZ audio w czasie testu")
-    if pm.get("rozklad_efektu_pretreningu"):
-        r = pm["rozklad_efektu_pretreningu"]
-        for key, lab in (("rozdzielczosc_K36p16_minus_K4", "Model 2: SAMA rozdzielczość kątowa zadania"),
-                         ("ilosc_par_K36_minus_K36p16", "Model 2: SAMA liczba par"),
-                         ("laczny_K36_minus_K4", "Model 2: efekt łączny K36 − K4")):
+                "pretext/summary.json", f"{R13} §5",
+                f"n_ziaren={v['n_seeds']}; zadanie docelowe BEZ audio w czasie testu; "
+                f"{pct} zbioru TRENINGOWEGO (walidacja i test zawsze pełne)")
+    if pm.get("rozklad_RMSE_zadania_docelowego"):
+        r = pm["rozklad_RMSE_zadania_docelowego"]
+        for key, lab in (("rozdzielczosc_K36p16_minus_K4",
+                          "Model 2: RMSE docelowego — SAMA rozdzielczość kątowa"),
+                         ("ilosc_par_K36_minus_K36p16",
+                          "Model 2: RMSE docelowego — SAMA liczba par"),
+                         ("laczny_K36_minus_K4",
+                          "Model 2: RMSE docelowego — efekt łączny K36 − K4")):
             if key in r:
                 add("wyniki_echo", lab, round(r[key], 5), "RMSE", "[Z]", "pretext/summary.json",
-                    "Model 2", "wartość ujemna = poprawa")
+                    f"{R13} §5", "wartość ujemna = poprawa; to jest rozkład RMSE ZADANIA "
+                                 "DOCELOWEGO, NIE rozkład MAAE pretekstu (§4, w stopniach)")
 
     # ---- 6. budzet
     b = exp.get("budzet", {})
@@ -377,32 +479,55 @@ def collect() -> tuple[list[dict], list[dict]]:
         "dlatego trzeba go było zmierzyć samodzielnie")
 
     # ---- czego brakuje
+    #
+    # LISTA JEST STANEM PO SESJI 2026-08-15, nie historia. Pozycje, ktore ta
+    # sesja domknela (rozrzut po ziarnach dla `glowne` i `geometria_echo`,
+    # diagnoza transferu, maska scisla, c_full), zostaly USUNIETE -- luka w
+    # tekscie ma odpowiadac temu, czego naprawde nie ma. Dwie pozycje byly tu
+    # wpisane DWA RAZY roznymi slowami ("Rozrzut po ziarnach dla PELNEGO
+    # modelu" i "Krzywa nasycenia") -- zlaczone.
     BRAK = [
         {"czego": "Krzywa nasycenia na NATURALNEJ liczności (C6/C9/C12/C18)",
-         "da_to": "grupa `krzywa`, 12 przebiegow, 10,4 h",
-         "po_co": "odsunieta: rosnie po gestosci I rozmiarze zbioru naraz -- krzywa stalego budzetu jest ostrzejsza"},
-        {"czego": "Rozrzut po ziarnach dla PELNEGO modelu",
-         "da_to": "A/B/D x 3 ziarna (odwolane degradacja 2026-08-11 §2)",
-         "po_co": "liczby A/B/D maja n=1; podloga szumu zmierzona tylko na warunku A"},
-        {"czego": "Delta(main vs patched) na masce SCISLEJ",
-         "da_to": "evaluate.py --intersection-mask na EPA/EPB/EPD (juz sa checkpointy)",
-         "po_co": "zamkniecie zastrzezenia o pikselach zmienionych a waznych"},
-        {"czego": "Diagnoza NEGATYWNEGO transferu Modelu 2",
-         "da_to": "porownanie wag enkodera przed/po pretreningu",
-         "po_co": "czy enkoder w ogole sie uczy, czy zamiera na trywialnym rozwiazaniu"},
-        {"czego": "c_full — całkowity wkład echa w PEŁNYM modelu", "da_to": "SE + B, ziarno 0",
-         "po_co": "górne ograniczenie na efekt gęstości w warunkach A/B/D; decyduje o liczbie ziaren grupy glowne"},
-        {"czego": "Krzywa nasycenia 4/6/9/12/18/36", "da_to": "grupa `krzywa` (C6/C9/C12/C18)",
-         "po_co": "kształt zależności od gęstości, nie tylko dwa końce"},
+         "da_to": "grupa `krzywa`, 12 przebiegów, 10,4 h — SKREŚLONA świadomie",
+         "po_co": "rośnie po gęstości I rozmiarze zbioru naraz; `krzywa_staly` odpowiada na to "
+                  "samo pytanie ostrzej i JEST policzona — luki w tekście NIE zostawiać"},
+        {"czego": "Rozrzut po ziarnach dla MAAE zadania pretekstowego (§4)",
+         "da_to": "pretext_K{4,12,36} × ziarna 1–2, ~1,6 h",
+         "po_co": "MAAE 61,23 / 55,73 / 25,13 mają n=1 — podane BEZ oszacowania rozrzutu; "
+                  "pominięte świadomie (niski zwrot), ale w tekście musi to być napisane"},
+        {"czego": "Wariant `patched` na PEŁNYM modelu (PA/PB/PD)",
+         "da_to": "grupa `geometria` — SKREŚLONA świadomie",
+         "po_co": "wada geometrii jest akustyczna, więc `geometria_echo` bada ją ostrzej i ~20× taniej"},
+        {"czego": "Warunek `ESA` (echo2depth + permutacja kątów w obrębie lokalizacji)",
+         "da_to": "niezaimplementowany — decyzja świadoma",
+         "po_co": "rozdzieliłby 'echo niesie pozycję' od 'echo niesie orientację'; "
+                  "warunek `ESE` odpowiada na słabszą wersję tego pytania i jest policzony"},
         {"czego": "Transfer geometrii na office_4", "da_to": "dowolny warunek `patched` + `main`",
          "po_co": "sonda przy danych testowych trzymanych dosłownie stałych"},
-        {"czego": "Rozrzut po ziarnach dla pełnego modelu", "da_to": "dowolny warunek `glowne` × 3 ziarna",
-         "po_co": "podłoga szumu zmierzona na warunku A; nie wiadomo, czy przenosi się na inne"},
     ]
     return N, BRAK
 
 
-def render_md(N: list[dict], BRAK: list[dict]) -> str:
+def _duplikaty_nazw(N: list[dict]) -> list[dict]:
+    """Pozycje o TEJ SAMEJ nazwie z ROZNYCH plikow dowodowych.
+
+    To jest zabezpieczenie przed dokladnie ta klasa bledu, ktora dala
+    "MAAE K=36 = 43,45" obok "25,13" (patrz raport 2026-08-15 §1.1): dwie
+    sciezki liczace to samo, wpisane pod jedna nazwa. Przy pisaniu pracy autor
+    widzi wtedy dwie liczby i nie ma jak rozstrzygnac, ktora jest ta wlasciwa.
+    Wielkosci mierzace co innego MUSZA miec rozne nazwy -- a jesli mierza to
+    samo, ma zostac jedna pozycja.
+    """
+    by_name: dict[str, list[dict]] = {}
+    for n in N:
+        by_name.setdefault(n["nazwa"], []).append(n)
+    return [{"nazwa": k, "wystapien": len(v),
+             "dowody": sorted({x["dowod"] for x in v}),
+             "wartosci": [x["wartosc"] for x in v]}
+            for k, v in by_name.items() if len(v) > 1]
+
+
+def render_md(N: list[dict], BRAK: list[dict], DUP: list[dict] | None = None) -> str:
     L = ["# Liczby do pracy — zestawienie zmierzonych wartości",
          "",
          "Wygenerowane automatycznie przez `my-operations/ml/thesis_numbers.py`. Nie edytować ręcznie —",
@@ -443,24 +568,43 @@ def render_md(N: list[dict], BRAK: list[dict]) -> str:
           "| czego brakuje | da to | po co |", "|---|---|---|"]
     L += [f"| {b['czego']} | {b['da_to']} | {b['po_co']} |" for b in BRAK]
     L.append("")
+    L += ["---", "", "## Kontrola spójności: pozycje o tej samej nazwie", ""]
+    if DUP:
+        L += ["> **UWAGA — do rozstrzygnięcia przed pisaniem.** Poniższe wielkości wchodzą do",
+              "> zestawienia pod jedną nazwą z więcej niż jednego pliku dowodowego. Albo mierzą",
+              "> to samo (wtedy zostaw jedną pozycję), albo co innego (wtedy nadaj im różne nazwy).",
+              "", "| nazwa | wystąpień | dowody | wartości |", "|---|---|---|---|"]
+        L += [f"| {d['nazwa']} | {d['wystapien']} | "
+              f"{', '.join('`' + x + '`' for x in d['dowody'])} | {d['wartosci']} |" for d in DUP]
+    else:
+        L += ["Brak — każda pozycja ma unikalną nazwę, więc żadnej liczby nie da się przepisać",
+              "z niewłaściwego źródła. Kontrola: `thesis_numbers._duplikaty_nazw()`."]
+    L.append("")
     return "\n".join(L)
 
 
 def main(argv=None) -> int:
     N, BRAK = collect()
+    DUP = _duplikaty_nazw(N)
     out_json = paths.ML_OUTPUTS / "thesis_numbers.json"
     out_json.parent.mkdir(parents=True, exist_ok=True)
     out_json.write_text(json.dumps(
-        {"liczby": N, "brakujace": BRAK,
+        {"liczby": N, "brakujace": BRAK, "duplikaty_nazw": DUP,
          "legenda": {"[Z]": "zmierzone", "[Z-]": "zmierzone z zastrzeżeniem",
                      "[W]": "wywnioskowane, nie zmierzone"},
          "uwaga_literatura": "grupa `literatura` to NIE nasze pomiary -- inny silnik akustyczny; "
                              "porownanie wylacznie wewnetrzne (porzadek i rzad wielkosci)"},
         indent=2, ensure_ascii=False, default=str), encoding="utf-8")
     out_md = paths.MY_OPERATIONS / "docs" / "LICZBY_DO_PRACY.md"
-    out_md.write_text(render_md(N, BRAK), encoding="utf-8")
+    out_md.write_text(render_md(N, BRAK, DUP), encoding="utf-8")
     print(f"pozycji: {len(N)}  (w tym literatura: {sum(1 for n in N if n['grupa']=='literatura')})")
     print(f"brakujacych: {len(BRAK)}")
+    if DUP:
+        print(f"UWAGA: {len(DUP)} pozycji o tej samej nazwie z roznych zrodel:")
+        for d in DUP:
+            print(f"  - {d['nazwa']}  <- {', '.join(d['dowody'])}")
+    else:
+        print("duplikaty nazw: brak")
     for key, title in GRUPY:
         print(f"  {title:52s} {sum(1 for n in N if n['grupa']==key):3d}")
     print(f"\nzapisano: {out_json}\n          {out_md}")

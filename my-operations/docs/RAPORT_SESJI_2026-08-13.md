@@ -116,6 +116,13 @@ przykrywa strukturę kątową echa. **Nie należy tego cytować jako wyniku** pr
 **Domknięcie geometrii pogarsza wynik we wszystkich trzech warunkach**, mimo że dodaje +46,3 %
 energii pogłosu (2026-08-10 §2.5).
 
+> **[SKORYGOWANE 2026-08-16 — patrz `RAPORT_SESJI_2026-08-15.md` §3.1.]** Na 3 ziarnach zdanie
+> „we wszystkich trzech warunkach" **nie utrzymuje się**: przy `cardinal` Δ zmienia znak
+> (−0,00123, p = 0,87) i jest nieodróżnialne od zera. Efekt jest realny wyłącznie w warunkach
+> gęstych (`all` +0,01235, p = 0,013; `random_4` +0,01045, p = 0,091) — co jest zgodne
+> z mechanizmem opisanym niżej, bo `cardinal` ma najmniej kontrastu kątowego do stracenia.
+> Liczby w tabeli powyżej pochodzą z 1 ziarna i **nie należy ich cytować**.
+
 Jest to spójne z drugim pomiarem z tamtej sesji, który wtedy wyglądał na ciekawostkę:
 **domknięcie sufitu obniża względny kontrast kątowy pola późnego o 17,5 %** (§2.6). Model uczy się
 z **kontrastu między orientacjami**, nie z bezwzględnej energii — więc mocniejszy, ale bardziej
@@ -139,7 +146,12 @@ checkpointy `patched`. Δ = `patched` − `main` policzone na **trzech** maskach
 Ważnych pikseli: przecięcie **89,73 %**, ścisła **88,01 %** kadru.
 
 **Znak jest odporny, wielkość nie.** Wszystkie dziewięć wartości jest dodatnich — `patched` wypada
-gorzej niezależnie od maski, więc wniosek z §3 się utrzymuje. Ale **wielkość zmienia się 2–8×**
+gorzej niezależnie od maski, więc wniosek z §3 się utrzymuje.
+
+> **[ZAWĘŻONE 2026-08-16.]** Ta tabela jest liczona **na ziarnie 0**. Ponieważ `EPA − EA` zmienia
+> znak po dołożeniu ziaren 1–2, zgodność znaku w dziewięciu komórkach jest własnością **tego
+> jednego ziarna**, a nie warunku. Zalecenie „raportować Δ na masce przecięcia" **zostaje
+> w mocy** — unieważnione jest wyłącznie zdanie o odporności znaku. Ale **wielkość zmienia się 2–8×**
 między maskami; największa rozbieżność przecięcie ↔ ścisła to **0,00706**, czyli dokładnie na
 górnej granicy podłogi szumu (0,0023–0,0073).
 
@@ -264,6 +276,14 @@ to 10–30× podłoga szumu. Przewaga **znika około kroku 4 000** i dalej flukt
 
 ### Wniosek, który zastępuje „transfer nie działa"
 
+> **[WYCOFANE 2026-08-16 — patrz `RAPORT_SESJI_2026-08-15.md` §2.4.]** Przewidywanie postawione
+> niżej („przy ograniczeniu zbioru docelowego pretrening powinien zacząć pomagać") zostało
+> sprawdzone na 10 % i 25 % zbioru treningowego, 3 ziarna, 18 przebiegów — i **obalone**: przy
+> 10 % najlepszy wariant daje Δ = −0,00005 wobec `scratch` (p = 0,99), czyli zero. **Cztery
+> pomiary z §5.1 powyżej pozostają w mocy** — fałszywa okazała się wyłącznie interpretacja
+> przyczynowa wyciągnięta z nich w tym akapicie. Czytać ten fragment jako hipotezę, która nie
+> przeżyła testu, a nie jako wynik.
+
 **Reprezentacja z pretreningu JEST użyteczna. Zadanie docelowe jej nie potrzebuje.**
 
 Zbiór docelowy ma 49 464 próbki i budżet 40 000 kroków — **dość, żeby nauczyć się tych samych cech
@@ -279,12 +299,18 @@ porządek (MAAE 61,77°, a druga co do wielkości przewaga). Uczciwie: **K36 —
 rozwiązuje zadanie pretekstowe naprawdę dobrze — ma największą przewagę startową i jako jedyny
 zbliża się do istotności.** Pozostałe trzy są między sobą nierozróżnialne.
 
-### Testowalna przewidywalna konsekwencja [X]
+### Testowalna przewidywalna konsekwencja [X] → **SPRAWDZONA I OBALONA**
 
 Jeśli diagnoza jest trafna, to **przy ograniczeniu zbioru docelowego pretrening powinien zacząć
 pomagać**. Eksperyment: powtórzyć transfer na 10 % i 25 % zbioru treningowego (5 000 i 12 400
 próbek). Koszt ~1 h GPU, bo krótsze przebiegi. Byłby to najmocniejszy możliwy rozdział o Modelu 2:
 nie „nie zadziałało", tylko „działa dokładnie tam, gdzie teoria mówi, że powinno".
+
+> **Wykonane 2026-08-15/16** (`RAPORT_SESJI_2026-08-15.md` §2): 4 946 i 12 366 próbek, podzbiór
+> stratyfikowany po lokalizacji, budżet 40 000 kroków bez zmian, 3 ziarna. **Pretrening nie
+> zaczyna pomagać** — przy 10 % Δ wobec `scratch` wynosi −0,00005 (K=36) i +0,00439 (K=4),
+> obie nieistotne. Koszt był 5,6 h, a nie ~1 h: oszacowanie zakładało krótsze przebiegi, czyli
+> skalowany budżet kroków, który został świadomie odrzucony jako przesądzający wynik.
 
 ---
 

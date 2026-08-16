@@ -613,7 +613,7 @@
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Luka test@36 − test@4 per warunek",
+      "nazwa": "Luka test@36 − test@4 per warunek (1 ziarno, stary protokół)",
       "wartosc": {
         "EA": 0.22473,
         "ED": 0.00093,
@@ -624,7 +624,7 @@
       "status": "[Z-]",
       "dowod": "echo_ablation/gap_table_seed0.json",
       "sekcja": "RAPORT_SESJI_2026-08-11.md §4.2",
-      "uwaga": "lukę ma WYŁĄCZNIE warunek bez pokrycia kątowego"
+      "uwaga": "ZASTĄPIONE przez wersję z 3 ziaren (`echo_3seeds.json`) — nie cytować obu naraz"
     },
     {
       "grupa": "wyniki_echo",
@@ -675,7 +675,7 @@
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "PEŁNY MODEL: RMSE test@36 (A / B / D)",
+      "nazwa": "PEŁNY MODEL: RMSE test@36 (A / B / D) — 1 ziarno, ZASTĄPIONE",
       "wartosc": {
         "A": "0.28739",
         "B": "0.24205",
@@ -685,21 +685,21 @@
       "status": "[Z-]",
       "dowod": "echo_ablation/final_results_2026-08-13.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §2",
-      "uwaga": "1 ziarno (degradacja 2026-08-11 §2) — bez oszacowania rozrzutu po ziarnach"
+      "uwaga": "ZASTĄPIONE przez wersję z 3 ziaren (RAPORT_SESJI_2026-08-15.md §3.2) — nie cytować"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Pełny model: gęstość (D−A) / ilość danych (B−D)",
+      "nazwa": "Pełny model: gęstość / ilość danych — 1 ziarno, ZASTĄPIONE",
       "wartosc": "-0.01831 / -0.02703",
       "jednostka": "RMSE",
       "status": "[Z-]",
       "dowod": "echo_ablation/final_results_2026-08-13.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §2",
-      "uwaga": "n=1 ziarno; oba porównywalne z podłogą szumu 0,0023–0,0073 — patrz zastrzeżenie"
+      "uwaga": "ZASTĄPIONE: na 3 ziarnach gęstość wynosi −0,02048 (p = 0,0096), a nie −0,01831; patrz RAPORT_SESJI_2026-08-15.md §3.2 — nie cytować tej wersji"
     },
     {
       "grupa": "geometria",
-      "nazwa": "Wpływ domknięcia geometrii (echo2depth, patched − main)",
+      "nazwa": "Wpływ domknięcia geometrii (patched − main) — 1 ziarno, ZASTĄPIONE",
       "wartosc": {
         "A": "+0.01462",
         "B": "+0.01014",
@@ -709,7 +709,7 @@
       "status": "[Z-]",
       "dowod": "echo_ablation/final_results_2026-08-13.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §3",
-      "uwaga": "1 ziarno; wartości DODATNIE = `patched` GORSZY mimo +46 % energii pogłosu"
+      "uwaga": "ZASTĄPIONE: na 3 ziarnach `EPA − EA` ZMIENIA ZNAK (−0,00123, p = 0,87), więc teza o pogorszeniu we wszystkich trzech warunkach NIE utrzymuje się; RAPORT_SESJI_2026-08-15.md §3.1"
     },
     {
       "grupa": "wyniki_echo",
@@ -728,13 +728,13 @@
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: rozkład efektu pretreningu",
+      "nazwa": "Model 2: rozkład MAAE pretekstu (stopnie)",
       "wartosc": "ilość par -36.64° · rozdzielczość +0.54°",
       "jednostka": "stopnie",
       "status": "[Z]",
       "dowod": "echo_ablation/final_results_2026-08-13.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
-      "uwaga": "CAŁA przewaga K=36 pochodzi z 81× większej liczby par, NIE z rozdzielczości kątowej"
+      "uwaga": "CAŁA przewaga K=36 pochodzi z 81× większej liczby par, NIE z rozdzielczości kątowej. NIE mylić z rozkładem RMSE zadania docelowego (§5) — ta sama arytmetyka, inna wielkość i inna jednostka"
     },
     {
       "grupa": "wyniki_echo",
@@ -794,113 +794,423 @@
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: MAAE zadania pretekstowego, K=4",
+      "nazwa": "Model 2: transfer przy 10% zbioru treningowego",
+      "wartosc": {
+        "scratch": "0.35396",
+        "pretext_K4_seed0": "0.35835",
+        "pretext_K36_seed0": "0.35390"
+      },
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §2",
+      "uwaga": "n_probek_train=4946, 258.8 epok; walidacja i test PEŁNE; podzbiór stratyfikowany po lokalizacji, ziarno 20260815 stałe"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: transfer przy 25% zbioru treningowego",
+      "wartosc": {
+        "scratch": "0.30083",
+        "pretext_K4_seed0": "0.30569",
+        "pretext_K36_seed0": "0.30516"
+      },
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §2",
+      "uwaga": "n_probek_train=12366, 103.5 epok; walidacja i test PEŁNE; podzbiór stratyfikowany po lokalizacji, ziarno 20260815 stałe"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: pretext_K4_seed0_vs_scratch@10%",
+      "wartosc": "+0.00439 (p=0.540)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §2",
+      "uwaga": "pretrening GORSZY; 0.6-1.9x podlogi szumu"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: pretext_K36_seed0_vs_scratch@10%",
+      "wartosc": "-0.00005 (p=0.990)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §2",
+      "uwaga": "pretrening LEPSZY; 0.0-0.0x podlogi szumu"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: pretext_K4_seed0_vs_scratch@25%",
+      "wartosc": "+0.00486 (p=0.255)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §2",
+      "uwaga": "pretrening GORSZY; 0.7-2.1x podlogi szumu"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: pretext_K36_seed0_vs_scratch@25%",
+      "wartosc": "+0.00433 (p=0.156)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §2",
+      "uwaga": "pretrening GORSZY; 0.6-1.9x podlogi szumu"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: pretext_K4_seed0_vs_scratch@100%",
+      "wartosc": "-0.00287 (p=0.231)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §2",
+      "uwaga": "pretrening LEPSZY; 0.4-1.2x podlogi szumu"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: pretext_K36_seed0_vs_scratch@100%",
+      "wartosc": "+0.00453 (p=0.207)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §2",
+      "uwaga": "pretrening GORSZY; 0.6-2.0x podlogi szumu"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: WERDYKT przewidywania §5.1 — pretext_K4_seed0",
+      "wartosc": "OBALONE",
+      "jednostka": "—",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §2.4",
+      "uwaga": "przewidywanie z 2026-08-13 §5.1 WYCOFANE — pretrening nie zaczyna pomagać przy mniejszym zbiorze docelowym"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: WERDYKT przewidywania §5.1 — pretext_K36_seed0",
+      "wartosc": "OBALONE",
+      "jednostka": "—",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §2.4",
+      "uwaga": "przewidywanie z 2026-08-13 §5.1 WYCOFANE — pretrening nie zaczyna pomagać przy mniejszym zbiorze docelowym"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "echo2depth RMSE test@36, geometria `main` (3 ziarna)",
+      "wartosc": {
+        "EA": "0.79104 ± 0.01066",
+        "EB": "0.58223 ± 0.00348",
+        "ED": "0.64432 ± 0.00238"
+      },
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1",
+      "uwaga": "średnia ± sd po 3 ziarnach"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "echo2depth RMSE test@36, geometria `patched` (3 ziarna)",
+      "wartosc": {
+        "EPA": "0.78982 ± 0.00526",
+        "EPB": "0.59458 ± 0.00173",
+        "EPD": "0.65477 ± 0.00637"
+      },
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1",
+      "uwaga": "średnia ± sd po 3 ziarnach"
+    },
+    {
+      "grupa": "geometria",
+      "nazwa": "Efekt gęstości `gestosc_D_minus_A`: main vs patched",
+      "wartosc": "main -0.14672 · patched -0.13504 · różnica +0.01168",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1",
+      "uwaga": "p=0.259 (Welch po ziarnach); znak zgodny w obu geometriach: True. To jest WŁAŚCIWA wielkość porównywana między wariantami — surowe RMSE liczą się na różnych zbiorach pikseli ważnych"
+    },
+    {
+      "grupa": "geometria",
+      "nazwa": "Efekt gęstości `laczny_B_minus_A`: main vs patched",
+      "wartosc": "main -0.20882 · patched -0.19524 · różnica +0.01358",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1",
+      "uwaga": "p=0.162 (Welch po ziarnach); znak zgodny w obu geometriach: True. To jest WŁAŚCIWA wielkość porównywana między wariantami — surowe RMSE liczą się na różnych zbiorach pikseli ważnych"
+    },
+    {
+      "grupa": "geometria",
+      "nazwa": "Efekt gęstości `ilosc_danych_B_minus_D`: main vs patched",
+      "wartosc": "main -0.06209 · patched -0.06019 · różnica +0.00190",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1",
+      "uwaga": "p=0.736 (Welch po ziarnach); znak zgodny w obu geometriach: True. To jest WŁAŚCIWA wielkość porównywana między wariantami — surowe RMSE liczą się na różnych zbiorach pikseli ważnych"
+    },
+    {
+      "grupa": "geometria",
+      "nazwa": "Wpływ domknięcia geometrii: EPA_minus_EA (3 ziarna)",
+      "wartosc": "-0.00123 (p=0.870)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1",
+      "uwaga": "wartość DODATNIA = `patched` GORSZY; 0.2-0.5x podlogi szumu"
+    },
+    {
+      "grupa": "geometria",
+      "nazwa": "Wpływ domknięcia geometrii: EPB_minus_EB (3 ziarna)",
+      "wartosc": "+0.01235 (p=0.013)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1",
+      "uwaga": "wartość DODATNIA = `patched` GORSZY; 1.7-5.4x podlogi szumu"
+    },
+    {
+      "grupa": "geometria",
+      "nazwa": "Wpływ domknięcia geometrii: EPD_minus_ED (3 ziarna)",
+      "wartosc": "+0.01045 (p=0.090)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1",
+      "uwaga": "wartość DODATNIA = `patched` GORSZY; 1.4-4.5x podlogi szumu"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: RMSE test@36 A/B/D (3 ziarna)",
+      "wartosc": {
+        "A": "0.29248 ± 0.00488",
+        "B": "0.24367 ± 0.00142",
+        "D": "0.27199 ± 0.00265"
+      },
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.2",
+      "uwaga": "ZASTĘPUJE wersję z 1 ziarna z 2026-08-13 §2; ziarna 1-2 dołożone POST HOC"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Pełny model: gestosc_D_minus_A (3 ziarna)",
+      "wartosc": "-0.02048 ± 0.00350 (p=0.0096)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.2",
+      "uwaga": "test SPAROWANY po ziarnie; 2.8-8.9x podlogi szumu"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Pełny model: ilosc_danych_B_minus_D (3 ziarna)",
+      "wartosc": "-0.02833 ± 0.00154 (p=0.0010)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.2",
+      "uwaga": "test SPAROWANY po ziarnie; 3.9-12.3x podlogi szumu"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Pełny model: laczny_B_minus_A (3 ziarna)",
+      "wartosc": "-0.04881 ± 0.00355 (p=0.0018)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.2",
+      "uwaga": "test SPAROWANY po ziarnie; 6.7-21.2x podlogi szumu"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: MAAE pretekstu wg wariantu — K4",
       "wartosc": "61.23",
       "jednostka": "stopnie",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
-      "sekcja": "Model 2",
-      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1"
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
+      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: MAAE zadania pretekstowego, K=12",
+      "nazwa": "Model 2: MAAE pretekstu wg wariantu — K12",
       "wartosc": "55.73",
       "jednostka": "stopnie",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
-      "sekcja": "Model 2",
-      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1"
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
+      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: MAAE zadania pretekstowego, K=36",
-      "wartosc": "43.45 ± 25.91",
+      "nazwa": "Model 2: MAAE pretekstu wg wariantu — K36",
+      "wartosc": "25.13",
       "jednostka": "stopnie",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
-      "sekcja": "Model 2",
-      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1"
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
+      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K4_seed0",
+      "nazwa": "Model 2: MAAE pretekstu wg wariantu — K36@16par",
+      "wartosc": "61.77",
+      "jednostka": "stopnie",
+      "status": "[Z]",
+      "dowod": "pretext/summary.json",
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
+      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K4_seed0 @ 100% zbioru",
       "wartosc": "0.28699 ± 0.00433",
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
-      "sekcja": "Model 2",
-      "uwaga": "n_ziaren=5; zadanie docelowe BEZ audio w czasie testu"
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "n_ziaren=5; zadanie docelowe BEZ audio w czasie testu; 100% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K36_p16_seed0",
+      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K36_p16_seed0 @ 100% zbioru",
       "wartosc": "0.28927 ± 0.00340",
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
-      "sekcja": "Model 2",
-      "uwaga": "n_ziaren=5; zadanie docelowe BEZ audio w czasie testu"
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "n_ziaren=5; zadanie docelowe BEZ audio w czasie testu; 100% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: RGB2Depth po pretreningu — scratch",
+      "nazwa": "Model 2: RGB2Depth po pretreningu — scratch @ 100% zbioru",
       "wartosc": "0.28986 ± 0.00204",
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
-      "sekcja": "Model 2",
-      "uwaga": "n_ziaren=5; zadanie docelowe BEZ audio w czasie testu"
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "n_ziaren=5; zadanie docelowe BEZ audio w czasie testu; 100% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K36_seed0",
+      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K36_seed0 @ 100% zbioru",
       "wartosc": "0.29439 ± 0.00664",
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
-      "sekcja": "Model 2",
-      "uwaga": "n_ziaren=5; zadanie docelowe BEZ audio w czasie testu"
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "n_ziaren=5; zadanie docelowe BEZ audio w czasie testu; 100% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K12_seed0",
+      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K12_seed0 @ 100% zbioru",
       "wartosc": "0.29688 ± 0.00657",
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
-      "sekcja": "Model 2",
-      "uwaga": "n_ziaren=5; zadanie docelowe BEZ audio w czasie testu"
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "n_ziaren=5; zadanie docelowe BEZ audio w czasie testu; 100% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: SAMA rozdzielczość kątowa zadania",
+      "nazwa": "Model 2: RGB2Depth po pretreningu — scratch_f25 @ 25% zbioru",
+      "wartosc": "0.30083 ± 0.00350",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "pretext/summary.json",
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "n_ziaren=3; zadanie docelowe BEZ audio w czasie testu; 25% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K36_seed0_f25 @ 25% zbioru",
+      "wartosc": "0.30516 ± 0.00113",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "pretext/summary.json",
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "n_ziaren=3; zadanie docelowe BEZ audio w czasie testu; 25% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K4_seed0_f25 @ 25% zbioru",
+      "wartosc": "0.30569 ± 0.00512",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "pretext/summary.json",
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "n_ziaren=3; zadanie docelowe BEZ audio w czasie testu; 25% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K36_seed0_f10 @ 10% zbioru",
+      "wartosc": "0.35390 ± 0.00559",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "pretext/summary.json",
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "n_ziaren=3; zadanie docelowe BEZ audio w czasie testu; 10% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: RGB2Depth po pretreningu — scratch_f10 @ 10% zbioru",
+      "wartosc": "0.35396 ± 0.00472",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "pretext/summary.json",
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "n_ziaren=3; zadanie docelowe BEZ audio w czasie testu; 10% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K4_seed0_f10 @ 10% zbioru",
+      "wartosc": "0.35835 ± 0.00990",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "pretext/summary.json",
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "n_ziaren=3; zadanie docelowe BEZ audio w czasie testu; 10% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: RMSE docelowego — SAMA rozdzielczość kątowa",
       "wartosc": 0.00228,
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
-      "sekcja": "Model 2",
-      "uwaga": "wartość ujemna = poprawa"
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "wartość ujemna = poprawa; to jest rozkład RMSE ZADANIA DOCELOWEGO, NIE rozkład MAAE pretekstu (§4, w stopniach)"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: SAMA liczba par",
+      "nazwa": "Model 2: RMSE docelowego — SAMA liczba par",
       "wartosc": 0.00512,
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
-      "sekcja": "Model 2",
-      "uwaga": "wartość ujemna = poprawa"
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "wartość ujemna = poprawa; to jest rozkład RMSE ZADANIA DOCELOWEGO, NIE rozkład MAAE pretekstu (§4, w stopniach)"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: efekt łączny K36 − K4",
+      "nazwa": "Model 2: RMSE docelowego — efekt łączny K36 − K4",
       "wartosc": 0.0074,
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
-      "sekcja": "Model 2",
-      "uwaga": "wartość ujemna = poprawa"
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §5",
+      "uwaga": "wartość ujemna = poprawa; to jest rozkład RMSE ZADANIA DOCELOWEGO, NIE rozkład MAAE pretekstu (§4, w stopniach)"
     },
     {
       "grupa": "budzet",
@@ -1056,45 +1366,31 @@
   "brakujace": [
     {
       "czego": "Krzywa nasycenia na NATURALNEJ liczności (C6/C9/C12/C18)",
-      "da_to": "grupa `krzywa`, 12 przebiegow, 10,4 h",
-      "po_co": "odsunieta: rosnie po gestosci I rozmiarze zbioru naraz -- krzywa stalego budzetu jest ostrzejsza"
+      "da_to": "grupa `krzywa`, 12 przebiegów, 10,4 h — SKREŚLONA świadomie",
+      "po_co": "rośnie po gęstości I rozmiarze zbioru naraz; `krzywa_staly` odpowiada na to samo pytanie ostrzej i JEST policzona — luki w tekście NIE zostawiać"
     },
     {
-      "czego": "Rozrzut po ziarnach dla PELNEGO modelu",
-      "da_to": "A/B/D x 3 ziarna (odwolane degradacja 2026-08-11 §2)",
-      "po_co": "liczby A/B/D maja n=1; podloga szumu zmierzona tylko na warunku A"
+      "czego": "Rozrzut po ziarnach dla MAAE zadania pretekstowego (§4)",
+      "da_to": "pretext_K{4,12,36} × ziarna 1–2, ~1,6 h",
+      "po_co": "MAAE 61,23 / 55,73 / 25,13 mają n=1 — podane BEZ oszacowania rozrzutu; pominięte świadomie (niski zwrot), ale w tekście musi to być napisane"
     },
     {
-      "czego": "Delta(main vs patched) na masce SCISLEJ",
-      "da_to": "evaluate.py --intersection-mask na EPA/EPB/EPD (juz sa checkpointy)",
-      "po_co": "zamkniecie zastrzezenia o pikselach zmienionych a waznych"
+      "czego": "Wariant `patched` na PEŁNYM modelu (PA/PB/PD)",
+      "da_to": "grupa `geometria` — SKREŚLONA świadomie",
+      "po_co": "wada geometrii jest akustyczna, więc `geometria_echo` bada ją ostrzej i ~20× taniej"
     },
     {
-      "czego": "Diagnoza NEGATYWNEGO transferu Modelu 2",
-      "da_to": "porownanie wag enkodera przed/po pretreningu",
-      "po_co": "czy enkoder w ogole sie uczy, czy zamiera na trywialnym rozwiazaniu"
-    },
-    {
-      "czego": "c_full — całkowity wkład echa w PEŁNYM modelu",
-      "da_to": "SE + B, ziarno 0",
-      "po_co": "górne ograniczenie na efekt gęstości w warunkach A/B/D; decyduje o liczbie ziaren grupy glowne"
-    },
-    {
-      "czego": "Krzywa nasycenia 4/6/9/12/18/36",
-      "da_to": "grupa `krzywa` (C6/C9/C12/C18)",
-      "po_co": "kształt zależności od gęstości, nie tylko dwa końce"
+      "czego": "Warunek `ESA` (echo2depth + permutacja kątów w obrębie lokalizacji)",
+      "da_to": "niezaimplementowany — decyzja świadoma",
+      "po_co": "rozdzieliłby 'echo niesie pozycję' od 'echo niesie orientację'; warunek `ESE` odpowiada na słabszą wersję tego pytania i jest policzony"
     },
     {
       "czego": "Transfer geometrii na office_4",
       "da_to": "dowolny warunek `patched` + `main`",
       "po_co": "sonda przy danych testowych trzymanych dosłownie stałych"
-    },
-    {
-      "czego": "Rozrzut po ziarnach dla pełnego modelu",
-      "da_to": "dowolny warunek `glowne` × 3 ziarna",
-      "po_co": "podłoga szumu zmierzona na warunku A; nie wiadomo, czy przenosi się na inne"
     }
   ],
+  "duplikaty_nazw": [],
   "legenda": {
     "[Z]": "zmierzone",
     "[Z-]": "zmierzone z zastrzeżeniem",

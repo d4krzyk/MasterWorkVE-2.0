@@ -219,30 +219,104 @@ GROUPS = ("bramka", "echo", "glowne", "krzywa", "krzywa_staly", "geometria_echo"
 #   * odsuniete        -- warunek jest zdefiniowany i gotowy, tylko ma nizszy
 #                         priorytet; wraca, jesli wyniki tego zazadaja.
 
+# =====================================================================
+# HISTORIA DECYZJI O LICZBIE ZIAREN -- CZYTAC PRZED `PLANNED_SEEDS`
+# =====================================================================
+#
+# Ten blok jest zapisem CHRONOLOGICZNYM, nie stanem koncowym. Praca ma
+# pokazywac, ze regula byla zapisana PRZED pomiarem, zadzialala, i ze zmiana
+# nastapila z podanego powodu -- to jest mocniejsze niz udawanie, ze od poczatku
+# planowano 3 ziarna. Dlatego pierwotna regula ZOSTAJE tutaj razem ze swoim
+# uzasadnieniem i wynikiem, ktory dala.
+#
+# --- DECYZJA 1 (2026-08-11 §2, PRZEDREJESTROWANA) -------------------------
+# Regula zapisana PRZED zmierzeniem czegokolwiek na grupie `glowne`:
+#     bound = f_ang x c_full;  jesli bound < 0,015 -> 1 ziarno, nie 3.
+# Pomiar bramki dal c_full = 0,02228 (calkowity wklad echa do pelnego modelu).
+# Udzial gestosci katowej w efekcie lacznym zmierzony na `echo2depth` wynosil
+# f_ang = 0,2373, wiec:
+#     bound = 0,2373 x 0,02228 = 0,00529   ->  0,72-2,28x podlogi szumu
+# czyli PONIZEJ progu. Regula zastosowana bez negocjacji: A/B/D dostaly po
+# 1 ziarnie, z jawnym zastrzezeniem, ze nie beda mialy orzeczenia o istotnosci.
+# TO BYLO PROCEDURALNIE POPRAWNE i tak ma zostac opisane.
+#
+# --- CO SIE OKAZALO (2026-08-13 §2, POMIAR) -------------------------------
+# Zmierzone D - A w pelnym modelu = 0,01831, a nie przewidziane 0,00529.
+# Heurystyka ZANIZYLA efekt 3,46x. Zawiodla nie regula, tylko jej przeslanka:
+# zalozenie, ze udzial gestosci `f_ang` przenosi sie MULTIPLIKATYWNIE miedzy
+# architekturami (echo2depth -> pelny model). Zalozenie okazalo sie falszywe,
+# przy czym w strone KONSERWATYWNA -- prawdziwy efekt jest 2,5-8x ponad podloga
+# szumu (0,0023-0,0073), a nie 0,72-2,28x, jak przewidywalo proxy.
+#
+# --- DECYZJA 2 (2026-08-15 §3.2, POST HOC) --------------------------------
+# Autor zatwierdza dolozenie ziaren 1-2 dla A/B/D. Jest to decyzja POST HOC:
+# zapadla PO zobaczeniu danych i wylacznie dlatego, ze proxy sie pomylilo.
+# Nie unieważnia decyzji 1 -- unieważnia tylko jej przeslanke. Bez tego zapisu
+# tabela z 3 ziarnami wygladalaby na plan od poczatku, czym nie byla.
+# Przy okazji EPA/EPB/EPD tez ida na 3 ziarna (2026-08-15 §3.1): ich zadanie
+# ("domkniecie maski scislej") zostalo wykonane przy 1 ziarnie, ale wynik
+# okazal sie kontrintuicyjny i zgodny z niezaleznym pomiarem fizycznym, wiec
+# zaslugue na przedzial ufnosci.
+SEED_DECISIONS: tuple[dict, ...] = (
+    {"data": "2026-08-11", "sekcja": "§2", "warunki": ("A", "B", "D"),
+     "ziaren": 1, "typ": "przedrejestrowana",
+     "regula": "bound = f_ang x c_full < 0,015 -> 1 ziarno",
+     "liczby": {"c_full": 0.02228, "f_ang": 0.2373, "bound": 0.00529,
+                "prog": 0.015, "podloga_szumu": (0.0023, 0.0073)},
+     "powod": "przewidywany efekt ponizej progu -- 3 ziarna kupowalyby precyzje "
+              "dla liczby, ktora i tak nie odpowie na pytanie pracy"},
+    {"data": "2026-08-15", "sekcja": "§3.2", "warunki": ("A", "B", "D"),
+     "ziaren": 3, "typ": "post hoc",
+     "regula": "brak -- decyzja autora po zobaczeniu pomiaru",
+     "liczby": {"D_minus_A_zmierzone": 0.01831, "bound_przewidziany": 0.00529,
+                "zanizenie_x": 3.46, "krotnosc_podlogi_szumu": (2.5, 8.0)},
+     "powod": "proxy `f_ang` zanizylo efekt 3,46x (ustalenie empiryczne z "
+              "2026-08-13 §2); przeslanka o multiplikatywnosci f_ang miedzy "
+              "architekturami okazala sie falszywa"},
+    {"data": "2026-08-15", "sekcja": "§3.1", "warunki": ("EPA", "EPB", "EPD"),
+     "ziaren": 3, "typ": "post hoc",
+     "regula": "brak -- decyzja autora po zobaczeniu pomiaru",
+     "liczby": {"patched_minus_main": (0.01462, 0.01014, 0.01507)},
+     "powod": "wynik kontrintuicyjny (`patched` GORSZY mimo +46 % energii poglosu) "
+              "i zgodny z niezaleznym pomiarem fizycznym (-17,5 % kontrastu "
+              "katowego) -- potwierdzone przewidywanie zasluguje na przedzial ufnosci"},
+)
+
 # Ile ziaren faktycznie zaplanowano dla danego warunku (domyslnie: wszystkie SEEDS).
+# STAN PO DECYZJI 2. Chronologia jest w `SEED_DECISIONS` powyzej -- nie kasowac
+# jej przy kolejnych zmianach, tylko dopisywac.
 PLANNED_SEEDS: dict[str, int] = {
-    # Degradacja z 2026-08-11 §2: c_full = 0,02228 -> bound = 0,00529, czyli
-    # 0,72-2,28x podlogi szumu, ponizej progu 0,015 zapisanego PRZED pomiarem.
-    # Pelny model nie rozdziela efektu gestosci, wiec 3 ziarna kupowalyby
-    # precyzje dla liczby, ktora i tak nie odpowie na pytanie pracy.
-    "A": 1, "B": 1, "D": 1,
+    # A/B/D: 1 -> 3 (decyzja 2, post hoc). Pierwotne "1" i jego uzasadnienie
+    # sa w SEED_DECISIONS[0]; nie usuwac.
+    "A": 3, "B": 3, "D": 3,
     # Bramka pelnego modelu -- nie jest pozycja w tabeli pracy, a jej przedzial
     # ufnosci pochodzi z bootstrapu po lokalizacjach, nie z rozrzutu po ziarnach.
+    # BEZ ZMIAN: decyzja 2 dotyczy warunkow tabeli wynikow, nie bramki.
     "SE": 1,
-    # Zadaniem tych przebiegow jest DOMKNIECIE pytania o maske scisla (2026-08-11
-    # §5) -- wystarczy jeden model trenowany na `patched`, nie precyzyjne
-    # oszacowanie efektu.
-    "EPA": 1, "EPB": 1, "EPD": 1,
+    # EPA/EPB/EPD: 1 -> 3 (decyzja 2026-08-15 §3.1). Pierwotny powod ("wystarczy
+    # 1 model `patched` do domkniecia maski scislej") byl trafny wobec pytania,
+    # ktore wtedy zadawano -- pytanie sie zmienilo, nie odpowiedz.
+    "EPA": 3, "EPB": 3, "EPD": 3,
 }
 
+# Powod, dla ktorego warunek ma MNIEJ ziaren niz `SEEDS`. Pokazuje OBIE decyzje
+# i ich kolejnosc, a nie tylko stan koncowy -- inaczej z kodu nie da sie
+# odtworzyc, ze regula w ogole byla.
 SEED_LIMIT_REASON: dict[str, str] = {
-    "A": "degradacja 2026-08-11 §2 (bound < 0,015)",
-    "B": "degradacja 2026-08-11 §2 (bound < 0,015)",
-    "D": "degradacja 2026-08-11 §2 (bound < 0,015)",
-    "SE": "bramka, nie pozycja w tabeli pracy",
-    "EPA": "wystarczy 1 model `patched` do domkniecia maski scislej",
-    "EPB": "wystarczy 1 model `patched` do domkniecia maski scislej",
-    "EPD": "wystarczy 1 model `patched` do domkniecia maski scislej",
+    "A": "2026-08-11 §2: 1 ziarno (bound = 0,00529 < prog 0,015) -> "
+         "2026-08-15 §3.2: 3 ziarna, POST HOC (proxy f_ang zanizylo efekt 3,46x; "
+         "zmierzone D-A = 0,01831, czyli 2,5-8x podlogi szumu)",
+    "B": "2026-08-11 §2: 1 ziarno (bound = 0,00529 < prog 0,015) -> "
+         "2026-08-15 §3.2: 3 ziarna, POST HOC (proxy f_ang zanizylo efekt 3,46x)",
+    "D": "2026-08-11 §2: 1 ziarno (bound = 0,00529 < prog 0,015) -> "
+         "2026-08-15 §3.2: 3 ziarna, POST HOC (proxy f_ang zanizylo efekt 3,46x)",
+    "SE": "bramka, nie pozycja w tabeli pracy (bez zmian od 2026-08-11)",
+    "EPA": "2026-08-11 §5: 1 ziarno (wystarczy 1 model `patched` do maski scislej) -> "
+           "2026-08-15 §3.1: 3 ziarna (wynik kontrintuicyjny, potwierdza pomiar fizyczny)",
+    "EPB": "2026-08-11 §5: 1 ziarno (wystarczy 1 model `patched` do maski scislej) -> "
+           "2026-08-15 §3.1: 3 ziarna (wynik kontrintuicyjny, potwierdza pomiar fizyczny)",
+    "EPD": "2026-08-11 §5: 1 ziarno (wystarczy 1 model `patched` do maski scislej) -> "
+           "2026-08-15 §3.1: 3 ziarna (wynik kontrintuicyjny, potwierdza pomiar fizyczny)",
 }
 
 # Grupy odsuniete w calosci -- z powodem. NIE sa skasowane: warunki sa
@@ -251,9 +325,15 @@ DEFERRED_GROUPS: dict[str, str] = {
     "krzywa": "rosnie po gestosci I po rozmiarze zbioru naraz (2026-08-10 §5.1) "
               "-- zastapiona przez `krzywa_staly` o stalej licznosci; "
               "przy okazji najdrozsza grupa macierzy (10,4 h, 70,8 GB)",
+    # POPRAWIONE 2026-08-15. Poprzednia wersja konczyla sie zdaniem "po degradacji
+    # pelny model i tak nie rozdziela efektu" -- to twierdzenie jest FALSZYWE:
+    # pomiar z 2026-08-13 §2 dal D - A = 0,01831, czyli 2,5-8x podlogi szumu,
+    # wiec pelny model efekt gestosci JEDNAK rozdziela. Grupa zostaje odsunieta,
+    # ale z powodu kosztu i ostrosci pytania, a NIE z powodu niezdolnosci modelu.
     "geometria": "wada geometrii jest AKUSTYCZNA (+46,3 % energii poznej wobec "
                  "+1,3 % calkowitej), wiec `geometria_echo` bada to ostrzej i ~20x "
-                 "taniej; po degradacji pelny model i tak nie rozdziela efektu",
+                 "taniej; PA/PB/PD kosztuja ~2,6 h i odpowiadaja na to samo pytanie "
+                 "slabiej -- odsuniete dla kosztu, nie dla niezdolnosci pelnego modelu",
 }
 
 

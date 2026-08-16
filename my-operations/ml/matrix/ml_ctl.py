@@ -59,6 +59,7 @@ PRETRAIN = ML / "pretext_model" / "train_pretext.py"
 TRANSFER = ML / "pretext_model" / "transfer.py"
 PRETEXT_SUM = ML / "pretext_model" / "summarize.py"
 NUMBERS = ML / "analysis" / "thesis_numbers.py"
+FINAL = ML / "analysis" / "final_results.py"
 
 LOGS = paths.ML_OUTPUTS / "logs"
 QUEUE = paths.ML_OUTPUTS / "logs" / "ml_ctl_queue.json"
@@ -119,46 +120,63 @@ def _transfer_dir(label: str, seed: int) -> Path:
     return paths.ML_OUTPUTS / "pretext_transfer" / f"transfer_{label}_seed{seed}"
 
 
+# Ulamki zbioru TRENINGOWEGO zadania docelowego (§2 z 2026-08-15) i ziarna.
+# 3 ziarna, nie 5: przebiegow jest 18, a pytanie brzmi "czy pretrening w ogole
+# ZACZYNA pomagac", nie "o ile dokladnie".
+LIMITED_FRACTIONS = (0.10, 0.25)
+LIMITED_SEEDS = (0, 1, 2)
+LIMITED_INITS = ("scratch", "pretext_K4_seed0", "pretext_K36_seed0")
+
+# Czasy ZMIERZONE na kolejce 2026-08-13 (`ml_ctl_2026-08-13_0129.md`), a nie
+# przeliczone z SEC_PER_STEP -- ten drugi nie zawiera narzutu walidacji i
+# zanizal o ~10 %. Minuty na przebieg 40 000 krokow:
+#   transfer 18,7 | echo2depth (EPA/EPB/EPD) 10,5 | pelny model (A/D) 57,3
+H_TRANSFER_MEASURED = 18.7 / 60
+H_ECHO_MEASURED = 10.5 / 60
+H_FULL_MEASURED = 57.3 / 60
+
+
 def build_steps() -> list[dict]:
-    """Pelna sekwencja nocy. Model 2 PIERWSZY -- jest najdluzszy i jako jedyny
-    moze jeszcze nie wyjsc, wiec ma dostac cala noc, a nie resztki."""
+    """Kolejka sesji 2026-08-15. Plan poprzedniej nocy jest w
+    `outputs/ml/logs/ml_ctl_2026-08-13_0129.md` -- wszystkie jej kroki sa
+    gotowe, wiec powtarzanie ich tutaj tylko wydluzaloby `plan`.
+
+    KOLEJNOSC: §2 (transfer ograniczony) -> §3.1 (geometria_echo) -> §3.2
+    (glowne). Transfer idzie PIERWSZY, bo jako jedyny moze zmienic TRESC
+    rozdzialu, a nie tylko przedzial ufnosci przy juz napisanym zdaniu.
+    Ostatni jest §3.2 -- najdrozszy i najlatwiejszy do poswiecenia, jesli
+    zabraknie czasu.
+    """
     S: list[dict] = []
-    h_echo = TOTAL_STEPS * SEC_PER_STEP["echo2depth"] / 3600
-    h_full = TOTAL_STEPS * SEC_PER_STEP["full"] / 3600
     gb_echo = 5 * PARAM_COUNTS["echo2depth"] * 4 / 1024 ** 3
     gb_full = 5 * PARAM_COUNTS["full"] * 4 / 1024 ** 3
+    # Transfer zapisuje TYLKO `best_rgbdepth.pth` (bez checkpointu z Adamem).
+    gb_transfer = 16_658_561 * 4 / 1024 ** 3
 
-    # 1. Model 2: pretrening
-    for k in PRETEXT_K:
-        S.append({"id": f"pretext_K{k}", "grupa": "1. Model 2: pretrening",
-                  "cmd": [sys.executable, str(PRETRAIN), "--k", str(k), "--seed", "0"],
-                  "done_marker": str(_pretext_dir(k, None, 0) / "status.json"),
-                  "godzin": H_PRETEXT[k], "gb": round(gb_echo, 3)})
-    S.append({"id": f"pretext_K36_p{PRETEXT_SUBSAMPLE}", "grupa": "1. Model 2: pretrening",
-              "cmd": [sys.executable, str(PRETRAIN), "--k", "36", "--seed", "0",
-                      "--pairs-per-location", str(PRETEXT_SUBSAMPLE)],
-              "done_marker": str(_pretext_dir(36, PRETEXT_SUBSAMPLE, 0) / "status.json"),
-              "godzin": H_PRETEXT[36], "gb": round(gb_echo, 3)})
-
-    # 2. Model 2: transfer, 5 ziaren x 5 warunkow
-    inits = [("scratch", "scratch")]
-    for k in PRETEXT_K:
-        inits.append((f"pretext_K{k}_seed0", str(_pretext_dir(k, None, 0) / "best_encoder.pth")))
-    inits.append((f"pretext_K36_p{PRETEXT_SUBSAMPLE}_seed0",
-                  str(_pretext_dir(36, PRETEXT_SUBSAMPLE, 0) / "best_encoder.pth")))
-    for label, init in inits:
-        for seed in TRANSFER_SEEDS:
-            S.append({"id": f"transfer_{label}_s{seed}", "grupa": "2. Model 2: transfer",
-                      "cmd": [sys.executable, str(TRANSFER), "--init", init,
-                              "--seed", str(seed), "--label", label],
-                      "done_marker": str(_transfer_dir(label, seed) / "status.json"),
-                      "godzin": H_TRANSFER, "gb": round(gb_echo, 3),
-                      "wymaga": None if label == "scratch" else init})
-    S.append({"id": "pretext_summarize", "grupa": "2. Model 2: transfer",
+    # --- §2. Transfer na OGRANICZONYM zbiorze docelowym -------------------
+    # Test przewidywania z 2026-08-13 §5.1. Podzbior jest stratyfikowany po
+    # lokalizacji i ma STALE ziarno miedzy warunkami -- patrz `transfer.py`.
+    for frac in LIMITED_FRACTIONS:
+        pct = round(frac * 100)
+        for base in LIMITED_INITS:
+            init = ("scratch" if base == "scratch"
+                    else str(paths.ML_OUTPUTS / "pretext" / base / "best_encoder.pth"))
+            label = f"{base}_f{pct}"
+            for seed in LIMITED_SEEDS:
+                S.append({
+                    "id": f"transfer_{label}_s{seed}",
+                    "grupa": f"1. §2 transfer na {pct} % zbioru docelowego",
+                    "cmd": [sys.executable, str(TRANSFER), "--init", init,
+                            "--seed", str(seed), "--label", label,
+                            "--train-fraction", f"{frac}"],
+                    "done_marker": str(_transfer_dir(label, seed) / "status.json"),
+                    "godzin": H_TRANSFER_MEASURED, "gb": round(gb_transfer, 3),
+                    "wymaga": None if base == "scratch" else init})
+    S.append({"id": "pretext_summarize", "grupa": "1. §2 transfer na 10/25 % zbioru docelowego",
               "cmd": [sys.executable, str(PRETEXT_SUM)], "done_marker": None,
               "godzin": 0.0, "gb": 0.0, "zawsze": True})
 
-    # 3-5. Model 1
+    # --- §3.1 i §3.2. Domkniecie istotnosci -------------------------------
     def train(cond, seed, model="echo2depth", extra=()):
         d = paths.RUNS_DIR / f"{cond}_seed{seed}"
         cmd = [sys.executable, str(TRAIN), "--condition", cond, "--seed", str(seed)]
@@ -166,20 +184,37 @@ def build_steps() -> list[dict]:
             cmd.append("--fast-bilinear")
         cmd += list(extra)
         return {"cmd": cmd, "done_marker": str(d / "status.json"),
-                "godzin": round(h_full if model == "full" else h_echo, 2),
+                "godzin": H_FULL_MEASURED if model == "full" else H_ECHO_MEASURED,
                 "gb": round(gb_full if model == "full" else gb_echo, 3),
                 "eval": str(d)}
 
     for c in ("EPA", "EPB", "EPD"):
-        S.append({"id": f"{c}_s0", "grupa": "3. geometria echo2depth (zamyka maske scisla)",
-                  **train(c, 0)})
-    for c in ("A", "D"):
-        S.append({"id": f"{c}_s0", "grupa": "4. glowne, 1 ziarno (B juz policzone)",
-                  **train(c, 0, model="full")})
-    for c in ("EK6", "EK9", "EK12", "EK18"):
-        for s in (0, 1, 2):
-            S.append({"id": f"{c}_s{s}", "grupa": "5. krzywa przy stalym budzecie",
+        for s in (1, 2):
+            S.append({"id": f"{c}_s{s}", "grupa": "2. §3.1 geometria_echo, ziarna 1-2",
                       **train(c, s)})
+    for c in ("A", "B", "D"):
+        for s in (1, 2):
+            S.append({"id": f"{c}_s{s}", "grupa": "3. §3.2 glowne (pelny model), ziarna 1-2",
+                      **train(c, s, model="full")})
+
+    # --- Porownania sparowane (bootstrap po lokalizacjach) ----------------
+    # Delta(B-A) w obu geometriach to WLASCIWA wielkosc porownywana miedzy
+    # wariantami (§3.1) -- surowe RMSE `patched` i `main` roznia sie takze
+    # samym zbiorem pikseli waznych.
+    for s in (1, 2):
+        for a, b in (("EPA", "EPB"), ("EPA", "EPD")):
+            S.append({
+                "id": f"cmp_{a}{s}_{b}{s}", "grupa": "4. porownania sparowane",
+                "cmd": [sys.executable, str(EVAL), "--compare",
+                        f"{a}_seed{s}", f"{b}_seed{s}"],
+                "done_marker": None, "zawsze": True, "godzin": 0.02, "gb": 0.0})
+    for s in (0, 1, 2):
+        for a, b in (("A", "B"), ("A", "D")):
+            S.append({
+                "id": f"cmp_{a}{s}_{b}{s}", "grupa": "4. porownania sparowane",
+                "cmd": [sys.executable, str(EVAL), "--compare",
+                        f"{a}_seed{s}", f"{b}_seed{s}"],
+                "done_marker": None, "zawsze": True, "godzin": 0.02, "gb": 0.0})
     return S
 
 
@@ -371,8 +406,12 @@ def cmd_run(args) -> int:
 
         # `LICZBY_DO_PRACY.md` ma byc aktualne nad ranem niezaleznie od tego,
         # dokad kolejka dojdzie — wiec odswiezamy po KAZDYM kroku, nie na koncu.
-        subprocess.call([sys.executable, str(NUMBERS)], stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL, cwd=str(paths.REPO_ROOT))
+        # KOLEJNOSC MA ZNACZENIE: `final_results.py` produkuje plik dowodowy,
+        # z ktorego `thesis_numbers.py` czyta -- odwrotnie eksport byloby o krok
+        # do tylu przez cala noc.
+        for script in (FINAL, NUMBERS):
+            subprocess.call([sys.executable, str(script)], stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, cwd=str(paths.REPO_ROOT))
 
     _write_summary(results, started, q)
     ok = sum(1 for r in results if r["wynik"] == "ok")

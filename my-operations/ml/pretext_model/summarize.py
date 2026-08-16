@@ -22,6 +22,13 @@ czy odtwarzamy wlasciwy PORZADEK warunkow i rzad wielkosci efektu.
 
 Rozbicie z punktu 4.6 (MAAE osobno dla przesuniec <= 20 i > 20 stopni) jest
 raportowane zawsze, bo to ono wyznacza faktyczna granice rozdzielczosci metody.
+
+JEDNOSTKA AGREGACJI TO WARUNEK, NIE JEGO CZESC (naprawione 2026-08-15). Kazde
+`_agg` grupuje po kluczu, ktory identyfikuje warunek jednoznacznie:
+`variant` (`K36` vs `K36@16par`) w tabeli A i `fraction_label`
+(`<init>|<% zbioru>`) w tabeli B. Grupowanie po samym `K` sklejalo warunek
+z jego wlasna kontrola i podawalo srednia z dwoch roznych rzeczy jako
+"wartosc +/- rozrzut po ziarnach".
 """
 
 from __future__ import annotations
@@ -48,6 +55,14 @@ GAO_REFERENCE = {"scratch": 0.360, "K4": 0.332}
 _RUN_RE = re.compile(r"^pretext_K(\d+)(?:_p(\d+))?_seed(\d+)$")
 
 
+def _frac_of(fraction_label: str) -> float:
+    """Ulamek zbioru z etykiety `<label>|<pct>%`; 0.0 gdy etykieta bez ulamka."""
+    try:
+        return float(fraction_label.rsplit("|", 1)[1].rstrip("%")) / 100.0
+    except (IndexError, ValueError):
+        return 0.0
+
+
 def _load(path: Path) -> dict | None:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -66,8 +81,10 @@ def collect_pretext(root: Path) -> list[dict]:
         if not best:
             continue
         k, ppl, seed = int(m.group(1)), m.group(2), int(m.group(3))
+        # WARIANT, nie K, jest jednostka agregacji -- patrz `_agg` nizej.
+        variant = f"K{k}" + (f"@{int(ppl)}par" if ppl else "")
         rows.append({
-            "run": d.name, "K": k, "seed": seed,
+            "run": d.name, "K": k, "variant": variant, "seed": seed,
             "pairs_per_location": int(ppl) if ppl else k * k,
             "subsampled": bool(ppl),
             "MAAE_deg": best.get("MAAE_deg"),
@@ -94,9 +111,17 @@ def collect_transfer(root: Path) -> list[dict]:
         status = _load(d / "status.json") or {}
         if not best:
             continue
+        # Ulamek zbioru TRENINGOWEGO zadania docelowego (§2 z 2026-08-15).
+        # Starsze przebiegi nie maja tego pola w `config.json` -- brak = pelny
+        # zbior, bo wtedy nie bylo czym go ograniczyc.
+        frac = float(cfg.get("train_fraction", 1.0) or 1.0)
         rows.append({
             "run": d.name,
             "label": cfg.get("label", d.name),
+            "train_fraction": frac,
+            # Etykieta uzywana do agregacji "warunek x wielkosc zbioru".
+            "fraction_label": f"{cfg.get('label', d.name)}|{round(frac * 100)}%",
+            "n_train": cfg.get("n_train"),
             "seed": cfg.get("seed"),
             "init": cfg.get("init"),
             "RMSE": best.get("all", {}).get("RMSE"),
@@ -113,8 +138,16 @@ def collect_transfer(root: Path) -> list[dict]:
 
 
 def _agg(rows: list[dict], key: str, field: str) -> dict:
-    """Srednia i odchylenie po ziarnach. Pojedyncze ziarno -> sd = None, a nie 0:
-    z n=1 nie da sie oszacowac rozrzutu i udawanie zera bylo by falszem."""
+    """Srednia i odchylenie po ZIARNACH. Pojedyncze ziarno -> sd = None, a nie 0:
+    z n=1 nie da sie oszacowac rozrzutu i udawanie zera bylo by falszem.
+
+    `key` MUSI jednoznacznie identyfikowac WARUNEK, a nie jego czesc.
+    Blad naprawiony 2026-08-15: agregowano po `K`, wiec `pretext_K36_seed0`
+    (MAAE 25,13) i `pretext_K36_p16_seed0` (MAAE 61,77) -- dwa ROZNE warunki,
+    ktorych roznica jest wynikiem §4 -- wpadaly do jednego kubelka. Wychodzilo
+    "K=36: 43,45 +/- 25,91", czyli srednia z warunku i jego wlasnej kontroli,
+    podana jako gdyby byla rozrzutem po ziarnach. Stad `variant`, nie `K`.
+    """
     out: dict[str, dict] = {}
     for r in rows:
         out.setdefault(r[key], []).append(r)
@@ -150,7 +183,7 @@ def main(argv=None) -> int:
         print(f"  {'wariant':16s} {'ziarn':>5s} {'MAAE':>8s} {'losowo':>7s} {'top1':>7s} "
               f"{'losowo':>7s} {'+/-30':>7s} {'MAAE<=20':>9s} {'MAAE>20':>8s} {'sasiad':>7s}")
         for r in sorted(pre, key=lambda x: (x["K"], x["subsampled"], x["seed"])):
-            tag = f"K{r['K']}" + (f"@{r['pairs_per_location']}par" if r["subsampled"] else "")
+            tag = r["variant"]
             warn = "  [SUFIT BUDZETU]" if r.get("budget_warning") else ""
             print(f"  {tag:16s} {r['seed']:>5d} {r['MAAE_deg']:>8.2f} {90.0:>7.1f} "
                   f"{r['top1']*100:>6.1f}% {r['top1_chance']*100:>6.1f}% "
@@ -164,17 +197,24 @@ def main(argv=None) -> int:
     if not tra:
         print("  (brak przebiegow zadania docelowego w outputs/ml/pretext_transfer/)")
     else:
-        agg = _agg(tra, "label", "RMSE")
-        print(f"  {'inicjalizacja enkodera':28s} {'ziarn':>5s} {'RMSE':>9s} {'sd':>8s} "
-              f"{'krawedzie':>10s} {'odniesienie Gao':>16s}")
-        for label in sorted(agg, key=lambda l: agg[l]["mean"]):
-            a = agg[label]
+        # Agregacja po (etykieta, ULAMEK ZBIORU): przebieg na 10 % danych i na
+        # 100 % to DWA rozne warunki, a nie dwa ziarna tego samego -- ta sama
+        # pulapka, ktora przy K=36 dala "43,45 +/- 25,91".
+        agg = _agg(tra, "fraction_label", "RMSE")
+        print(f"  {'inicjalizacja enkodera':28s} {'zbior':>6s} {'ziarn':>5s} {'RMSE':>9s} "
+              f"{'sd':>8s} {'krawedzie':>10s} {'odniesienie Gao':>16s}")
+        for flab in sorted(agg, key=lambda l: (-_frac_of(l), agg[l]["mean"])):
+            a = agg[flab]
+            label, pct = flab.rsplit("|", 1)
             edge = np.mean([r["RMSE_edge"] for r in tra
-                            if r["label"] == label and r["RMSE_edge"] is not None])
-            ref = GAO_REFERENCE.get("scratch" if "scratch" in label.lower() else
-                                    ("K4" if re.search(r"_K4_", label) else ""), None)
+                            if r["fraction_label"] == flab and r["RMSE_edge"] is not None])
+            # Odniesienie Gao dotyczy PELNEGO zbioru docelowego -- przy 10 % / 25 %
+            # nie ma z czym porownywac, wiec kolumna zostaje pusta.
+            ref = (GAO_REFERENCE.get("scratch" if "scratch" in label.lower() else
+                                     ("K4" if re.search(r"_K4_", label) else ""), None)
+                   if pct == "100%" else None)
             sd = f"{a['sd']:.5f}" if a["sd"] is not None else "   n=1"
-            print(f"  {label:28s} {a['n_seeds']:>5d} {a['mean']:>9.5f} {sd:>8s} "
+            print(f"  {label:28s} {pct:>6s} {a['n_seeds']:>5d} {a['mean']:>9.5f} {sd:>8s} "
                   f"{edge:>10.5f} {(f'{ref:.3f}' if ref else '—'):>16s}")
         # `scratch` z definicji nie przenosi wag, wiec nie moze "nie przeniesc" --
         # ostrzezenie dotyczy wylacznie przebiegow, ktore mialy wczytac enkoder.
@@ -197,28 +237,47 @@ def main(argv=None) -> int:
 
     # Rozklad efektu wg 4.4: K36 - K36@16par izoluje ILOSC PAR,
     # K36@16par - K4 izoluje SAMA ROZDZIELCZOSC KATOWA zadania.
+    #
+    # UWAGA NA NAZWE. To jest rozklad RMSE ZADANIA DOCELOWEGO (transfer), a nie
+    # rozklad MAAE zadania pretekstowego -- ta sama arytmetyka na dwoch roznych
+    # wielkosciach i w dwoch roznych jednostkach. Przed 2026-08-15 obie nazywaly
+    # sie "rozklad efektu pretreningu" i mozna je bylo przepisac zamiennie.
     by_lab = _agg(tra, "label", "RMSE")
+    # Liczone WYLACZNIE na pelnym zbiorze docelowym: przebiegi na 10 %/25 % maja
+    # etykiety z tymi samymi fragmentami ("K4_"), wiec bez tego filtra `pick`
+    # trafialby raz w jeden, raz w drugi warunek zaleznie od kolejnosci kluczy.
+    full = _agg([r for r in tra if r["train_fraction"] >= 1.0], "label", "RMSE")
     def pick(frag):
-        for k in by_lab:
+        for k in full:
             if frag in k:
-                return by_lab[k]["mean"]
+                return full[k]["mean"]
         return None
     k4, k36, k36p = pick("K4_"), None, pick("K36_p16")
-    for k in by_lab:
+    for k in full:
         if "K36_" in k and "p16" not in k:
-            k36 = by_lab[k]["mean"]
+            k36 = full[k]["mean"]
     rozklad = {}
     if None not in (k4, k36, k36p):
         rozklad = {"ilosc_par_K36_minus_K36p16": k36 - k36p,
                    "rozdzielczosc_K36p16_minus_K4": k36p - k4,
                    "laczny_K36_minus_K4": k36 - k4,
-                   "uwaga": "wartosci UJEMNE znacza poprawe (nizsze RMSE)"}
+                   "jednostka": "RMSE zadania docelowego (transfer), pelny zbior",
+                   "uwaga": "wartosci UJEMNE znacza poprawe (nizsze RMSE); "
+                            "to NIE jest rozklad MAAE zadania pretekstowego"}
 
     payload = {"pretext": pre, "transfer": tra,
-               "pretext_by_K": _agg(pre, "K", "MAAE_deg"),
+               # Klucz nazywa sie `_by_variant`, a nie `_by_K`, ZEBY nie dalo sie
+               # go pomylic ze stara (bledna) agregacja po samym K -- konsument
+               # (`thesis_numbers.py`) wysypie sie na brakujacym kluczu zamiast
+               # cicho przepisac liczbe, ktora mierzy co innego.
+               "pretext_by_variant": _agg(pre, "variant", "MAAE_deg"),
                "transfer_by_label": by_lab,
+               "transfer_by_fraction": _agg(tra, "fraction_label", "RMSE"),
                "confusion_matrices": cm,
-               "rozklad_efektu_pretreningu": rozklad,
+               # Nazwa mowi WPROST, ktora wielkosc jest rozkladana. Stara
+               # ("rozklad_efektu_pretreningu") nie odrozniala sie od rozkladu
+               # MAAE z §4 raportu 2026-08-13, ktory jest w STOPNIACH.
+               "rozklad_RMSE_zadania_docelowego": rozklad,
                "gao_reference": GAO_REFERENCE,
                "uwaga": "kolumna odniesienia Gao NIE jest baseline'em -- inny silnik akustyczny; "
                         "sluzy do sprawdzenia porzadku warunkow i rzedu wielkosci efektu"}
