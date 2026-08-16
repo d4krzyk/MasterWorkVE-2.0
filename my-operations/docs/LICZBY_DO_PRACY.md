@@ -76,6 +76,10 @@ Uwagi:
 | Wpływ domknięcia geometrii: EPA_minus_EA (3 ziarna) | **-0.00123 (p=0.870)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.1 |
 | Wpływ domknięcia geometrii: EPB_minus_EB (3 ziarna) | **+0.01235 (p=0.013)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.1 |
 | Wpływ domknięcia geometrii: EPD_minus_ED (3 ziarna) | **+0.01045 (p=0.090)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.1 |
+| Δ na trzech maskach: EPA_minus_EA (3 ziarna) | **pelna: -0.00123 ± 0.01389, intersection: -0.00429 ± 0.01088, strict: +0.00389 ± 0.00981** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.1b |
+| Δ na trzech maskach: EPB_minus_EB (3 ziarna) | **pelna: +0.01235 ± 0.00285, intersection: +0.00325 ± 0.00309, strict: +0.00704 ± 0.00326** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.1b |
+| Δ na trzech maskach: EPD_minus_ED (3 ziarna) | **pelna: +0.01045 ± 0.00402, intersection: +0.00299 ± 0.00496, strict: +0.00826 ± 0.00520** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.1b |
+| Czy Δ(patched−main) jest dodatnia we wszystkich 9 komórkach | **False** | — | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.1b |
 
 Uwagi:
 - **Pikseli usuniętych przez łatkę (+ → 0)** — we WSZYSTKICH 10 scenach — dlatego maska przecięcia = maska main
@@ -89,6 +93,10 @@ Uwagi:
 - **Wpływ domknięcia geometrii: EPA_minus_EA (3 ziarna)** — wartość DODATNIA = `patched` GORSZY; 0.2-0.5x podlogi szumu
 - **Wpływ domknięcia geometrii: EPB_minus_EB (3 ziarna)** — wartość DODATNIA = `patched` GORSZY; 1.7-5.4x podlogi szumu
 - **Wpływ domknięcia geometrii: EPD_minus_ED (3 ziarna)** — wartość DODATNIA = `patched` GORSZY; 1.4-4.5x podlogi szumu
+- **Δ na trzech maskach: EPA_minus_EA (3 ziarna)** — maska `pelna` punktuje każdy wariant na JEGO pikselach ważnych i dlatego zawyża Δ; `intersection` i `strict` liczą oba na tych samych pikselach
+- **Δ na trzech maskach: EPB_minus_EB (3 ziarna)** — maska `pelna` punktuje każdy wariant na JEGO pikselach ważnych i dlatego zawyża Δ; `intersection` i `strict` liczą oba na tych samych pikselach
+- **Δ na trzech maskach: EPD_minus_ED (3 ziarna)** — maska `pelna` punktuje każdy wariant na JEGO pikselach ważnych i dlatego zawyża Δ; `intersection` i `strict` liczą oba na tych samych pikselach
+- **Czy Δ(patched−main) jest dodatnia we wszystkich 9 komórkach** — na 1 ziarnie (2026-08-13 §3.1) było 9/9 — na 3 ziarnach NIE; `EPA` jest nierozróżnialne od zera na każdej masce
 
 ## 4. Determinizm i wydajność
 
@@ -164,10 +172,10 @@ Uwagi:
 | Pełny model: gestosc_D_minus_A (3 ziarna) | **-0.02048 ± 0.00350 (p=0.0096)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.2 |
 | Pełny model: ilosc_danych_B_minus_D (3 ziarna) | **-0.02833 ± 0.00154 (p=0.0010)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.2 |
 | Pełny model: laczny_B_minus_A (3 ziarna) | **-0.04881 ± 0.00355 (p=0.0018)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.2 |
-| Model 2: MAAE pretekstu wg wariantu — K4 | **61.23** | stopnie | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §4 |
-| Model 2: MAAE pretekstu wg wariantu — K12 | **55.73** | stopnie | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §4 |
-| Model 2: MAAE pretekstu wg wariantu — K36 | **25.13** | stopnie | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §4 |
-| Model 2: MAAE pretekstu wg wariantu — K36@16par | **61.77** | stopnie | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: MAAE pretekstu wg wariantu — K4 | **59.94 ± 2.10** | stopnie | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: MAAE pretekstu wg wariantu — K12 | **58.73 ± 2.61** | stopnie | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: MAAE pretekstu wg wariantu — K36 | **25.65 ± 0.74** | stopnie | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: MAAE pretekstu wg wariantu — K36@16par | **58.70 ± 7.40** | stopnie | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §4 |
 | Model 2: RGB2Depth po pretreningu — pretext_K4_seed0 @ 100% zbioru | **0.28699 ± 0.00433** | RMSE | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §5 |
 | Model 2: RGB2Depth po pretreningu — pretext_K36_p16_seed0 @ 100% zbioru | **0.28927 ± 0.00340** | RMSE | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §5 |
 | Model 2: RGB2Depth po pretreningu — scratch @ 100% zbioru | **0.28986 ± 0.00204** | RMSE | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §5 |
@@ -231,10 +239,10 @@ Uwagi:
 - **Pełny model: gestosc_D_minus_A (3 ziarna)** — test SPAROWANY po ziarnie; 2.8-8.9x podlogi szumu
 - **Pełny model: ilosc_danych_B_minus_D (3 ziarna)** — test SPAROWANY po ziarnie; 3.9-12.3x podlogi szumu
 - **Pełny model: laczny_B_minus_A (3 ziarna)** — test SPAROWANY po ziarnie; 6.7-21.2x podlogi szumu
-- **Model 2: MAAE pretekstu wg wariantu — K4** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1
-- **Model 2: MAAE pretekstu wg wariantu — K12** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1
-- **Model 2: MAAE pretekstu wg wariantu — K36** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1
-- **Model 2: MAAE pretekstu wg wariantu — K36@16par** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1
+- **Model 2: MAAE pretekstu wg wariantu — K4** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=3, sd=— przy n=1
+- **Model 2: MAAE pretekstu wg wariantu — K12** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=3, sd=— przy n=1
+- **Model 2: MAAE pretekstu wg wariantu — K36** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=3, sd=— przy n=1
+- **Model 2: MAAE pretekstu wg wariantu — K36@16par** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=3, sd=— przy n=1
 - **Model 2: RGB2Depth po pretreningu — pretext_K4_seed0 @ 100% zbioru** — n_ziaren=5; zadanie docelowe BEZ audio w czasie testu; 100% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)
 - **Model 2: RGB2Depth po pretreningu — pretext_K36_p16_seed0 @ 100% zbioru** — n_ziaren=5; zadanie docelowe BEZ audio w czasie testu; 100% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)
 - **Model 2: RGB2Depth po pretreningu — scratch @ 100% zbioru** — n_ziaren=5; zadanie docelowe BEZ audio w czasie testu; 100% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)

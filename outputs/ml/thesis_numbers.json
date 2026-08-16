@@ -989,6 +989,58 @@
       "uwaga": "wartość DODATNIA = `patched` GORSZY; 1.4-4.5x podlogi szumu"
     },
     {
+      "grupa": "geometria",
+      "nazwa": "Δ na trzech maskach: EPA_minus_EA (3 ziarna)",
+      "wartosc": {
+        "pelna": "-0.00123 ± 0.01389",
+        "intersection": "-0.00429 ± 0.01088",
+        "strict": "+0.00389 ± 0.00981"
+      },
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1b",
+      "uwaga": "maska `pelna` punktuje każdy wariant na JEGO pikselach ważnych i dlatego zawyża Δ; `intersection` i `strict` liczą oba na tych samych pikselach"
+    },
+    {
+      "grupa": "geometria",
+      "nazwa": "Δ na trzech maskach: EPB_minus_EB (3 ziarna)",
+      "wartosc": {
+        "pelna": "+0.01235 ± 0.00285",
+        "intersection": "+0.00325 ± 0.00309",
+        "strict": "+0.00704 ± 0.00326"
+      },
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1b",
+      "uwaga": "maska `pelna` punktuje każdy wariant na JEGO pikselach ważnych i dlatego zawyża Δ; `intersection` i `strict` liczą oba na tych samych pikselach"
+    },
+    {
+      "grupa": "geometria",
+      "nazwa": "Δ na trzech maskach: EPD_minus_ED (3 ziarna)",
+      "wartosc": {
+        "pelna": "+0.01045 ± 0.00402",
+        "intersection": "+0.00299 ± 0.00496",
+        "strict": "+0.00826 ± 0.00520"
+      },
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1b",
+      "uwaga": "maska `pelna` punktuje każdy wariant na JEGO pikselach ważnych i dlatego zawyża Δ; `intersection` i `strict` liczą oba na tych samych pikselach"
+    },
+    {
+      "grupa": "geometria",
+      "nazwa": "Czy Δ(patched−main) jest dodatnia we wszystkich 9 komórkach",
+      "wartosc": false,
+      "jednostka": "—",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-15.md §3.1b",
+      "uwaga": "na 1 ziarnie (2026-08-13 §3.1) było 9/9 — na 3 ziarnach NIE; `EPA` jest nierozróżnialne od zera na każdej masce"
+    },
+    {
       "grupa": "wyniki_echo",
       "nazwa": "PEŁNY MODEL: RMSE test@36 A/B/D (3 ziarna)",
       "wartosc": {
@@ -1035,42 +1087,42 @@
     {
       "grupa": "wyniki_echo",
       "nazwa": "Model 2: MAAE pretekstu wg wariantu — K4",
-      "wartosc": "61.23",
+      "wartosc": "59.94 ± 2.10",
       "jednostka": "stopnie",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
-      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1"
+      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=3, sd=— przy n=1"
     },
     {
       "grupa": "wyniki_echo",
       "nazwa": "Model 2: MAAE pretekstu wg wariantu — K12",
-      "wartosc": "55.73",
+      "wartosc": "58.73 ± 2.61",
       "jednostka": "stopnie",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
-      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1"
+      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=3, sd=— przy n=1"
     },
     {
       "grupa": "wyniki_echo",
       "nazwa": "Model 2: MAAE pretekstu wg wariantu — K36",
-      "wartosc": "25.13",
+      "wartosc": "25.65 ± 0.74",
       "jednostka": "stopnie",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
-      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1"
+      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=3, sd=— przy n=1"
     },
     {
       "grupa": "wyniki_echo",
       "nazwa": "Model 2: MAAE pretekstu wg wariantu — K36@16par",
-      "wartosc": "61.77",
+      "wartosc": "58.70 ± 7.40",
       "jednostka": "stopnie",
       "status": "[Z]",
       "dowod": "pretext/summary.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
-      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=1, sd=— przy n=1"
+      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=3, sd=— przy n=1"
     },
     {
       "grupa": "wyniki_echo",

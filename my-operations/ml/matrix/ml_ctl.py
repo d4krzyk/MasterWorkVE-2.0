@@ -85,19 +85,13 @@ except (AttributeError, ValueError):   # nie-TextIO albo starszy Python
 # Ponizej tego progu kolejka sie ZATRZYMUJE, zamiast zapisywac na pelny dysk.
 MIN_FREE_GB = 15.0
 
-# Ziarna transferu Modelu 2 -- 5, bo roznice miedzy inicjalizacjami enkodera
-# beda male (u Gao 0,360 -> 0,332, czyli 0,028 na cala skale efektu).
-TRANSFER_SEEDS = (0, 1, 2, 3, 4)
 PRETEXT_K = (4, 12, 36)
 PRETEXT_SUBSAMPLE = 16          # kontrola: K=36 podprobkowane do 16 par/lokalizacje
 
 # Przepustowosc ZMIERZONA 2026-08-12 na tym sprzecie (batch 32, 120 krokow):
 #   pretekst K=4  1651 par/s | K=36 1384 par/s | transfer 2019 probek/s
 # Przeliczone na godziny za 40 000 krokow, z zapasem 15 % na walidacje.
-# Wczesniej byly tu wartosci zgadywane -- plan na noc musi podawac czas, ktory
-# da sie zaplanowac, a nie rzad wielkosci.
 H_PRETEXT = {4: 0.25, 12: 0.27, 36: 0.30}
-H_TRANSFER = 0.20
 
 
 def _ts() -> str:
@@ -116,105 +110,63 @@ def _pretext_dir(k: int, sub: int | None, seed: int) -> Path:
     return paths.ML_OUTPUTS / "pretext" / f"pretext_{tag}_seed{seed}"
 
 
-def _transfer_dir(label: str, seed: int) -> Path:
-    return paths.ML_OUTPUTS / "pretext_transfer" / f"transfer_{label}_seed{seed}"
-
-
-# Ulamki zbioru TRENINGOWEGO zadania docelowego (§2 z 2026-08-15) i ziarna.
-# 3 ziarna, nie 5: przebiegow jest 18, a pytanie brzmi "czy pretrening w ogole
-# ZACZYNA pomagac", nie "o ile dokladnie".
-LIMITED_FRACTIONS = (0.10, 0.25)
-LIMITED_SEEDS = (0, 1, 2)
-LIMITED_INITS = ("scratch", "pretext_K4_seed0", "pretext_K36_seed0")
-
-# Czasy ZMIERZONE na kolejce 2026-08-13 (`ml_ctl_2026-08-13_0129.md`), a nie
-# przeliczone z SEC_PER_STEP -- ten drugi nie zawiera narzutu walidacji i
-# zanizal o ~10 %. Minuty na przebieg 40 000 krokow:
-#   transfer 18,7 | echo2depth (EPA/EPB/EPD) 10,5 | pelny model (A/D) 57,3
-H_TRANSFER_MEASURED = 18.7 / 60
-H_ECHO_MEASURED = 10.5 / 60
-H_FULL_MEASURED = 57.3 / 60
+# Warunki `geometria_echo` i ich odpowiedniki w `main` -- do ewaluacji z maskami.
+MASK_PAIRS = (("EPA", "EA"), ("EPB", "EB"), ("EPD", "ED"))
+MASK_MODES = ("intersection", "strict")
 
 
 def build_steps() -> list[dict]:
-    """Kolejka sesji 2026-08-15. Plan poprzedniej nocy jest w
-    `outputs/ml/logs/ml_ctl_2026-08-13_0129.md` -- wszystkie jej kroki sa
-    gotowe, wiec powtarzanie ich tutaj tylko wydluzaloby `plan`.
+    """Kolejka sesji 2026-08-16 (domkniecie po sesji 2026-08-15).
 
-    KOLEJNOSC: §2 (transfer ograniczony) -> §3.1 (geometria_echo) -> §3.2
-    (glowne). Transfer idzie PIERWSZY, bo jako jedyny moze zmienic TRESC
-    rozdzialu, a nie tylko przedzial ufnosci przy juz napisanym zdaniu.
-    Ostatni jest §3.2 -- najdrozszy i najlatwiejszy do poswiecenia, jesli
-    zabraknie czasu.
+    Plany poprzednich nocy sa w `outputs/ml/logs/ml_ctl_*.md` -- wszystkie ich
+    kroki sa gotowe, wiec powtarzanie ich tutaj tylko wydluzaloby `plan`.
+
+    DWIE RZECZY, OBIE DOMYKAJACE ZASTRZEZENIA, A NIE OTWIERAJACE OSIE:
+
+    1. Rozrzut po ziarnach dla ZADANIA PRETEKSTOWEGO. MAAE 25,13 stopnia jest
+       liczba naglowkowa ("zadanie jest wykonalne, spadek o 72 % wobec
+       losowego"), a ma n = 1 -- jako jedyny wynik tej rangi w calej pracy.
+       Wariant `@16par` idzie razem z pozostalymi, bo bez niego rozklad efektu
+       (-36,64 stopnia z tytulu liczby par) dalej mialby jeden ze swoich dwoch
+       skladnikow bez przedzialu.
+    2. Analiza MASEK na ziarnach 1-2. Tabela z 2026-08-13 §3.1 byla liczona na
+       ziarnie 0; skoro `EPA - EA` zmienia znak po dolozeniu ziaren, jej wniosek
+       o odpornosci ZNAKU trzeba przeliczyc, a nie tylko zawezic komentarzem.
     """
     S: list[dict] = []
     gb_echo = 5 * PARAM_COUNTS["echo2depth"] * 4 / 1024 ** 3
-    gb_full = 5 * PARAM_COUNTS["full"] * 4 / 1024 ** 3
-    # Transfer zapisuje TYLKO `best_rgbdepth.pth` (bez checkpointu z Adamem).
-    gb_transfer = 16_658_561 * 4 / 1024 ** 3
 
-    # --- §2. Transfer na OGRANICZONYM zbiorze docelowym -------------------
-    # Test przewidywania z 2026-08-13 §5.1. Podzbior jest stratyfikowany po
-    # lokalizacji i ma STALE ziarno miedzy warunkami -- patrz `transfer.py`.
-    for frac in LIMITED_FRACTIONS:
-        pct = round(frac * 100)
-        for base in LIMITED_INITS:
-            init = ("scratch" if base == "scratch"
-                    else str(paths.ML_OUTPUTS / "pretext" / base / "best_encoder.pth"))
-            label = f"{base}_f{pct}"
-            for seed in LIMITED_SEEDS:
-                S.append({
-                    "id": f"transfer_{label}_s{seed}",
-                    "grupa": f"1. §2 transfer na {pct} % zbioru docelowego",
-                    "cmd": [sys.executable, str(TRANSFER), "--init", init,
-                            "--seed", str(seed), "--label", label,
-                            "--train-fraction", f"{frac}"],
-                    "done_marker": str(_transfer_dir(label, seed) / "status.json"),
-                    "godzin": H_TRANSFER_MEASURED, "gb": round(gb_transfer, 3),
-                    "wymaga": None if base == "scratch" else init})
-    S.append({"id": "pretext_summarize", "grupa": "1. §2 transfer na 10/25 % zbioru docelowego",
-              "cmd": [sys.executable, str(PRETEXT_SUM)], "done_marker": None,
-              "godzin": 0.0, "gb": 0.0, "zawsze": True})
-
-    # --- §3.1 i §3.2. Domkniecie istotnosci -------------------------------
-    def train(cond, seed, model="echo2depth", extra=()):
-        d = paths.RUNS_DIR / f"{cond}_seed{seed}"
-        cmd = [sys.executable, str(TRAIN), "--condition", cond, "--seed", str(seed)]
-        if model == "full":
-            cmd.append("--fast-bilinear")
-        cmd += list(extra)
-        return {"cmd": cmd, "done_marker": str(d / "status.json"),
-                "godzin": H_FULL_MEASURED if model == "full" else H_ECHO_MEASURED,
-                "gb": round(gb_full if model == "full" else gb_echo, 3),
-                "eval": str(d)}
-
-    for c in ("EPA", "EPB", "EPD"):
-        for s in (1, 2):
-            S.append({"id": f"{c}_s{s}", "grupa": "2. §3.1 geometria_echo, ziarna 1-2",
-                      **train(c, s)})
-    for c in ("A", "B", "D"):
-        for s in (1, 2):
-            S.append({"id": f"{c}_s{s}", "grupa": "3. §3.2 glowne (pelny model), ziarna 1-2",
-                      **train(c, s, model="full")})
-
-    # --- Porownania sparowane (bootstrap po lokalizacjach) ----------------
-    # Delta(B-A) w obu geometriach to WLASCIWA wielkosc porownywana miedzy
-    # wariantami (§3.1) -- surowe RMSE `patched` i `main` roznia sie takze
-    # samym zbiorem pikseli waznych.
+    # --- 1. Pretrening Modelu 2, ziarna 1-2 --------------------------------
     for s in (1, 2):
-        for a, b in (("EPA", "EPB"), ("EPA", "EPD")):
-            S.append({
-                "id": f"cmp_{a}{s}_{b}{s}", "grupa": "4. porownania sparowane",
-                "cmd": [sys.executable, str(EVAL), "--compare",
-                        f"{a}_seed{s}", f"{b}_seed{s}"],
-                "done_marker": None, "zawsze": True, "godzin": 0.02, "gb": 0.0})
-    for s in (0, 1, 2):
-        for a, b in (("A", "B"), ("A", "D")):
-            S.append({
-                "id": f"cmp_{a}{s}_{b}{s}", "grupa": "4. porownania sparowane",
-                "cmd": [sys.executable, str(EVAL), "--compare",
-                        f"{a}_seed{s}", f"{b}_seed{s}"],
-                "done_marker": None, "zawsze": True, "godzin": 0.02, "gb": 0.0})
+        for k in PRETEXT_K:
+            S.append({"id": f"pretext_K{k}_s{s}", "grupa": "1. pretekst, ziarna 1-2 (rozrzut MAAE)",
+                      "cmd": [sys.executable, str(PRETRAIN), "--k", str(k), "--seed", str(s)],
+                      "done_marker": str(_pretext_dir(k, None, s) / "status.json"),
+                      "godzin": H_PRETEXT[k], "gb": round(gb_echo, 3)})
+        S.append({"id": f"pretext_K36_p{PRETEXT_SUBSAMPLE}_s{s}",
+                  "grupa": "1. pretekst, ziarna 1-2 (rozrzut MAAE)",
+                  "cmd": [sys.executable, str(PRETRAIN), "--k", "36", "--seed", str(s),
+                          "--pairs-per-location", str(PRETEXT_SUBSAMPLE)],
+                  "done_marker": str(_pretext_dir(36, PRETEXT_SUBSAMPLE, s) / "status.json"),
+                  "godzin": H_PRETEXT[36], "gb": round(gb_echo, 3)})
+
+    # --- 2. Ewaluacja z maskami na ziarnach 1-2 ----------------------------
+    # Checkpointy juz sa (sesja 2026-08-15), wiec to sama ewaluacja: ~20 s na
+    # przebieg. `--intersection-mask` wymaga OBU wariantow geometrii, wiec
+    # liczy sie osobno dla `main` i dla `patched`.
+    for s in (1, 2):
+        for patched, main in MASK_PAIRS:
+            for cond in (patched, main):
+                for mode in MASK_MODES:
+                    d = paths.ML_OUTPUTS / "eval" / f"{cond}_seed{s}_mask-{mode}"
+                    S.append({
+                        "id": f"maska_{cond}_s{s}_{mode}",
+                        "grupa": "2. maski przeciecia i scisla, ziarna 1-2",
+                        "cmd": [sys.executable, str(EVAL),
+                                "--run-dir", str(paths.RUNS_DIR / f"{cond}_seed{s}"),
+                                "--intersection-mask", "--mask-mode", mode],
+                        "done_marker": str(d / "eval.json"), "marker_wystarczy": True,
+                        "godzin": 0.01, "gb": 0.0})
     return S
 
 
@@ -238,13 +190,21 @@ def write_queue(q: dict) -> None:
 def step_done(step: dict) -> bool:
     """Krok jest gotowy, jesli jego `status.json` istnieje i ma `finished: true`.
     Tak samo jak `echo_ctl.scene_complete()` patrzy na atrybut w HDF5, a nie na
-    wlasna ksiegowosc -- zrodlem prawdy jest artefakt, nie plik kolejki."""
+    wlasna ksiegowosc -- zrodlem prawdy jest artefakt, nie plik kolejki.
+
+    WYJATEK `marker_wystarczy`: kroki EWALUACYJNE nie pisza `status.json`, tylko
+    `eval.json` -- i pisza go dopiero na koncu, wiec samo istnienie pliku jest
+    juz dowodem ukonczenia. Bez tego wyjatku ewaluacje przeliczalyby sie przy
+    kazdym wznowieniu kolejki, bo `.get("finished")` zwracalby None.
+    """
     m = step.get("done_marker")
     if not m:
         return False
     p = Path(m)
     if not p.exists():
         return False
+    if step.get("marker_wystarczy"):
+        return True
     try:
         return bool(json.loads(p.read_text(encoding="utf-8")).get("finished"))
     except json.JSONDecodeError:

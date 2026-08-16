@@ -274,6 +274,69 @@ def sekcja_31_geometria_echo() -> dict:
             "efekt_gestosci_w_obu_geometriach": efekt}
 
 
+# ---------------------------------------------------------- §3.1b maski
+
+
+def rmse_masked(run_id: str, mode: str) -> float | None:
+    """RMSE `test@36` z ewaluacji ograniczonej do maski `intersection`/`strict`."""
+    if not _finished(paths.RUNS_DIR / run_id):
+        return None
+    d = _load(paths.ML_OUTPUTS / "eval" / f"{run_id}_mask-{mode}" / "eval.json")
+    if not d:
+        return None
+    try:
+        return float(d["test_sets"]["test@36"]["overall"]["all"]["RMSE"])
+    except (KeyError, TypeError):
+        return None
+
+
+def sekcja_31b_maski() -> dict:
+    """Delta(patched - main) na TRZECH maskach, teraz na 3 ziarnach.
+
+    Tabela z 2026-08-13 §3.1 byla liczona na ZIARNIE 0 i wnioskowala, ze "znak
+    jest odporny" -- wszystkie dziewiec wartosci dodatnie. Po dolozeniu ziaren
+    1-2 `EPA - EA` na masce pelnej zmienia znak, wiec ten wniosek trzeba
+    przeliczyc, a nie tylko opatrzyc komentarzem.
+
+    Maska `pelna` bierze sie z ewaluacji BEZ `--intersection-mask`, wiec kazdy
+    wariant jest punktowany na swoim wlasnym zbiorze pikseli waznych -- to jest
+    ta wersja, ktora zawyza Delte. `przeciecie` i `scisla` licza oba warianty na
+    dokladnie tych samych pikselach.
+    """
+    seeds = (0, 1, 2)
+    par = (("EPA", "EA"), ("EPB", "EB"), ("EPD", "ED"))
+    out: dict[str, dict] = {}
+    for patched, main in par:
+        lab = f"{patched}_minus_{main}"
+        out[lab] = {}
+        for mode in ("pelna", "intersection", "strict"):
+            if mode == "pelna":
+                dv = [(rmse_test36(f"{patched}_seed{s}"), rmse_test36(f"{main}_seed{s}"))
+                      for s in seeds]
+            else:
+                dv = [(rmse_masked(f"{patched}_seed{s}", mode),
+                       rmse_masked(f"{main}_seed{s}", mode)) for s in seeds]
+            d = [(a - b) if (a is not None and b is not None) else None for a, b in dv]
+            st = _stat(d)
+            dd = [q for q in d if q is not None]
+            if len(dd) > 1:
+                t = stats.ttest_1samp(dd, 0.0)
+                st["p_sparowany"] = float(t.pvalue)
+            else:
+                st["p_sparowany"] = None
+            st["wszystkie_dodatnie"] = (bool(all(q > 0 for q in dd)) if dd else None)
+            out[lab][mode] = st
+    # Czy wniosek "znak jest odporny na wybor maski" nadal obowiazuje.
+    komorki = [st["wszystkie_dodatnie"] for m in out.values() for st in m.values()
+               if st["wszystkie_dodatnie"] is not None]
+    return {"opis": "Delta(patched - main) na trzech maskach, 3 ziarna, test sparowany po ziarnie",
+            "kontrasty": out,
+            "znak_dodatni_we_wszystkich_komorkach": (bool(all(komorki)) if komorki else None),
+            "komorek_policzonych": len(komorki),
+            "uwaga_2026_08_13": "poprzednia wersja tej tabeli (1 ziarno) dawala 9/9 wartosci "
+                                "dodatnich; ta wersja sprawdza, czy to sie utrzymuje"}
+
+
 # ---------------------------------------------------------------- §3.2
 
 
@@ -337,6 +400,7 @@ def main(argv=None) -> int:
         "podloga_szumu": NOISE_FLOOR,
         "transfer_ograniczony": sekcja_2_transfer_ograniczony(),
         "geometria_echo_3ziarna": sekcja_31_geometria_echo(),
+        "maski_3ziarna": sekcja_31b_maski(),
         "glowne_3ziarna": sekcja_32_glowne(),
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -391,6 +455,21 @@ def main(argv=None) -> int:
             p = "—" if pm["p"] is None else f"{pm['p']:.3f}"
             print(f"    {lab:24s} main {mm['mean']:+.5f}   patched {pp['mean']:+.5f}   "
                   f"roznica {pm['delta']:+.5f} (p={p})  znak_zgodny={e['znak_zgodny']}")
+
+    mk = payload["maski_3ziarna"]
+    print("\n" + "=" * 90)
+    print("§3.1b  DELTA(patched - main) NA TRZECH MASKACH, 3 ZIARNA")
+    print("=" * 90)
+    print(f"  {'kontrast':18s} {'maska':14s} {'Delta':>10s} {'sd':>9s} {'p':>8s}  wszystkie+")
+    for lab, m in mk["kontrasty"].items():
+        for mode, st in m.items():
+            if st["n"]:
+                sd = "  n<2" if st["sd"] is None else f"{st['sd']:.5f}"
+                p = "—" if st.get("p_sparowany") is None else f"{st['p_sparowany']:.4f}"
+                print(f"  {lab:18s} {mode:14s} {st['mean']:>+10.5f} {sd:>9s} {p:>8s}  "
+                      f"{st['wszystkie_dodatnie']}")
+    print(f"  -> znak dodatni we wszystkich {mk['komorek_policzonych']} komorkach: "
+          f"{mk['znak_dodatni_we_wszystkich_komorkach']}")
 
     gl = payload["glowne_3ziarna"]
     print("\n" + "=" * 90)

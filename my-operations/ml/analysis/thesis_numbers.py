@@ -383,6 +383,22 @@ def collect() -> tuple[list[dict], list[dict]]:
                     "echo_ablation/final_results_2026-08-15.json", f"{R15} §3.1",
                     f"wartość DODATNIA = `patched` GORSZY; {v.get('krotnosc_podlogi_szumu')}")
 
+        mk = f15.get("maski_3ziarna", {})
+        for lab, m in mk.get("kontrasty", {}).items():
+            rows = {mode: (f"{st['mean']:+.5f}" + (f" ± {st['sd']:.5f}" if st.get("sd") else ""))
+                    for mode, st in m.items() if st.get("n")}
+            if rows:
+                add("geometria", f"Δ na trzech maskach: {lab} (3 ziarna)", rows, "RMSE", "[Z]",
+                    "echo_ablation/final_results_2026-08-15.json", f"{R15} §3.1b",
+                    "maska `pelna` punktuje każdy wariant na JEGO pikselach ważnych i dlatego "
+                    "zawyża Δ; `intersection` i `strict` liczą oba na tych samych pikselach")
+        if mk.get("znak_dodatni_we_wszystkich_komorkach") is not None:
+            add("geometria", "Czy Δ(patched−main) jest dodatnia we wszystkich 9 komórkach",
+                mk["znak_dodatni_we_wszystkich_komorkach"], "—", "[Z]",
+                "echo_ablation/final_results_2026-08-15.json", f"{R15} §3.1b",
+                "na 1 ziarnie (2026-08-13 §3.1) było 9/9 — na 3 ziarnach NIE; "
+                "`EPA` jest nierozróżnialne od zera na każdej masce")
+
         gl = f15.get("glowne_3ziarna", {})
         rows = {c: f"{v['mean']:.5f} ± {v['sd']:.5f}" for c, v in gl.get("punkty", {}).items()
                 if v.get("n", 0) > 1}

@@ -381,6 +381,128 @@
       }
     }
   },
+  "maski_3ziarna": {
+    "opis": "Delta(patched - main) na trzech maskach, 3 ziarna, test sparowany po ziarnie",
+    "kontrasty": {
+      "EPA_minus_EA": {
+        "pelna": {
+          "values": [
+            0.01461773030579605,
+            -0.007028129079685197,
+            -0.011272032112253583
+          ],
+          "mean": -0.0012274769620475763,
+          "sd": 0.013885446455125386,
+          "n": 3,
+          "p_sparowany": 0.8923612726439043,
+          "wszystkie_dodatnie": false
+        },
+        "intersection": {
+          "values": [
+            0.007843230901242282,
+            -0.007552243901575384,
+            -0.013162407755419103
+          ],
+          "mean": -0.004290473585250735,
+          "sd": 0.010876055031163609,
+          "n": 3,
+          "p_sparowany": 0.564967204486641,
+          "wszystkie_dodatnie": false
+        },
+        "strict": {
+          "values": [
+            0.014900487838053644,
+            0.0006753509120996926,
+            -0.003913877251926601
+          ],
+          "mean": 0.003887320499408912,
+          "sd": 0.009809823897864648,
+          "n": 3,
+          "p_sparowany": 0.5633777147780914,
+          "wszystkie_dodatnie": false
+        }
+      },
+      "EPB_minus_EB": {
+        "pelna": {
+          "values": [
+            0.010142165475099718,
+            0.01134529167900622,
+            0.015567189914119095
+          ],
+          "mean": 0.012351549022741678,
+          "sd": 0.0028490591293189285,
+          "n": 3,
+          "p_sparowany": 0.017277026230740143,
+          "wszystkie_dodatnie": true
+        },
+        "intersection": {
+          "values": [
+            0.0011766434187522323,
+            0.001770480504683758,
+            0.006805434242955544
+          ],
+          "mean": 0.0032508527221305115,
+          "sd": 0.0030926441700105125,
+          "n": 3,
+          "p_sparowany": 0.21025853791997984,
+          "wszystkie_dodatnie": true
+        },
+        "strict": {
+          "values": [
+            0.004457460344803987,
+            0.005959313446176062,
+            0.010701749761971469
+          ],
+          "mean": 0.007039507850983839,
+          "sd": 0.0032592794518836476,
+          "n": 3,
+          "p_sparowany": 0.06460792010318646,
+          "wszystkie_dodatnie": true
+        }
+      },
+      "EPD_minus_ED": {
+        "pelna": {
+          "values": [
+            0.015067843431393668,
+            0.0077557255175026985,
+            0.008533322532362275
+          ],
+          "mean": 0.010452297160419547,
+          "sd": 0.004016044672810173,
+          "n": 3,
+          "p_sparowany": 0.045851809728569705,
+          "wszystkie_dodatnie": true
+        },
+        "intersection": {
+          "values": [
+            0.008608677485619554,
+            -0.0007785647597996492,
+            0.0011313699272927913
+          ],
+          "mean": 0.0029871608843708986,
+          "sd": 0.004961154029137313,
+          "n": 3,
+          "p_sparowany": 0.40649369900236265,
+          "wszystkie_dodatnie": false
+        },
+        "strict": {
+          "values": [
+            0.013932478748453936,
+            0.0037348923975606407,
+            0.007101495095764632
+          ],
+          "mean": 0.008256288747259736,
+          "sd": 0.0051959458358542725,
+          "n": 3,
+          "p_sparowany": 0.11055366905872632,
+          "wszystkie_dodatnie": true
+        }
+      }
+    },
+    "znak_dodatni_we_wszystkich_komorkach": false,
+    "komorek_policzonych": 9,
+    "uwaga_2026_08_13": "poprzednia wersja tej tabeli (1 ziarno) dawala 9/9 wartosci dodatnich; ta wersja sprawdza, czy to sie utrzymuje"
+  },
   "glowne_3ziarna": {
     "opis": "pelny model (RGB + echo + material + uwaga), 3 ziarna, RMSE test@36",
     "punkty": {

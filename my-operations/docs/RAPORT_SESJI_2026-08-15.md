@@ -1,8 +1,8 @@
 # Raport sesji — 2026-08-15/16: audyt liczb, diagnoza transferu, domknięcie fazy
 
-Sesja **nie dokłada nowych osi badawczych**. Robi trzy rzeczy: naprawia dwie niespójności
-w liczbach, testuje falsyfikowalne przewidywanie z §5.1 poprzedniego raportu, i domyka
-istotność tam, gdzie jest tania.
+Sesja **nie dokłada nowych osi badawczych**. Naprawia niespójności w liczbach, testuje
+falsyfikowalne przewidywanie z §5.1 poprzedniego raportu i domyka istotność wszędzie tam, gdzie
+była tania — łącznie 56 przebiegów GPU w 15,1 h, 0 błędów.
 
 Statusy: **[Z]** zmierzone · **[Z-]** z zastrzeżeniem · **[W]** wywnioskowane · **[X]** niesprawdzone.
 
@@ -12,7 +12,7 @@ skryptem `ml/analysis/final_results.py`), `outputs/ml/pretext/summary.json`,
 
 ---
 
-## 0. Cztery wyniki, w kolejności ważności dla tekstu
+## 0. Sześć wyników, w kolejności ważności dla tekstu
 
 1. **Sprzeczność w MAAE była błędem agregacji, nie sporem o wielkość.** `25,13` jest poprawne;
    `43,45 ± 25,91` nie istniało jako wielkość — to była średnia warunku i jego własnej kontroli.
@@ -26,9 +26,19 @@ skryptem `ml/analysis/final_results.py`), `outputs/ml/pretext/summary.json`,
 4. **Efekt gęstości nie zależy od geometrii** (różnica main/patched nieistotna, p = 0,26), ale
    twierdzenie „domknięcie geometrii szkodzi we wszystkich trzech warunkach" **nie utrzymało się**
    na 3 ziarnach — przy `cardinal` znak się odwraca. (§3.1)
+5. **Zadanie pretekstowe domknięte na 3 ziarnach**: MAAE K=36 = **25,65 ± 0,74°**, najstabilniejszy
+   z wariantów; rozkład efektu jest teraz **istotny** (ilość par −33,05°, p = 0,015; rozdzielczość
+   p = 0,83). Poprawka: K=4 i K=12 są **nierozróżnialne**. (§3.3)
+6. **Teza o odporności znaku na wybór maski OBALONA** — na masce przecięcia żaden kontrast
+   geometrii nie jest istotny. Efekt geometrii jest obserwacją kierunkową, nie wynikiem
+   ilościowym. (§3.4)
 
-Dwa z tych czterech to **korekty poprzednich raportów**. Oba stare twierdzenia są oznaczone
-w miejscu, w którym stoją, a nie usunięte.
+**Cztery z sześciu to korekty poprzednich raportów** (§1.1, §3.1, §3.3, §3.4) plus jedno wycofanie
+(§2). Wszystkie stare twierdzenia są oznaczone w miejscu, w którym stoją, a nie usunięte.
+
+**Wzór, który się powtarza i wart jest jednego zdania w pracy:** *każde* twierdzenie oparte na
+1 ziarnie, które ta sesja przeliczyła na 3, wymagało korekty — MAAE K4/K12, znak `EPA − EA`,
+odporność masek. Żadne nie było całkiem błędne, ale żadne nie było też dokładnie tym, co mówiło.
 
 ---
 
@@ -96,7 +106,7 @@ rzeczy, obie nazwane „rozkład efektu pretreningu", obie z tą samą arytmetyk
 
 **Zabezpieczenie na przyszłość.** `thesis_numbers._duplikaty_nazw()` sprawdza po każdym eksporcie,
 czy dwie pozycje nie noszą tej samej nazwy, i wypisuje je do konsoli oraz do osobnej sekcji
-`LICZBY_DO_PRACY.md`. Obecny stan: **brak duplikatów** (102 pozycje).
+`LICZBY_DO_PRACY.md`. Obecny stan: **brak duplikatów** (134 pozycje).
 
 ### 1.3 Heurystyka `bound` zaniżyła efekt 3,46× [Z]
 
@@ -339,6 +349,63 @@ Obserwacja z 2026-08-13 §2 była trafna, ale wtedy opatrzona zakazem cytowania 
 kątowej echa: efekt gęstości spada 7,2× (0,147 → 0,020) przy przejściu do pełnego modelu, czyli
 mniej więcej tyle, ile wynosi względny wkład echa w tej architekturze.
 
+### 3.3 Zadanie pretekstowe na 3 ziarnach — domknięte [Z]
+
+Dołożone po sesji (8 przebiegów, 2,5 h) — z kontrolą `@16par`, bo bez niej rozkład efektu miałby
+jeden ze swoich dwóch składników bez przedziału.
+
+| wariant | MAAE (3 ziarna) | wartości per ziarno |
+|---|---|---|
+| K=4 | 59,94 ± 2,10 | 61,23 · 57,51 · 61,08 |
+| K=12 | 58,73 ± 2,61 | 55,73 · 60,06 · 60,40 |
+| **K=36** | **25,65 ± 0,74** | 25,13 · 26,50 · 25,33 |
+| K=36 @ 16 par | 58,70 ± 7,40 | 61,77 · 64,07 · 50,26 |
+
+**Wynik nagłówkowy się utrzymał i jest najstabilniejszy z czterech** — 25,65 ± 0,74° wobec 90°
+losowego (−71,5 %). Wartość z 1 ziarna (25,13) leżała w granicach rozrzutu.
+
+**Poprawka:** K=4 (59,94) i K=12 (58,73) są **nierozróżnialne**. Pojedyncze ziarno dawało 61,23
+wobec 55,73, co czytało się jako poprawa przy przejściu z 4 do 12 klas — **artefakt jednego
+przebiegu**. Zwróć uwagę, że wariant `@16par` ma sd = 7,40°, czyli 10× większe niż K=36: warunki
+o małej liczbie par są bardzo wrażliwe na inicjalizację, co jednym ziarnem było niewidoczne.
+
+| składowa (sparowana po ziarnie) | wartość | p |
+|---|---|---|
+| **ilość par** (K36 − K36@16par) | **−33,05 ± 7,05°** | **0,015** |
+| rozdzielczość kątowa (K36@16par − K4) | −1,24 ± 8,82° | 0,831 |
+
+**Wniosek z §4 poprzedniego raportu nie tylko się utrzymał — teraz jest istotny.** Cała przewaga
+K=36 pochodzi z liczby par (p = 0,015), a rozdzielczość kątowa nie wnosi nic (p = 0,83).
+
+### 3.4 Maski na 3 ziarnach — teza o odporności znaku **obalona** [Z]
+
+24 ewaluacje (`EA/EB/ED/EPA/EPB/EPD` × ziarna 1–2 × `intersection`/`strict`), 2,5 min.
+Δ = `patched` − `main`, test sparowany po ziarnie.
+
+| kontrast | maska pełna | **przecięcie** | ścisła |
+|---|---|---|---|
+| `EPA − EA` | −0,00123 (p = 0,89) | **−0,00429** (p = 0,57) | +0,00389 (p = 0,56) |
+| `EPB − EB` | +0,01235 (p = **0,017**) | +0,00325 (p = 0,21) | +0,00704 (p = 0,065) |
+| `EPD − ED` | +0,01045 (p = **0,046**) | +0,00299 (p = 0,41) | +0,00826 (p = 0,11) |
+
+**Twierdzenie „znak jest odporny — wszystkie dziewięć wartości dodatnich" (2026-08-13 §3.1) jest
+OBALONE.** Na 3 ziarnach **dwie komórki są ujemne**, obie przy `EPA`, który jest nierozróżnialny
+od zera na każdej masce.
+
+Ważniejsze: **na masce przecięcia — zalecanej jako podstawowa, bo konserwatywna — żaden kontrast
+nie jest istotny** (p = 0,21 / 0,41 / 0,57). Efekt geometrii w dużej mierze **znika**, gdy oba
+warianty punktuje się na identycznym zbiorze pikseli. To znaczy, że znacząca część Δ z maski
+pełnej pochodziła z **różnicy w zbiorze pikseli ważnych**, a nie z akustyki.
+
+**Konsekwencja dla pracy:** efekt geometrii jest na granicy wykrywalności (0,003–0,012 przy
+podłodze szumu 0,0023–0,0073) i **nie wolno podawać dla niego jednej liczby** bez wskazania maski.
+Wniosek jakościowy — mocniejszy, ale bardziej jednorodny pogłos jest gorszym sygnałem — pozostaje
+spójny z pomiarem fizycznym i z tym, że efekt jest największy tam, gdzie kontrastu kątowego jest
+najwięcej do stracenia. Ale to jest teraz **obserwacja kierunkowa, nie wynik ilościowy**.
+
+Zastrzeżenie z 2026-08-11 §5 o pikselach „zmienionych, a ważnych" **nie tylko nie zostało zdjęte —
+okazało się większe, niż zakładano.**
+
 ---
 
 ## 4. Kolejka [Z]
@@ -427,10 +494,10 @@ Kolumna „ziaren" to liczba **ukończonych** przebiegów, nie zaplanowanych.
 
 | przebieg | ziaren | wynik | status |
 |---|---|---|---|
-| pretekst K=4 | 1 | MAAE 61,23° | [Z-] brak rozrzutu |
-| pretekst K=12 | 1 | MAAE 55,73° | [Z-] brak rozrzutu |
-| pretekst K=36 | 1 | **MAAE 25,13°** | [Z-] brak rozrzutu |
-| pretekst K=36 @ 16 par | 1 | MAAE 61,77° (kontrola) | [Z-] brak rozrzutu |
+| pretekst K=4 | **3** | MAAE 59,94 ± 2,10° | [Z] |
+| pretekst K=12 | **3** | MAAE 58,73 ± 2,61° | [Z] |
+| pretekst K=36 | **3** | **MAAE 25,65 ± 0,74°** | [Z] |
+| pretekst K=36 @ 16 par | **3** | MAAE 58,70 ± 7,40° (kontrola) | [Z] |
 | transfer @ 100 % zbioru | 5 × 5 warunków | 0,28699–0,29688, **nic istotnego** | [Z] |
 | transfer @ 25 % zbioru | 3 × 3 warunki | 0,30083–0,30569, nic istotnego | [Z] |
 | transfer @ 10 % zbioru | 3 × 3 warunki | 0,35390–0,35835, nic istotnego | [Z] |
@@ -445,10 +512,10 @@ Kolumna „ziaren" to liczba **ukończonych** przebiegów, nie zaplanowanych.
 | Gęstość działa też w pełnym modelu | D−A = **0,02048 ± 0,00350** | 3 ziarna, p = 0,0096; bootstrap wyklucza zero w 3/3 | **[Z] mocne** |
 | W pełnym modelu ilość danych > gęstość | 0,02833 vs 0,02048 (udział 42,0 %) | 3 ziarna, oba istotne | **[Z]** |
 | Efekt gęstości nie zależy od geometrii | main −0,14672 vs patched −0,13504 | 3 ziarna, różnica nieistotna (p = 0,26) | **[Z]** |
-| Domknięcie geometrii szkodzi przy gęstej siatce | `all` +0,01235 (p = 0,013) | 3 ziarna; **przy `cardinal` NIE** | **[Z] zawężone** |
+| Domknięcie geometrii szkodzi przy gęstej siatce | `all` +0,01235 (p = 0,017) na masce pełnej | 3 ziarna; **na masce przecięcia NIEISTOTNE**, przy `cardinal` brak efektu | **[Z-] tylko kierunkowo** |
 | Model rzeczywiście używa echa | c_full = 0,02228 [0,0184; 0,0264] | bramka `SE`, bootstrap | **[Z-] 1 ziarno** |
-| Zadanie pretekstowe jest rozwiązywalne | MAAE 25,13° wobec 90° losowo | 1 ziarno | **[Z-] brak rozrzutu** |
-| Przewaga K=36 to liczba par, nie rozdzielczość | −36,64° vs +0,54° | kontrola `K36@16par` | **[Z]** |
+| Zadanie pretekstowe jest rozwiązywalne | MAAE **25,65 ± 0,74°** wobec 90° losowo | 3 ziarna, najstabilniejszy z wariantów | **[Z] mocne** |
+| Przewaga K=36 to liczba par, nie rozdzielczość | −33,05 ± 7,05° (p = 0,015) vs −1,24° (p = 0,83) | 3 ziarna, kontrola `K36@16par` | **[Z] mocne** |
 | Pretrening orientacyjny **nie** pomaga w transferze | wszystkie p > 0,07 | 5 ziaren @ 100 %, 3 @ 10/25 % | **[Z] wynik negatywny** |
 | ~~Transfer nie działa, bo zbiór docelowy wystarcza~~ | — | **obalone** §2.4 | **wycofane** |
 

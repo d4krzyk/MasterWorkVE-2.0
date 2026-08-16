@@ -60,6 +60,11 @@ outputs/**
 !outputs/ml/disk_budget.json
 !outputs/ml/thesis_numbers.json
 !outputs/ml/mask_check/*.json
+# Sesja 2026-08-16: rysunki do pracy (~390 KB). Wchodza do repo, bo powstaja z
+# zapisanych plikow dowodowych i musza byc wersjonowane RAZEM z liczbami, ktore
+# przedstawiaja -- inaczej rysunek w tekscie i liczba w tabeli moga sie rozjechac
+# bez sladu. Odtwarzalne: `ml/analysis/figures.py`, zero GPU.
+!outputs/ml/figures/*.png
 # Zdjecia wag z kontroli niedeterminizmu: ~15 GB, kasowane automatycznie po
 # zapisaniu liczb do JSON-a. Wymienione jawnie na wypadek przerwanego przebiegu.
 outputs/ml/determinism/_snapshots/**
