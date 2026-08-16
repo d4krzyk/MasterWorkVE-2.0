@@ -1,0 +1,37 @@
+{
+  "encoder": "pretext_K36_p16",
+  "seed": 1,
+  "encoder_report": {
+    "weights": "/home/d4krzyk/Dokumenty/MasterWorkVE/outputs/ml/pretext/pretext_K36_p16_seed0/best_encoder.pth",
+    "n_encoder_keys_in_file": 35,
+    "n_loaded": 35,
+    "n_shape_mismatch": 0,
+    "shape_mismatch_keys": [],
+    "n_target_keys_total": 65,
+    "ok": true
+  },
+  "checksum_before": "16b905cc4653ee76",
+  "checksum_after": "16b905cc4653ee76",
+  "encoder_frozen_verified": true,
+  "n_eval": 9900,
+  "n_train": 39564,
+  "aux_split_seed": 20260817,
+  "aux_eval_fraction": 0.2,
+  "wyniki": {
+    "orientacja": {
+      "n_classes": 36,
+      "MAAE_deg": 62.977777777777774,
+      "MAAE_chance_deg": 90.0,
+      "top1": 0.08424242424242424,
+      "top1_chance": 0.027777777777777776,
+      "uwaga": "MAAE jest metryka porownywalna; poziom losowy 90 stopni niezaleznie od K"
+    },
+    "scena": {
+      "n_classes": 15,
+      "top1": 0.5326262626262627,
+      "top1_chance": 0.06666666666666667
+    }
+  },
+  "finished": true,
+  "ended_utc": "2026-08-16T18:40:05.779257+00:00"
+}

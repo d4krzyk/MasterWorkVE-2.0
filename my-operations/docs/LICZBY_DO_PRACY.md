@@ -168,6 +168,15 @@ Uwagi:
 | Model 2: WERDYKT przewidywania §5.1 — pretext_K36_seed0 | **OBALONE** | — | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §2.4 |
 | echo2depth RMSE test@36, geometria `main` (3 ziarna) | **EA: 0.79104 ± 0.01066, EB: 0.58223 ± 0.00348, ED: 0.64432 ± 0.00238** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.1 |
 | echo2depth RMSE test@36, geometria `patched` (3 ziarna) | **EPA: 0.78982 ± 0.00526, EPB: 0.59458 ± 0.00173, EPD: 0.65477 ± 0.00637** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.1 |
+| SONDA GŁĘBI: RMSE wg zamrożonego enkodera | **pretext_K36: 0.38908 ± 0.00243, pretext_K4: 0.46932 ± 0.00535, random: 0.55695 ± 0.00878, depth_trained: 0.29234 ± 0.00157, pretext_K36_p16: 0.43232 ± 0.00154** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-17.md §1 |
+| Sonda głębi: pretext_K36_minus_random | **-0.16787 (p=0.0004)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-17.md §1 |
+| Sonda głębi: pretext_K4_minus_random | **-0.08763 (p=0.0004)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-17.md §1 |
+| Sonda głębi: depth_trained_minus_random | **-0.26462 (p=0.0002)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-17.md §1 |
+| Sonda głębi: pretext_K36_p16_minus_random | **-0.12463 (p=0.0012)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-17.md §1 |
+| WERDYKT: dlaczego transfer nie działa | **CECHY SA UZYTECZNE -- problem w dynamice dostrajania** | — | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-17.md §0 |
+| Sonda pomocnicza: orientacja | **pretext_K36: 64.9155, random: 70.8357, depth_trained: 59.6074** | stopnie MAAE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-17.md §2 |
+| Sonda pomocnicza: scena | **pretext_K36: 0.6403, random: 0.6089, depth_trained: 0.7435** | top-1 | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-17.md §2 |
+| CKA: podobieństwo do enkodera głębi (conv5) | **pretext_K36__vs__depth_trained: 0.943, random__vs__depth_trained: 0.902, pretext_K36__vs__random: 0.906** | linear CKA | [Z-] | `probing/cka.json` | RAPORT_SESJI_2026-08-17.md §3 |
 | PEŁNY MODEL: RMSE test@36 A/B/D (3 ziarna) | **A: 0.29248 ± 0.00488, B: 0.24367 ± 0.00142, D: 0.27199 ± 0.00265** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.2 |
 | Pełny model: gestosc_D_minus_A (3 ziarna) | **-0.02048 ± 0.00350 (p=0.0096)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.2 |
 | Pełny model: ilosc_danych_B_minus_D (3 ziarna) | **-0.02833 ± 0.00154 (p=0.0010)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-15.json` | RAPORT_SESJI_2026-08-15.md §3.2 |
@@ -235,6 +244,15 @@ Uwagi:
 - **Model 2: WERDYKT przewidywania §5.1 — pretext_K36_seed0** — przewidywanie z 2026-08-13 §5.1 WYCOFANE — pretrening nie zaczyna pomagać przy mniejszym zbiorze docelowym
 - **echo2depth RMSE test@36, geometria `main` (3 ziarna)** — średnia ± sd po 3 ziarnach
 - **echo2depth RMSE test@36, geometria `patched` (3 ziarna)** — średnia ± sd po 3 ziarnach
+- **SONDA GŁĘBI: RMSE wg zamrożonego enkodera** — enkoder ZAMROŻONY (weryfikowane sumą kontrolną z buforami BatchNormu), uczony wyłącznie dekoder; 3 ziarna, dekoder identyczny we wszystkich warunkach przy danym ziarnie
+- **Sonda głębi: pretext_K36_minus_random** — ; ponad podłogą szumu: True. Wartość UJEMNA = lepiej niż LOSOWY zamrożony enkoder
+- **Sonda głębi: pretext_K4_minus_random** — ; ponad podłogą szumu: True. Wartość UJEMNA = lepiej niż LOSOWY zamrożony enkoder
+- **Sonda głębi: depth_trained_minus_random** — ; ponad podłogą szumu: True. Wartość UJEMNA = lepiej niż LOSOWY zamrożony enkoder
+- **Sonda głębi: pretext_K36_p16_minus_random** — ; ponad podłogą szumu: True. Wartość UJEMNA = lepiej niż LOSOWY zamrożony enkoder
+- **WERDYKT: dlaczego transfer nie działa** — S_K36 jest lepsze od losowego o 0.16787 (p=0.0004), a mimo to pelny transfer nie pomaga -- niepowodzenie nie lezy w tresci reprezentacji — reguła zapisana PRZED pomiarem: outputs/ml/probing/REGULA_PRZED_POMIAREM.md
+- **Sonda pomocnicza: orientacja** — poziom losowy 90°; liniowa głowa na uśrednionych cechach conv5. NAJLEPSZY jest `depth_trained` — hipoteza, że pretrening uczy głównie dyskryminacji widoku, została OBALONA
+- **Sonda pomocnicza: scena** — poziom losowy 6,7 %; liniowa głowa na uśrednionych cechach conv5. NAJLEPSZY jest `depth_trained` — hipoteza, że pretrening uczy głównie dyskryminacji widoku, została OBALONA
+- **CKA: podobieństwo do enkodera głębi (conv5)** — para `random__vs__depth_trained` jest PODŁOGĄ; liczone na cechach uśrednionych przestrzennie, więc liczy się uporządkowanie, nie wartości bezwzględne
 - **PEŁNY MODEL: RMSE test@36 A/B/D (3 ziarna)** — ZASTĘPUJE wersję z 1 ziarna z 2026-08-13 §2; ziarna 1-2 dołożone POST HOC
 - **Pełny model: gestosc_D_minus_A (3 ziarna)** — test SPAROWANY po ziarnie; 2.8-8.9x podlogi szumu
 - **Pełny model: ilosc_danych_B_minus_D (3 ziarna)** — test SPAROWANY po ziarnie; 3.9-12.3x podlogi szumu

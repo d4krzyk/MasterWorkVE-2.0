@@ -1,0 +1,34 @@
+{
+  "encoder": "random",
+  "seed": 0,
+  "encoder_report": {
+    "init": "random",
+    "encoder_seed": 20260817,
+    "ok": true,
+    "n_loaded": 0
+  },
+  "checksum_before": "80806a43f42b19a2",
+  "checksum_after": "80806a43f42b19a2",
+  "encoder_frozen_verified": true,
+  "n_eval": 9900,
+  "n_train": 39564,
+  "aux_split_seed": 20260817,
+  "aux_eval_fraction": 0.2,
+  "wyniki": {
+    "orientacja": {
+      "n_classes": 36,
+      "MAAE_deg": 71.07373737373737,
+      "MAAE_chance_deg": 90.0,
+      "top1": 0.07404040404040405,
+      "top1_chance": 0.027777777777777776,
+      "uwaga": "MAAE jest metryka porownywalna; poziom losowy 90 stopni niezaleznie od K"
+    },
+    "scena": {
+      "n_classes": 15,
+      "top1": 0.6066666666666667,
+      "top1_chance": 0.06666666666666667
+    }
+  },
+  "finished": true,
+  "ended_utc": "2026-08-16T15:24:32.641651+00:00"
+}

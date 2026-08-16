@@ -14,9 +14,14 @@ Gęstość kątowa poprawia predykcję głębi wyraźnie i istotnie, ale **krzyw
 orientacjach**: przejście z 4 do 9 daje 6,7× więcej niż całe pozostałe rozszerzenie do 36. Przy
 stałym koszcie generowania danych opłaca się więc **losować kąty z siatki 9–12 orientacji**
 zamiast przybijać je do 4 kierunków. Efekt utrzymuje się w pełnym modelu audiowizualnym
-(p = 0,0096) i nie zależy od wariantu geometrii sceny. Osobno badane zadanie pretekstowe
-przewidywania orientacji jest rozwiązywalne (MAAE 25,65° wobec 90° losowego), ale **nie przenosi
-się** na predykcję głębi — również przy ograniczeniu zbioru docelowego do 10 %.
+(p = 0,0096) i nie zależy od wariantu geometrii sceny.
+
+Osobno badane zadanie pretekstowe przewidywania orientacji jest rozwiązywalne (MAAE 25,65° wobec
+90° losowego) i **uczy koder wizualny cech geometrycznych** — sondowanie zamrożonych reprezentacji
+pokazuje, że niesie on **63,4 %** informacji o głębi względem kodera trenowanego wprost na głębi
+(p = 0,0004). Mimo to standardowe dostrajanie **nie wykorzystuje** tego wcale, także przy
+ograniczeniu zbioru docelowego do 10 %: wąskim gardłem jest **protokół przenoszenia, a nie
+pretrening**.
 
 Komplet obowiązujących liczb: **[`my-operations/docs/STAN_WYNIKOW.md`](my-operations/docs/STAN_WYNIKOW.md)**.
 To jest jedyny dokument, z którego należy przepisywać wartości — raporty sesji są dziennikiem
@@ -25,7 +30,7 @@ chronologicznym i zawierają liczby później zastąpione.
 | dokument | zawiera |
 |---|---|
 | `docs/STAN_WYNIKOW.md` | **stan obowiązujący** — wszystkie wyniki, bez historii |
-| `docs/LICZBY_DO_PRACY.md` | 134 liczby ze statusem, plikiem dowodowym i sekcją kontroli spójności (generowane) |
+| `docs/LICZBY_DO_PRACY.md` | 143 liczby ze statusem, plikiem dowodowym i sekcją kontroli spójności (generowane) |
 | `docs/GENERATOR_PARAMS.md` | zamrożona specyfikacja generatora danych — źródło prawdy dla każdego parametru |
 | `docs/RYSUNKI.md` | podpisy rysunków i uzasadnienia decyzji wizualnych |
 | `docs/MODELE.md` | nazewnictwo modeli |
@@ -40,7 +45,7 @@ my-operations/          ← KOD AUTORA (to jest właściwy wkład)
   ml/                     pakiet fazy uczenia — JEDYNY katalog importowalny jak biblioteka
     dataset/                dataloader HDF5, podziały, filtry kątów
     depth_model/            trening i ewaluacja modelu głębi
-    pretext_model/          zadanie pretekstowe orientacji + transfer
+    pretext_model/          zadanie pretekstowe orientacji, transfer, sondowanie (probe.py)
     matrix/                 definicja macierzy eksperymentów, kolejki
     analysis/               liczby do pracy, rysunki, galeria
   echo_core/              wspólny rdzeń generowania: symulator, spektrogramy, ścieżki
@@ -212,9 +217,10 @@ sama, gdy wolne miejsce spadnie poniżej 15 GB.
 
 ```bash
 python my-operations/ml/pretext_model/summarize.py   # tabele Modelu 2
+python my-operations/ml/pretext_model/probe.py cka    # podobienstwo reprezentacji (wymaga GPU)
 python my-operations/ml/analysis/final_results.py    # plik dowodowy sesji
 python my-operations/ml/analysis/thesis_numbers.py   # -> docs/LICZBY_DO_PRACY.md
-python my-operations/ml/analysis/figures.py          # -> outputs/ml/figures/
+python my-operations/ml/analysis/figures.py          # -> outputs/ml/figures/ (rys. 1-4)
 python my-operations/ml/analysis/depth_gallery.py    # galeria (wymaga GPU i checkpointów)
 ```
 

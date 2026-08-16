@@ -3,17 +3,22 @@
 Wszystkie rysunki powstają z **zapisanych plików dowodowych**, nie z żywych przebiegów:
 
 ```
-python my-operations/ml/analysis/figures.py        # rys. 1–3, zero GPU, ~5 s
-python my-operations/ml/analysis/depth_gallery.py  # rys. 4 (galeria), wymaga GPU
+python my-operations/ml/analysis/figures.py        # rys. 1–4, zero GPU, ~8 s
+python my-operations/ml/analysis/depth_gallery.py  # rys. 5 (galeria), wymaga GPU
 ```
 
 Wyjście: `outputs/ml/figures/` i `outputs/ml/gallery/`.
 
-**Konwencja wspólna dla rysunków 1–3.** Paleta kategoryczna zwalidowana pod kątem rozróżnialności
+**Konwencja wspólna dla rysunków 1–4.** Paleta kategoryczna zwalidowana pod kątem rozróżnialności
 przy zaburzeniach widzenia barw (najgorsza para: ΔE 9,2 w deuteranopii, 27,6 w widzeniu
 normalnym — progi to odpowiednio 8 i 15). Każda seria jest **opisana bezpośrednio przy krzywej**,
-nie tylko w legendzie, żeby rysunek pozostał czytelny po wydruku w skali szarości. Wąsy to
-**rzeczywiste odchylenie standardowe po ziarnach**, nie przedział ufności ani błąd standardowy.
+nie tylko w legendzie, żeby rysunek pozostał czytelny po wydruku w skali szarości.
+
+**Wąsy — dwie różne wielkości, zawsze podpisane pod rysunkiem.** Na rysunkach 1–3 to
+**odchylenie standardowe po ziarnach**, bo rysowane są wartości bezpośrednio mierzone. Na
+rysunku 4 rysowana jest **różnica** dwóch niezależnych średnich, więc wąsy to **błąd standardowy
+tej różnicy** — sd jednego ze składników opisywałby wielkość, której na rysunku nie ma. Nigdy nie
+są to przedziały ufności.
 
 ---
 
@@ -92,9 +97,46 @@ istotny (p = 0,0096, przedział bootstrapowy wyklucza zero w 3 ziarnach na 3).
 
 ---
 
-## Rysunek 4 — galeria predykcji (`gallery/depth_gallery.png`)
+## Rysunek 4 — sonda głębi (`rys_4_sonda_glebi.png`)
 
-> **Rys. 4.** Predykcje głębi dla sześciu próbek ze scen wyłączonych z treningu, po dwie z każdej
+> **Rys. 4.** Ile informacji o głębi niesie **zamrożony** koder wizualny, zależnie od tego, na
+> jakim pretreningu powstał. Sonda: koder zamrożony (`requires_grad=False` oraz `eval()`), uczony
+> wyłącznie dekoder; 3 ziarna, wąsy to błąd standardowy różnicy. Oś pozioma to **poprawa RMSE
+> względem losowego zamrożonego kodera**, więc zero oznacza koder nieuczony (podłoga), a linia
+> przerywana — koder, który przeszedł pełne uczenie na głębi (górna granica, 100 %). Pretrening
+> na 36 orientacjach pokrywa **63,4 %** tej rozpiętości. Strzałki rozkładają przewagę na dwa
+> czynniki: **gęstość kątową danych** (+14,0 pp, p = 0,0042; porównanie przy równym budżecie
+> 16 par) i **liczbę par** (+16,3 pp, p = 0,0001; porównanie przy tej samej siatce 36 orientacji).
+
+**Co ten rysunek dowodzi.** Że zadanie pretekstowe **uczy koder wizualny cech geometrycznych** —
+i to nie marginalnie, tylko na poziomie dwóch trzecich drogi do kodera trenowanego wprost na
+głębi. To jest bezpośredni argument przeciw czytaniu wyniku negatywnego transferu jako „pretrening
+nic nie wnosi".
+
+**Dlaczego oś to poprawa, a nie surowe RMSE.** Przy RMSE słupki rosną w stronę **gorszego**
+wyniku, co przy rysunku pod tytułem „ile informacji niesie koder" czyta się odwrotnie do intencji.
+Po odjęciu od podłogi dłuższy słupek znaczy więcej informacji, a zero ma sens merytoryczny
+(koder losowy), a nie tylko arytmetyczny.
+
+**Dlaczego kontrola z koderem losowym musi być na rysunku jako zero, a nie jako czwarty słupek.**
+`RGBDepthNet` jest U-Netem ze **skrótami** — `conv1feature` trafia wprost do ostatniej warstwy
+dekodera, więc nawet losowy koder daje RMSE 0,557, a nie wartość bliską bezużyteczności.
+Narysowanie go jako słupka sugerowałoby, że „losowy też coś potrafi", co jest prawdą, ale nie
+o to tu chodzi: **wielkością interpretowalną jest różnica**, i dlatego jest ona osią.
+
+**Zastrzeżenie.** Trzy ziarna mierzą rozrzut **dekodera**, nie pretreningu — każdy koder to
+pojedynczy checkpoint. Różnice są jednak 5–23× ponad podłogą szumu, więc rozrzut pretreningu
+musiałby być ekstremalny, żeby zmienić uporządkowanie.
+
+**[!] Nie mylić z rysunkiem 3.** Tam „gęstość" i „ilość danych" dotyczą **zbioru treningowego
+modelu głębi**; tutaj „gęstość kątowa" i „liczba par" dotyczą **danych pretreningu** i mierzone
+są na zamrożonym koderze. To są różne rozkłady różnych wielkości.
+
+---
+
+## Rysunek 5 — galeria predykcji (`gallery/depth_gallery.png`)
+
+> **Rys. 5.** Predykcje głębi dla sześciu próbek ze scen wyłączonych z treningu, po dwie z każdej
 > sceny. Kolumny: obraz RGB · prawda · obraz + echo (36 orientacji) · obraz + echo (4) · samo echo
 > (36) · samo echo (4) · sam obraz · mapa błędu. Wspólna skala 0–14,104 m we wszystkich kolumnach.
 

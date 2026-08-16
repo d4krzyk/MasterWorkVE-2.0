@@ -630,5 +630,302 @@
       "decyzja": "1 ziarno",
       "co_sie_okazalo": "zmierzone D-A = 0,01831, czyli 3,46x wiecej niz bound; ziarna 1-2 dolozone POST HOC 2026-08-15 §3.2"
     }
+  },
+  "sonda_glebi": {
+    "opis": "sonda glebi: enkoder ZAMROZONY, uczony wylacznie dekoder; 3 ziarna, RMSE walidacyjne najlepszego kroku",
+    "regula": "outputs/ml/probing/REGULA_PRZED_POMIAREM.md (zapisana PRZED pomiarem)",
+    "punkty": {
+      "pretext_K36": {
+        "values": [
+          0.3891096596503639,
+          0.38664412595517883,
+          0.3914971513981857
+        ],
+        "mean": 0.3890836456679095,
+        "sd": 0.002426617302559336,
+        "n": 3
+      },
+      "pretext_K4": {
+        "values": [
+          0.4631533622967608,
+          0.4726627786588654,
+          0.4721400825968081
+        ],
+        "mean": 0.4693187411841448,
+        "sd": 0.005345767055537741,
+        "n": 3
+      },
+      "random": {
+        "values": [
+          0.5579239836666451,
+          0.5477279039948737,
+          0.5652053284960488
+        ],
+        "mean": 0.5569524053858559,
+        "sd": 0.008779126668715097,
+        "n": 3
+      },
+      "depth_trained": {
+        "values": [
+          0.29053401162873793,
+          0.2930507477669392,
+          0.29342453849637795
+        ],
+        "mean": 0.29233643263068504,
+        "sd": 0.0015720912755144193,
+        "n": 3
+      },
+      "pretext_K36_p16": {
+        "values": [
+          0.4306301216680458,
+          0.4336538949023072,
+          0.43268174623268496
+        ],
+        "mean": 0.432321920934346,
+        "sd": 0.0015436666826269356,
+        "n": 3
+      }
+    },
+    "kontrasty": {
+      "pretext_K36_minus_random": {
+        "delta": -0.1678687597179464,
+        "p": 0.0004229682635168421,
+        "t": -31.922148631642795,
+        "df": 2.3038311337827966,
+        "ponad_podloga_szumu": true,
+        "istotny_i_ponad_podloga": true,
+        "uwaga": "wartosc UJEMNA = lepiej niz losowy zamrozony enkoder"
+      },
+      "pretext_K4_minus_random": {
+        "delta": -0.08763366420171109,
+        "p": 0.0003939630376819922,
+        "t": -14.767135188927467,
+        "df": 3.303869767721026,
+        "ponad_podloga_szumu": true,
+        "istotny_i_ponad_podloga": true,
+        "uwaga": "wartosc UJEMNA = lepiej niz losowy zamrozony enkoder"
+      },
+      "depth_trained_minus_random": {
+        "delta": -0.26461597275517085,
+        "p": 0.0002490223885817072,
+        "t": -51.38915852373612,
+        "df": 2.1281346346168553,
+        "ponad_podloga_szumu": true,
+        "istotny_i_ponad_podloga": true,
+        "uwaga": "wartosc UJEMNA = lepiej niz losowy zamrozony enkoder"
+      },
+      "pretext_K36_p16_minus_random": {
+        "delta": -0.12463048445150987,
+        "p": 0.00124620647270573,
+        "t": -24.21707230278979,
+        "df": 2.1235519152394113,
+        "ponad_podloga_szumu": true,
+        "istotny_i_ponad_podloga": true,
+        "uwaga": "wartosc UJEMNA = lepiej niz losowy zamrozony enkoder"
+      }
+    },
+    "rozpietosc_random_minus_depth_trained": 0.26461597275517085,
+    "pokrycie_rozpietosci_pct": {
+      "pretext_K36": 63.43863447474604,
+      "pretext_K4": 33.11729949226908,
+      "random": 0.0,
+      "depth_trained": 100.0,
+      "pretext_K36_p16": 47.09862490682716
+    },
+    "rozklad_przewagi_K36_nad_K4": {
+      "gestosc_katowa_danych": {
+        "delta": -0.03699682024979878,
+        "p": 0.004171230198181482,
+        "t": -11.5165825094405,
+        "df": 2.3312361895675955,
+        "pp_rozpietosci": 13.981325414558079,
+        "porownanie": "K36@16par - K4 (ten sam budzet 16 par, siatka 36 vs 4)"
+      },
+      "liczba_par": {
+        "delta": -0.04323827526643653,
+        "p": 5.023530172330941e-05,
+        "t": -26.03994398766822,
+        "df": 3.3909159510138336,
+        "pp_rozpietosci": 16.340009567918877,
+        "porownanie": "K36 - K36@16par (ta sama siatka 36, 1296 vs 16 par)"
+      },
+      "uwaga": "PORONAJ z rozkladem MAAE samego zadania pretekstowego (2026-08-13 §4), gdzie rozdzielczosc katowa nie wnosila NIC (-1,24 st., p = 0,83): jesli tutaj gestosc katowa wnosi istotnie, mamy DYSOCJACJE miedzy jakoscia rozwiazania zadania a tym, czego uczy sie koder"
+    },
+    "werdykt": "CECHY SA UZYTECZNE -- problem w dynamice dostrajania",
+    "uzasadnienie": "S_K36 jest lepsze od losowego o 0.16787 (p=0.0004), a mimo to pelny transfer nie pomaga -- niepowodzenie nie lezy w tresci reprezentacji"
+  },
+  "sondy_pomocnicze": {
+    "orientacja": {
+      "pretext_K36": {
+        "values": [
+          64.83131313131314,
+          65.04141414141414,
+          64.87373737373737
+        ],
+        "mean": 64.91548821548821,
+        "sd": 0.11109886678784392,
+        "n": 3
+      },
+      "random": {
+        "values": [
+          71.07373737373737,
+          70.3959595959596,
+          71.03737373737374
+        ],
+        "mean": 70.83569023569024,
+        "sd": 0.3812516952760153,
+        "n": 3
+      },
+      "depth_trained": {
+        "values": [
+          59.31818181818182,
+          59.382828282828285,
+          60.121212121212125
+        ],
+        "mean": 59.60740740740741,
+        "sd": 0.4461403975138098,
+        "n": 3
+      },
+      "_vs_random": {
+        "pretext_K36": {
+          "delta": -5.9202020202020265,
+          "p": 0.000633423080771759,
+          "t": -25.821833260162094,
+          "df": 2.3372370269217226
+        },
+        "depth_trained": {
+          "delta": -11.228282828282829,
+          "p": 6.22580252690047e-06,
+          "t": -33.139512357319205,
+          "df": 3.9050967088855932
+        }
+      }
+    },
+    "orientacja_top1": {
+      "pretext_K36": {
+        "values": [
+          0.09171717171717171,
+          0.0893939393939394,
+          0.08888888888888889
+        ],
+        "mean": 0.09000000000000001,
+        "sd": 0.0015084024770775776,
+        "n": 3
+      },
+      "random": {
+        "values": [
+          0.07404040404040405,
+          0.07858585858585859,
+          0.0796969696969697
+        ],
+        "mean": 0.07744107744107744,
+        "sd": 0.002997011287740559,
+        "n": 3
+      },
+      "depth_trained": {
+        "values": [
+          0.09737373737373738,
+          0.09595959595959595,
+          0.09464646464646465
+        ],
+        "mean": 0.095993265993266,
+        "sd": 0.0013639480875777188,
+        "n": 3
+      },
+      "_vs_random": {
+        "pretext_K36": {
+          "delta": 0.012558922558922575,
+          "p": 0.007822467703625643,
+          "t": 6.483280844880575,
+          "df": 2.9521550993594774
+        },
+        "depth_trained": {
+          "delta": 0.01855218855218857,
+          "p": 0.0030589499166001123,
+          "t": 9.758710679591857,
+          "df": 2.7943960000494936
+        }
+      }
+    },
+    "scena": {
+      "pretext_K36": {
+        "values": [
+          0.6409090909090909,
+          0.6383838383838384,
+          0.6415151515151515
+        ],
+        "mean": 0.6402693602693602,
+        "sd": 0.0016607895562475918,
+        "n": 3
+      },
+      "random": {
+        "values": [
+          0.6066666666666667,
+          0.6073737373737373,
+          0.6125252525252525
+        ],
+        "mean": 0.6088552188552189,
+        "sd": 0.003197944277279512,
+        "n": 3
+      },
+      "depth_trained": {
+        "values": [
+          0.7429292929292929,
+          0.7424242424242424,
+          0.7451515151515151
+        ],
+        "mean": 0.7435016835016834,
+        "sd": 0.0014509401633949546,
+        "n": 3
+      },
+      "_vs_random": {
+        "pretext_K36": {
+          "delta": 0.03141414141414134,
+          "p": 0.0006241616254825007,
+          "t": 15.099538775786868,
+          "df": 3.005663845637572
+        },
+        "depth_trained": {
+          "delta": 0.13464646464646457,
+          "p": 1.5077195928670172e-05,
+          "t": 66.41061533379104,
+          "df": 2.7899380491256984
+        }
+      }
+    },
+    "poziomy_losowe": {
+      "orientacja_MAAE_deg": 90.0,
+      "orientacja_top1": 0.027777777777777776,
+      "scena_top1": 0.06666666666666667
+    },
+    "uwaga": "sondy liniowe na usrednionych przestrzennie cechach conv5; podzial WEWNETRZNY sondy po lokalizacjach treningowych 80/20 (ziarno 20260817) -- zamrozony podzial zbioru NIE jest ruszany, patrz `probe.py::_aux_split`"
+  },
+  "cka": {
+    "n_images": 1000,
+    "metric": "linear CKA na cechach usrednionych przestrzennie",
+    "uwaga": "para `random vs depth_trained` jest PODLOGA -- bez niej liczby CKA nie maja skali odniesienia",
+    "wyniki": {
+      "pretext_K36__vs__depth_trained": {
+        "conv1": 0.9961258210768837,
+        "conv2": 0.9817433033077974,
+        "conv3": 0.9528977382888066,
+        "conv4": 0.9635204866663645,
+        "conv5": 0.9428553402976498
+      },
+      "random__vs__depth_trained": {
+        "conv1": 0.9859652064854602,
+        "conv2": 0.9252563313734445,
+        "conv3": 0.8879728612192118,
+        "conv4": 0.9047888016352853,
+        "conv5": 0.9019506545790386
+      },
+      "pretext_K36__vs__random": {
+        "conv1": 0.973866109675412,
+        "conv2": 0.9578919660626368,
+        "conv3": 0.9251711180863639,
+        "conv4": 0.8845831425806276,
+        "conv5": 0.9055198976299409
+      }
+    }
   }
 }

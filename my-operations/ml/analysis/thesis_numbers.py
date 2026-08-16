@@ -33,6 +33,7 @@ R11 = "RAPORT_SESJI_2026-08-11.md"
 R05 = "RAPORT_SESJI_2026-08-05.md"
 R13 = "RAPORT_SESJI_2026-08-13.md"
 R15 = "RAPORT_SESJI_2026-08-15.md"
+R17 = "RAPORT_SESJI_2026-08-17.md"
 GP = "docs/GENERATOR_PARAMS.md"
 
 GRUPY = [
@@ -382,6 +383,51 @@ def collect() -> tuple[list[dict], list[dict]]:
                     f"{v['delta']:+.5f} (p={v['p']:.3f})", "RMSE", "[Z]",
                     "echo_ablation/final_results_2026-08-15.json", f"{R15} §3.1",
                     f"wartość DODATNIA = `patched` GORSZY; {v.get('krotnosc_podlogi_szumu')}")
+
+        sg = f15.get("sonda_glebi", {})
+        if sg.get("punkty"):
+            rows = {e: f"{v['mean']:.5f} ± {v['sd']:.5f}" for e, v in sg["punkty"].items()
+                    if v.get("n", 0) > 1}
+            if rows:
+                add("wyniki_echo", "SONDA GŁĘBI: RMSE wg zamrożonego enkodera", rows, "RMSE",
+                    "[Z]", "echo_ablation/final_results_2026-08-15.json", f"{R17} §1",
+                    "enkoder ZAMROŻONY (weryfikowane sumą kontrolną z buforami BatchNormu), "
+                    "uczony wyłącznie dekoder; 3 ziarna, dekoder identyczny we wszystkich "
+                    "warunkach przy danym ziarnie")
+            for k, v in sg.get("kontrasty", {}).items():
+                if v.get("delta") is not None:
+                    add("wyniki_echo", f"Sonda głębi: {k}",
+                        f"{v['delta']:+.5f} (p={v['p']:.4f})", "RMSE", "[Z]",
+                        "echo_ablation/final_results_2026-08-15.json", f"{R17} §1",
+                        f"{v.get('krotnosc_podlogi_szumu') or ''}; ponad podłogą szumu: "
+                        f"{v.get('ponad_podloga_szumu')}. Wartość UJEMNA = lepiej niż "
+                        "LOSOWY zamrożony enkoder")
+            add("wyniki_echo", "WERDYKT: dlaczego transfer nie działa", sg.get("werdykt"),
+                "—", "[Z]", "echo_ablation/final_results_2026-08-15.json", f"{R17} §0",
+                sg.get("uzasadnienie", "") + " — reguła zapisana PRZED pomiarem: "
+                "outputs/ml/probing/REGULA_PRZED_POMIAREM.md")
+
+        sp = f15.get("sondy_pomocnicze", {})
+        for zad, jedn, los in (("orientacja", "stopnie MAAE", "90°"),
+                               ("scena", "top-1", "6,7 %")):
+            blok = sp.get(zad, {})
+            rows = {e: f"{blok[e]['mean']:.4f}" for e in
+                    ("pretext_K36", "random", "depth_trained")
+                    if blok.get(e, {}).get("n", 0) > 1}
+            if rows:
+                add("wyniki_echo", f"Sonda pomocnicza: {zad}", rows, jedn, "[Z]",
+                    "echo_ablation/final_results_2026-08-15.json", f"{R17} §2",
+                    f"poziom losowy {los}; liniowa głowa na uśrednionych cechach conv5. "
+                    "NAJLEPSZY jest `depth_trained` — hipoteza, że pretrening uczy głównie "
+                    "dyskryminacji widoku, została OBALONA")
+
+        cka = f15.get("cka", {}).get("wyniki", {})
+        if cka:
+            add("wyniki_echo", "CKA: podobieństwo do enkodera głębi (conv5)",
+                {k: f"{v['conv5']:.3f}" for k, v in cka.items()}, "linear CKA", "[Z-]",
+                "probing/cka.json", f"{R17} §3",
+                "para `random__vs__depth_trained` jest PODŁOGĄ; liczone na cechach uśrednionych "
+                "przestrzennie, więc liczy się uporządkowanie, nie wartości bezwzględne")
 
         mk = f15.get("maski_3ziarna", {})
         for lab, m in mk.get("kontrasty", {}).items():

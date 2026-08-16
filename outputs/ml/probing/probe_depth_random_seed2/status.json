@@ -1,0 +1,22 @@
+{
+  "run_id": "probe_depth_random_seed2",
+  "encoder": "random",
+  "seed": 2,
+  "encoder_source": "None",
+  "encoder_report": {
+    "init": "random",
+    "encoder_seed": 20260817,
+    "ok": true,
+    "n_loaded": 0
+  },
+  "checksum_before": "80806a43f42b19a2",
+  "checksum_after": "80806a43f42b19a2",
+  "encoder_frozen_verified": true,
+  "n_frozen_params": 6954304,
+  "n_trained_params": 9704257,
+  "best_val_rmse": 0.5652053284960488,
+  "best_step": 34000,
+  "steps": 40000,
+  "finished": true,
+  "ended_utc": "2026-08-16T14:51:57.109568+00:00"
+}

@@ -1,0 +1,28 @@
+{
+  "n_images": 1000,
+  "metric": "linear CKA na cechach usrednionych przestrzennie",
+  "uwaga": "para `random vs depth_trained` jest PODLOGA -- bez niej liczby CKA nie maja skali odniesienia",
+  "wyniki": {
+    "pretext_K36__vs__depth_trained": {
+      "conv1": 0.9961258210768837,
+      "conv2": 0.9817433033077974,
+      "conv3": 0.9528977382888066,
+      "conv4": 0.9635204866663645,
+      "conv5": 0.9428553402976498
+    },
+    "random__vs__depth_trained": {
+      "conv1": 0.9859652064854602,
+      "conv2": 0.9252563313734445,
+      "conv3": 0.8879728612192118,
+      "conv4": 0.9047888016352853,
+      "conv5": 0.9019506545790386
+    },
+    "pretext_K36__vs__random": {
+      "conv1": 0.973866109675412,
+      "conv2": 0.9578919660626368,
+      "conv3": 0.9251711180863639,
+      "conv4": 0.8845831425806276,
+      "conv5": 0.9055198976299409
+    }
+  }
+}

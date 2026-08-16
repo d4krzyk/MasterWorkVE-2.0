@@ -58,6 +58,7 @@ EVAL = ML / "depth_model" / "evaluate.py"
 PRETRAIN = ML / "pretext_model" / "train_pretext.py"
 TRANSFER = ML / "pretext_model" / "transfer.py"
 PRETEXT_SUM = ML / "pretext_model" / "summarize.py"
+PROBE = ML / "pretext_model" / "probe.py"
 NUMBERS = ML / "analysis" / "thesis_numbers.py"
 FINAL = ML / "analysis" / "final_results.py"
 
@@ -110,13 +111,60 @@ def _pretext_dir(k: int, sub: int | None, seed: int) -> Path:
     return paths.ML_OUTPUTS / "pretext" / f"pretext_{tag}_seed{seed}"
 
 
-# Warunki `geometria_echo` i ich odpowiedniki w `main` -- do ewaluacji z maskami.
-MASK_PAIRS = (("EPA", "EA"), ("EPB", "EB"), ("EPD", "ED"))
-MASK_MODES = ("intersection", "strict")
+# --- Sondowanie zamrozonych reprezentacji (sesja 2026-08-17) ---
+# `random` NIE jest opcjonalny: bez podlogi z losowego zamrozonego enkodera
+# wynik sondy pretreningowej jest nieinterpretowalny (patrz `probe.py`).
+PROBE_ENCODERS = ("pretext_K36", "pretext_K4", "random", "depth_trained",
+                  "pretext_K36_p16")
+PROBE_AUX_ENCODERS = ("pretext_K36", "random", "depth_trained", "pretext_K36_p16")
+PROBE_SEEDS = (0, 1, 2)
+H_PROBE_DEPTH = 10.5 / 60      # zmierzone: 2 570 probek/s przy zamrozonym enkoderze
+H_PROBE_AUX = 1.5 / 60
 
 
 def build_steps() -> list[dict]:
-    """Kolejka sesji 2026-08-16 (domkniecie po sesji 2026-08-15).
+    """Kolejka sesji 2026-08-17 -- OSTATNIA SESJA OBLICZENIOWA PROJEKTU.
+
+    Jedno pytanie: dlaczego pretrening orientacyjny nie pomaga w predykcji glebi.
+    Odpowiedz szuka sie przez SONDOWANIE zamrozonych reprezentacji, nie przez
+    kolejny trening -- zaden enkoder nie jest tu uczony, wszystkie pochodza
+    z istniejacych checkpointow albo sa losowe.
+
+      1. sonda glebi   -- 4 enkodery x 3 ziarna, enkoder zamrozony, uczy sie dekoder
+      2. sondy liniowe -- orientacja i tozsamosc sceny na tych samych cechach
+      3. CKA           -- podobienstwo reprezentacji warstwa po warstwie
+
+    Kolejnosc: sonda glebi PIERWSZA, bo to ona odpowiada na pytanie sesji;
+    reszta tylko dopelnia obraz i daje sie poswiecic przy braku czasu.
+    """
+    S: list[dict] = []
+    for enc in PROBE_ENCODERS:
+        for s in PROBE_SEEDS:
+            d = paths.ML_OUTPUTS / "probing" / f"probe_depth_{enc}_seed{s}"
+            S.append({"id": f"sonda_glebi_{enc}_s{s}",
+                      "grupa": "1. sonda glebi (zamrozony enkoder, uczony dekoder)",
+                      "cmd": [sys.executable, str(PROBE), "depth",
+                              "--encoder", enc, "--seed", str(s)],
+                      "done_marker": str(d / "status.json"),
+                      "godzin": H_PROBE_DEPTH, "gb": 0.05})
+    for enc in PROBE_AUX_ENCODERS:
+        for s in PROBE_SEEDS:
+            d = paths.ML_OUTPUTS / "probing" / f"probe_aux_{enc}_seed{s}"
+            S.append({"id": f"sonda_pomocnicza_{enc}_s{s}",
+                      "grupa": "2. sondy liniowe: orientacja i tozsamosc sceny",
+                      "cmd": [sys.executable, str(PROBE), "aux",
+                              "--encoder", enc, "--seed", str(s)],
+                      "done_marker": str(d / "status.json"),
+                      "godzin": H_PROBE_AUX, "gb": 0.0})
+    S.append({"id": "cka", "grupa": "3. CKA -- podobienstwo warstwa po warstwie",
+              "cmd": [sys.executable, str(PROBE), "cka"],
+              "done_marker": str(paths.ML_OUTPUTS / "probing" / "cka.json"),
+              "marker_wystarczy": True, "godzin": 0.05, "gb": 0.0})
+    return S
+
+
+def build_steps_2026_08_16() -> list[dict]:
+    """Kolejka sesji 2026-08-16 (domkniecie po sesji 2026-08-15). WYKONANA.
 
     Plany poprzednich nocy sa w `outputs/ml/logs/ml_ctl_*.md` -- wszystkie ich
     kroki sa gotowe, wiec powtarzanie ich tutaj tylko wydluzaloby `plan`.
@@ -226,7 +274,7 @@ def find_running() -> list[tuple[int, str]]:
         line = " ".join(a.decode(errors="replace") for a in argv if a)
         if me in line:
             continue
-        for script in (TRAIN.name, PRETRAIN.name, TRANSFER.name):
+        for script in (TRAIN.name, PRETRAIN.name, TRANSFER.name, PROBE.name):
             if script in line:
                 out.append((int(entry.name), line[:110]))
                 break

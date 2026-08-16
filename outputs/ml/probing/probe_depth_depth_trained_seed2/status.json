@@ -1,0 +1,25 @@
+{
+  "run_id": "probe_depth_depth_trained_seed2",
+  "encoder": "depth_trained",
+  "seed": 2,
+  "encoder_source": "/home/d4krzyk/Dokumenty/MasterWorkVE/outputs/ml/pretext_transfer/transfer_scratch_seed0/best_rgbdepth.pth",
+  "encoder_report": {
+    "weights": "/home/d4krzyk/Dokumenty/MasterWorkVE/outputs/ml/pretext_transfer/transfer_scratch_seed0/best_rgbdepth.pth",
+    "n_encoder_keys_in_file": 35,
+    "n_loaded": 35,
+    "n_shape_mismatch": 0,
+    "shape_mismatch_keys": [],
+    "n_target_keys_total": 65,
+    "ok": true
+  },
+  "checksum_before": "9bb0e29be90eea8e",
+  "checksum_after": "9bb0e29be90eea8e",
+  "encoder_frozen_verified": true,
+  "n_frozen_params": 6954304,
+  "n_trained_params": 9704257,
+  "best_val_rmse": 0.29342453849637795,
+  "best_step": 37000,
+  "steps": 40000,
+  "finished": true,
+  "ended_utc": "2026-08-16T15:23:15.477986+00:00"
+}

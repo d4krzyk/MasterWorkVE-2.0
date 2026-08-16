@@ -1,0 +1,25 @@
+{
+  "run_id": "probe_depth_pretext_K36_p16_seed2",
+  "encoder": "pretext_K36_p16",
+  "seed": 2,
+  "encoder_source": "/home/d4krzyk/Dokumenty/MasterWorkVE/outputs/ml/pretext/pretext_K36_p16_seed0/best_encoder.pth",
+  "encoder_report": {
+    "weights": "/home/d4krzyk/Dokumenty/MasterWorkVE/outputs/ml/pretext/pretext_K36_p16_seed0/best_encoder.pth",
+    "n_encoder_keys_in_file": 35,
+    "n_loaded": 35,
+    "n_shape_mismatch": 0,
+    "shape_mismatch_keys": [],
+    "n_target_keys_total": 65,
+    "ok": true
+  },
+  "checksum_before": "16b905cc4653ee76",
+  "checksum_after": "16b905cc4653ee76",
+  "encoder_frozen_verified": true,
+  "n_frozen_params": 6954304,
+  "n_trained_params": 9704257,
+  "best_val_rmse": 0.43268174623268496,
+  "best_step": 33000,
+  "steps": 40000,
+  "finished": true,
+  "ended_utc": "2026-08-16T18:39:27.309673+00:00"
+}

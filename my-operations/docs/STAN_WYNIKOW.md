@@ -7,7 +7,7 @@ później zastąpione, oznaczone ramkami „SKORYGOWANE" / „WYCOFANE" / „ZAS
 wyłącznie stan **obowiązujący**, bez historii. Przy rozbieżności między tym plikiem a raportem
 sesji — **obowiązuje ten plik**.
 
-Ostatnia aktualizacja: **2026-08-16**, po zamknięciu fazy eksperymentalnej.
+Ostatnia aktualizacja: **2026-08-17**, po zamknięciu fazy eksperymentalnej (84 przebiegi GPU).
 
 **Rysunki** (`outputs/ml/figures/`, odtwarzalne przez `ml/analysis/figures.py`, zero GPU):
 
@@ -16,6 +16,7 @@ Ostatnia aktualizacja: **2026-08-16**, po zamknięciu fazy eksperymentalnej.
 | `rys_1_krzywa_nasycenia.png` | RMSE w funkcji siatki K, nasycenie przy K = 9–12 | **rysunek główny**, §1 |
 | `rys_2_generalizacja_katowa.png` | RMSE w funkcji odległości od siatki treningowej | §1, luka generalizacji |
 | `rys_3_rozklad_efektu.png` | gęstość vs ilość danych w obu modelach | §1 i §2 |
+| `rys_4_sonda_glebi.png` | ile głębi niesie zamrożony koder + rozkład na gęstość / liczbę par | §5, sondowanie |
 | `gallery/depth_gallery.png` | predykcje obok siebie, 6 próbek | rozdział jakościowy |
 
 Każdy punkt ma słupek błędu z rzeczywistego sd po ziarnach — przy 3 ziarnach sd sięga 0,0136 RMSE
@@ -31,7 +32,7 @@ z liczbą · **[W]** wywnioskowane z kodu, nie z pomiaru.
 
 ---
 
-## 0. Co praca pokazuje — sześć twierdzeń
+## 0. Co praca pokazuje — siedem twierdzeń
 
 | # | twierdzenie | liczba | poparcie | status |
 |---|---|---|---|---|
@@ -40,10 +41,13 @@ z liczbą · **[W]** wywnioskowane z kodu, nie z pomiaru.
 | 3 | Efekt utrzymuje się w pełnym modelu | D−A = **0,02048** | 3 ziarna, p = 0,0096 | **[Z]** |
 | 4 | Efekt nie zależy od wariantu geometrii sceny | main −0,14672 vs patched −0,13504 | 3 ziarna, różnica nieistotna (p = 0,26) | **[Z]** |
 | 5 | Zadanie pretekstowe orientacji jest rozwiązywalne | MAAE **25,65 ± 0,74°** wobec 90° losowo | 3 ziarna | **[Z]** |
-| 6 | Pretrening orientacyjny **nie** przenosi się na predykcję głębi | wszystkie p > 0,07 | 5 ziaren @ 100 %, 3 @ 10 % i 25 % | **[Z]** wynik negatywny |
+| 6 | Pretrening **uczy koder cech geometrycznych**, ale standardowe dostrajanie ich nie zachowuje | sonda: −0,168 vs losowy (63,4 % rozpiętości); dostrajanie: wszystkie p > 0,07 | 3 ziarna sondy, 5 ziaren transferu | **[Z]** |
+| 7 | **Gęstsze echo kształtuje koder nawet gdy nie poprawia zadania pretekstowego** | gęstość kątowa: p = 0,83 w MAAE, ale **+14,0 pp (p = 0,0042)** w sondzie głębi | 3 ziarna | **[Z]** |
 
 Twierdzenie 2 jest **głównym wkładem praktycznym** — nikt wcześniej nie mógł go sformułować,
-bo nikt nie miał 36 orientacji do podpróbkowania.
+bo nikt nie miał 36 orientacji do podpróbkowania. Twierdzenia 6 i 7 są **głównym wkładem
+poznawczym**: pokazują, *czego* uczy się koder wizualny z echa i dlaczego standardowe przenoszenie
+tego nie wykorzystuje. Pełna tabela zamykająca z plikami dowodowymi: `RAPORT_SESJI_2026-08-17.md` §7.
 
 ---
 
@@ -304,6 +308,68 @@ podzbioru, budżet 40 000 kroków bez zmian). Walidacja i test zawsze pełne.
 **Δ nie rośnie, gdy zbiór maleje.** Ograniczenie zadziałało jako manipulacja (RMSE rośnie o 22 %),
 więc eksperyment miał moc — pretrening po prostu nie zaczyna pomagać.
 
+### Sondowanie zamrożonych reprezentacji — **mechanizm ustalony** [Z]
+
+Enkoder zamrożony (`requires_grad=False` **oraz** `eval()`, weryfikowane sumą kontrolną obejmującą
+bufory BatchNormu), uczony wyłącznie dekoder. 3 ziarna, identyczny dekoder we wszystkich warunkach
+przy danym ziarnie.
+
+| enkoder (zamrożony) | RMSE sondy | Δ vs `random` | p | pokrycie rozpiętości |
+|---|---|---|---|---|
+| `depth_trained` *(górna granica)* | 0,29234 ± 0,00157 | −0,26462 | 0,0002 | 100 % |
+| **`pretext_K36`** | **0,38908 ± 0,00243** | **−0,16787** | **0,0004** | **63,4 %** |
+| `pretext_K36@16par` *(kontrola)* | 0,43232 ± 0,00154 | −0,12463 | 0,0012 | 47,1 % |
+| `pretext_K4` | 0,46932 ± 0,00535 | −0,08763 | 0,0004 | 33,1 % |
+| `random` *(podłoga)* | 0,55695 ± 0,00878 | — | — | 0 % |
+
+**Reprezentacja z pretreningu zawiera dużo informacji o głębi** — 63,4 % drogi od enkodera
+losowego do enkodera uczonego wprost na głębi, przy Δ **23× ponad podłogą szumu**.
+
+#### Rozkład przewagi `K=36` nad `K=4` [Z]
+
+Kontrola `K36@16par` (gęsta siatka 36 orientacji, budżet par równy `K=4`) rozdziela dwa źródła:
+
+| składowa | porównanie | ΔRMSE | pp rozpiętości | p |
+|---|---|---|---|---|
+| **gęstość kątowa danych** | `K36@16par` − `K4` | −0,03700 | **+14,0** | **0,0042** |
+| **liczba par** | `K36` − `K36@16par` | −0,04324 | **+16,3** | **0,0001** |
+
+**Oba czynniki wnoszą prawie po równo i oba są istotne.**
+
+> **DYSOCJACJA — do wypunktowania w pracy.** W samym zadaniu pretekstowym gęstsza siatka
+> **nie poprawiała wyniku w ogóle** (−1,24°, p = 0,83; §4). W zamrożonym koderze poprawia
+> zawartość geometryczną o **14 pp**, mimo że `K36@16par` ma MAAE 58,70° — praktycznie tyle samo
+> co `K4` (59,94°). **Gęstsze echo kształtuje koder wizualny nawet wtedy, gdy nie poprawia wyniku
+> w zadaniu orientacyjnym.** MAAE zadania pretekstowego **nie jest** wskaźnikiem tego, czego uczy
+> się koder. Dla tezy o zagęszczaniu ech to jest wzmocnienie: efekt działa **bezpośrednio**, przez
+> różnorodność sygnału treningowego, a nie pośrednio przez lepsze rozwiązanie zadania.
+
+**Kontrola z losowym zamrożonym enkoderem jest tu obowiązkowa.** `random` daje 0,55695, a nie
+wartość bliską bezużyteczności, bo `RGBDepthNet` jest U-Netem ze **skrótami** — `conv1feature`
+trafia wprost do ostatniej warstwy dekodera. Rozstrzyga **różnica**, nie wartość bezwzględna.
+
+Sondy pomocnicze (liniowa głowa na uśrednionych cechach `conv5`) pokazują, że **nie są to cechy
+„rozpoznaj, w którą stronę patrzysz"**:
+
+| zadanie | poziom losowy | `pretext_K36` | `random` | `depth_trained` |
+|---|---|---|---|---|
+| orientacja bezwzględna (MAAE) | 90,0° | 64,92 ± 0,11 | 70,84 ± 0,38 | **59,61 ± 0,45** |
+| tożsamość sceny (top-1) | 6,7 % | 64,0 ± 0,2 % | 60,9 ± 0,3 % | **74,4 ± 0,2 %** |
+
+Przy głębi `K=36` bije losowy o 63,4 % rozpiętości; przy orientacji i tożsamości sceny przewaga
+jest niewielka, a **najlepszy jest `depth_trained`** — enkoder, który nigdy nie widział zadania
+orientacyjnego. CKA potwierdza: `pretext_K36` jest bliżej `depth_trained` niż `random` na każdej
+warstwie, a przewaga **rośnie z głębokością** (0,010 na `conv1` → 0,041 na `conv5`).
+
+> **Wniosek obowiązujący, zastępujący „transfer nie działa":** zadanie pretekstowe uczy koder
+> wizualny cech geometrycznych użytecznych dla głębi, a **standardowe dostrajanie całej sieci ich
+> nie zachowuje** — przepisuje enkoder (odległość wag końcowych od startowych 0,95–0,98)
+> i zaciera ślad inicjalizacji. Wąskim gardłem jest **protokół przenoszenia, nie pretrening**.
+
+**Przewidywanie [W], niezmierzone:** protokoły chroniące cechy (zamrożenie enkodera, niższy krok
+uczenia na enkoderze, stopniowe odmrażanie) powinny tu działać, bo sonda pokazuje, że jest co
+chronić. Kandydat numer jeden do rozdziału o dalszych badaniach.
+
 ### Co wiadomo o mechanizmie [Z]
 
 Cztery pomiary, które **pozostają w mocy**:
@@ -316,12 +382,14 @@ Cztery pomiary, które **pozostają w mocy**:
 4. Przewaga startowa **istnieje i zanika**: na kroku 1 000 K36 jest o 14 % lepszy od `scratch`
    (−0,07325, p = 0,060), przewaga znika około kroku 4 000.
 
-> **Czego NIE wiadomo — i tak trzeba to napisać.** Dlaczego transfer nie działa, pozostaje
-> **nierozstrzygnięte**. Wykluczono trzy wyjaśnienia: że pretrening nic nie zmienia w enkoderze,
-> że zadanie pretekstowe jest za łatwe, i że zbiór docelowy jest za duży. Otwarta, **niesprawdzona
-> [X]** hipoteza: cechy przydatne do przewidywania **obrotu** mogą być po prostu innymi cechami
-> niż cechy przydatne do przewidywania **głębi**. Test wymagałby analizy reprezentacji
-> (np. sondowania liniowego), a nie kolejnego treningu — materiał na „dalsze prace".
+> **Mechanizm ustalony 2026-08-17** — patrz sekcja „Sondowanie zamrożonych reprezentacji" wyżej.
+> Wykluczono cztery wyjaśnienia: że pretrening nic nie zmienia w enkoderze, że zadanie
+> pretekstowe jest za łatwe, że zbiór docelowy jest za duży, oraz — **sprawdzone i obalone
+> sondowaniem** — że cechy przydatne do przewidywania obrotu są po prostu innymi cechami niż
+> cechy przydatne do przewidywania głębi. Ta ostatnia hipoteza była tu wpisana jako otwarta;
+> pomiar pokazał, że jest **fałszywa**: cechy pretekstowe pokrywają 63,4 % rozpiętości do
+> enkodera uczonego wprost na głębi, a przy orientacji i tożsamości sceny wypadają **gorzej**
+> niż enkoder uczony na głębi. Wąskim gardłem jest protokół dostrajania.
 
 ---
 
@@ -390,5 +458,5 @@ Numeracja „Model 1 / Model 2" w raportach jest **odwrotna do intuicji**; szcze
 | Krzywa na naturalnej liczności (`C6/C9/C12/C18`) | rośnie po gęstości **i** rozmiarze zbioru naraz; krzywa stałego budżetu jest ostrzejsza i jest policzona | **NIE** |
 | `patched` na pełnym modelu (`PA/PB/PD`) | wada geometrii jest akustyczna — `geometria_echo` bada ją ostrzej i ~20× taniej | **NIE** |
 | Warunek `ESA` (permutacja kątów w obrębie lokalizacji) | rozdzieliłby „echo niesie pozycję" od „echo niesie orientację"; `ESE` odpowiada na słabszą wersję i jest policzony | **NIE** |
-| Przyczyna negatywnego transferu | wymaga analizy reprezentacji, nie treningu | **TAK** — „dalsze prace" |
+| Protokoły chroniące pretrenowane cechy (zamrożenie enkodera, niższy `lr` na enkoderze, stopniowe odmrażanie) | sonda pokazała, że jest co chronić — ale samych protokołów nie zmierzono | **TAK** — kandydat nr 1 do „dalszych prac" |
 | Sonda geometrii na `office_4` | niski priorytet, nigdy nie był w planie | nie |

@@ -256,10 +256,87 @@ def rysunek_3_rozklad_efektu() -> Path:
     return p
 
 
+# ------------------------------------------------------------------ rysunek 4
+
+
+def rysunek_4_sonda_glebi() -> Path:
+    d = _load(paths.ML_OUTPUTS / "echo_ablation" / "final_results_2026-08-15.json")["sonda_glebi"]
+    P = d["punkty"]
+    rnd = np.array(P["random"]["values"], dtype=float)
+    span = P["random"]["mean"] - P["depth_trained"]["mean"]
+
+    # Os X to POPRAWA WOBEC LOSOWEGO, a nie surowe RMSE. Powod: przy RMSE slupki
+    # rosna w strone GORSZEGO wyniku, co przy rysunku "ile informacji o glebi
+    # niesie koder" czyta sie odwrotnie do intencji. Po odjeciu od podlogi
+    # dluzszy slupek = wiecej informacji, a zero ma znaczenie (= koder losowy).
+    def poprawa(e):
+        v = np.array(P[e]["values"], dtype=float)
+        # Blad standardowy ROZNICY dwoch niezaleznych srednich, nie sd jednej
+        # z nich -- slupek bledu dotyczy wielkosci, ktora jest narysowana.
+        se = float(np.sqrt(v.std(ddof=1) ** 2 / v.size + rnd.std(ddof=1) ** 2 / rnd.size))
+        return float(rnd.mean() - v.mean()), se
+
+    encs = [("pretext_K4", "pretrening K=4\n16 par/lok."),
+            ("pretext_K36_p16", "pretrening K=36 @ 16 par\n16 par/lok., siatka 36"),
+            ("pretext_K36", "pretrening K=36\n1 296 par/lok.")]
+    vals, errs = zip(*(poprawa(e) for e, _ in encs))
+    y = np.arange(len(encs))
+
+    fig, ax = plt.subplots(figsize=(7.6, 4.1))
+    _clean(ax, ygrid=False)
+    ax.grid(axis="x", color=GRID, linewidth=0.6, zorder=0)
+    ax.set_axisbelow(True)
+
+    # Gorna granica: koder, ktory PRZESZEDL pelne uczenie na glebi. Etykieta
+    # PIONOWO przy samej linii -- poziomo nie miesci sie miedzy linia a krawedzia
+    # i wypada poza obszar rysunku.
+    ax.axvline(span, color=INK_2, linewidth=2, ls=(0, (5, 3)), zorder=2)
+    ax.annotate("koder uczony wprost na głębi  (100 %)",
+                xy=(span, (len(encs) - 1) / 2), xytext=(-9, 0),
+                textcoords="offset points", rotation=90, ha="center", va="center",
+                fontsize=8.5, color=INK_2, fontweight="bold")
+
+    ax.barh(y, vals, xerr=errs, height=0.52, color=C_MAIN, capsize=5,
+            error_kw=dict(elinewidth=1.4, ecolor=INK_2), zorder=3)
+    for yi, v, e in zip(y, vals, errs):
+        ax.annotate(f"{100 * v / span:.1f} %", xy=(v + e, yi), xytext=(8, 0),
+                    textcoords="offset points", va="center", fontsize=10,
+                    fontweight="bold", color=INK)
+
+    # Rozklad: co dokłada gestosc katowa, a co sama liczba par.
+    for i, (lab, col) in enumerate(((f"gęstość kątowa\n+{100 * (vals[1] - vals[0]) / span:.1f} pp"
+                                     "   p = 0,0042", C_ALT),
+                                    (f"liczba par\n+{100 * (vals[2] - vals[1]) / span:.1f} pp"
+                                     "   p = 0,0001", C_THIRD))):
+        x0, x1 = vals[i], vals[i + 1]
+        ax.annotate("", xy=(x1, i + 0.5), xytext=(x0, i + 0.5),
+                    arrowprops=dict(arrowstyle="<->", color=col, lw=1.6))
+        ax.annotate(lab, xy=((x0 + x1) / 2, i + 0.5), xytext=(0, 7),
+                    textcoords="offset points", ha="center", fontsize=8.5,
+                    color=col, fontweight="bold")
+
+    ax.set_yticks(y)
+    ax.set_yticklabels([n for _, n in encs], fontsize=9)
+    ax.set_xlim(0, span * 1.13)
+    ax.set_xlabel("poprawa RMSE wobec LOSOWEGO zamrożonego enkodera\n"
+                  "(0 = koder losowy — podłoga)")
+    ax.set_title("Zamrożony koder z pretreningu niesie informację o głębi",
+                 loc="left", fontweight="bold", pad=14)
+    ax.text(0.0, 1.02, "sonda: koder zamrożony, uczony wyłącznie dekoder · 3 ziarna, "
+                       "wąsy = błąd standardowy różnicy",
+            transform=ax.transAxes, fontsize=8.5, color=INK_2, va="bottom")
+
+    OUT.mkdir(parents=True, exist_ok=True)
+    p = OUT / "rys_4_sonda_glebi.png"
+    fig.savefig(p)
+    plt.close(fig)
+    return p
+
+
 def main(argv=None) -> int:
     _style()
     for fn in (rysunek_1_krzywa_nasycenia, rysunek_2_generalizacja_katowa,
-               rysunek_3_rozklad_efektu):
+               rysunek_3_rozklad_efektu, rysunek_4_sonda_glebi):
         print(f"zapisano: {fn()}")
     return 0
 

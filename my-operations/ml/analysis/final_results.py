@@ -337,6 +337,135 @@ def sekcja_31b_maski() -> dict:
                                 "dodatnich; ta wersja sprawdza, czy to sie utrzymuje"}
 
 
+# ------------------------------------------------------- sondowanie (2026-08-17)
+
+# Podloga szumu frameworka, GORNA granica. Roznica mniejsza niz ta jest brakiem
+# roznicy niezaleznie od `p` -- kryterium zapisane PRZED pomiarem
+# (`outputs/ml/probing/REGULA_PRZED_POMIAREM.md`).
+NOISE_FLOOR_HI = NOISE_FLOOR[1]
+
+
+def _probe_rmse(encoder: str, seed: int) -> float | None:
+    d = paths.ML_OUTPUTS / "probing" / f"probe_depth_{encoder}_seed{seed}"
+    st = _load(d / "status.json")
+    if not (st and st.get("finished")):
+        return None
+    if not st.get("encoder_frozen_verified"):
+        raise RuntimeError(f"{d.name}: enkoder NIE byl zamrozony -- wynik niewazny")
+    return float(st.get("best_val_rmse"))
+
+
+def sekcja_sonda_glebi() -> dict:
+    """§1.1 -- czy cechy pretreningu niosa informacje o glebi.
+
+    Wielkoscia rozstrzygajaca jest `S_K36 - S_rand`, a NIE bezwzgledna wartosc
+    `S_K36`: `RGBDepthNet` ma polaczenia skrotowe, wiec nawet losowy zamrozony
+    enkoder podaje dekoderowi uzyteczne krawedzie i podloga jest wysoka.
+    """
+    seeds = (0, 1, 2)
+    encs = ("pretext_K36", "pretext_K4", "random", "depth_trained", "pretext_K36_p16")
+    vals = {e: [_probe_rmse(e, s) for s in seeds] for e in encs}
+    punkty = {e: _stat(v) for e, v in vals.items()}
+
+    kontrasty = {}
+    for e in ("pretext_K36", "pretext_K4", "depth_trained", "pretext_K36_p16"):
+        w = _welch(vals[e], vals["random"])
+        d = w["delta"]
+        w["ponad_podloga_szumu"] = (abs(d) > NOISE_FLOOR_HI) if d is not None else None
+        w["istotny_i_ponad_podloga"] = bool(
+            w.get("p") is not None and w["p"] < 0.05 and w["ponad_podloga_szumu"])
+        w["uwaga"] = "wartosc UJEMNA = lepiej niz losowy zamrozony enkoder"
+        kontrasty[f"{e}_minus_random"] = w
+    # Rozpietosc skali: ile w ogole da sie zyskac na tym ukladzie.
+    r, dp = punkty["random"]["mean"], punkty["depth_trained"]["mean"]
+    rozpietosc = (r - dp) if (r is not None and dp is not None) else None
+
+    # Pokrycie rozpietosci w procentach -- czytelniejsze niz surowe RMSE.
+    pokrycie = {}
+    if rozpietosc:
+        for e, st in punkty.items():
+            if st["n"]:
+                pokrycie[e] = 100.0 * (r - st["mean"]) / rozpietosc
+
+    # ROZKLAD PRZEWAGI `K36` NAD `K4` NA DWA CZYNNIKI.
+    # `K36@16par` ma gesta siatke 36 orientacji przy budzecie par rownym `K4`,
+    # wiec rozdziela to, co w porownaniu K36 vs K4 jest sklejone:
+    #   gestosc katowa danych = K36@16par - K4     (ten sam budzet par)
+    #   liczba par            = K36 - K36@16par    (ta sama siatka)
+    rozklad = {}
+    if punkty["pretext_K36_p16"]["n"] and punkty["pretext_K4"]["n"] and punkty["pretext_K36"]["n"]:
+        g = _welch(vals["pretext_K36_p16"], vals["pretext_K4"])
+        p_ = _welch(vals["pretext_K36"], vals["pretext_K36_p16"])
+        rozklad = {
+            "gestosc_katowa_danych": {
+                **g, "pp_rozpietosci": pokrycie["pretext_K36_p16"] - pokrycie["pretext_K4"],
+                "porownanie": "K36@16par - K4 (ten sam budzet 16 par, siatka 36 vs 4)"},
+            "liczba_par": {
+                **p_, "pp_rozpietosci": pokrycie["pretext_K36"] - pokrycie["pretext_K36_p16"],
+                "porownanie": "K36 - K36@16par (ta sama siatka 36, 1296 vs 16 par)"},
+            "uwaga": "PORONAJ z rozkladem MAAE samego zadania pretekstowego (2026-08-13 §4), "
+                     "gdzie rozdzielczosc katowa nie wnosila NIC (-1,24 st., p = 0,83): jesli "
+                     "tutaj gestosc katowa wnosi istotnie, mamy DYSOCJACJE miedzy jakoscia "
+                     "rozwiazania zadania a tym, czego uczy sie koder",
+        }
+
+    werdykt, uzasadnienie = "NIEKOMPLETNE", "brak wszystkich przebiegow"
+    k36 = kontrasty.get("pretext_K36_minus_random", {})
+    if punkty["pretext_K36"]["n"] and punkty["random"]["n"] and punkty["depth_trained"]["n"]:
+        if not k36.get("ponad_podloga_szumu"):
+            werdykt = "CECHY ORIENTACYJNE NIE SA CECHAMI GLEBI"
+            uzasadnienie = (
+                f"S_K36 - S_rand = {k36['delta']:+.5f}, ponizej podlogi szumu "
+                f"{NOISE_FLOOR_HI} -- zamrozony enkoder pretekstowy niesie o glebi tyle samo, "
+                f"co zamrozony enkoder LOSOWY, podczas gdy enkoder uczony na glebi daje "
+                f"{rozpietosc:+.5f} wzgledem losowego")
+        elif k36["delta"] < 0:
+            werdykt = "CECHY SA UZYTECZNE -- problem w dynamice dostrajania"
+            uzasadnienie = (
+                f"S_K36 jest lepsze od losowego o {abs(k36['delta']):.5f} (p={k36['p']:.4f}), "
+                f"a mimo to pelny transfer nie pomaga -- niepowodzenie nie lezy w tresci "
+                f"reprezentacji")
+        else:
+            werdykt = "CECHY GORSZE NIZ LOSOWE"
+            uzasadnienie = (f"S_K36 jest GORSZE od losowego o {k36['delta']:+.5f} "
+                            f"(p={k36['p']:.4f}) -- pretrening aktywnie szkodzi")
+    return {"opis": "sonda glebi: enkoder ZAMROZONY, uczony wylacznie dekoder; "
+                    "3 ziarna, RMSE walidacyjne najlepszego kroku",
+            "regula": "outputs/ml/probing/REGULA_PRZED_POMIAREM.md (zapisana PRZED pomiarem)",
+            "punkty": punkty, "kontrasty": kontrasty,
+            "rozpietosc_random_minus_depth_trained": rozpietosc,
+            "pokrycie_rozpietosci_pct": pokrycie,
+            "rozklad_przewagi_K36_nad_K4": rozklad,
+            "werdykt": werdykt, "uzasadnienie": uzasadnienie}
+
+
+def sekcja_sondy_pomocnicze() -> dict:
+    """§1.2 -- czym JEST ta reprezentacja, skoro nie jest reprezentacja glebi."""
+    seeds = (0, 1, 2)
+    encs = ("pretext_K36", "random", "depth_trained")
+    out: dict[str, dict] = {}
+    for zad, klucz, pole in (("orientacja", "orientacja", "MAAE_deg"),
+                             ("orientacja_top1", "orientacja", "top1"),
+                             ("scena", "scena", "top1")):
+        vals = {}
+        for e in encs:
+            v = []
+            for s in seeds:
+                st = _load(paths.ML_OUTPUTS / "probing" / f"probe_aux_{e}_seed{s}" / "status.json")
+                if st and st.get("finished"):
+                    v.append(st["wyniki"].get(klucz, {}).get(pole))
+            vals[e] = v
+        out[zad] = {e: _stat(v) for e, v in vals.items()}
+        out[zad]["_vs_random"] = {
+            e: _welch(vals[e], vals["random"]) for e in encs if e != "random"}
+    out["poziomy_losowe"] = {"orientacja_MAAE_deg": 90.0, "orientacja_top1": 1 / 36,
+                             "scena_top1": 1 / 15}
+    out["uwaga"] = ("sondy liniowe na usrednionych przestrzennie cechach conv5; podzial "
+                    "WEWNETRZNY sondy po lokalizacjach treningowych 80/20 (ziarno 20260817) -- "
+                    "zamrozony podzial zbioru NIE jest ruszany, patrz `probe.py::_aux_split`")
+    return out
+
+
 # ---------------------------------------------------------------- §3.2
 
 
@@ -402,6 +531,9 @@ def main(argv=None) -> int:
         "geometria_echo_3ziarna": sekcja_31_geometria_echo(),
         "maski_3ziarna": sekcja_31b_maski(),
         "glowne_3ziarna": sekcja_32_glowne(),
+        "sonda_glebi": sekcja_sonda_glebi(),
+        "sondy_pomocnicze": sekcja_sondy_pomocnicze(),
+        "cka": _load(paths.ML_OUTPUTS / "probing" / "cka.json") or {},
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, indent=2, ensure_ascii=False, default=float),
@@ -486,6 +618,59 @@ def main(argv=None) -> int:
                   f"{st['krotnosc_podlogi_szumu']}")
     if gl["udzial_gestosci_pct"] is not None:
         print(f"  udzial gestosci w efekcie lacznym: {gl['udzial_gestosci_pct']:.1f} %")
+
+    sd = payload["sonda_glebi"]
+    print("\n" + "=" * 90)
+    print("SONDA GLEBI -- ZAMROZONY ENKODER, UCZONY DEKODER")
+    print("=" * 90)
+    for e, st in sd["punkty"].items():
+        if st["n"]:
+            s = "  n<2" if st["sd"] is None else f"{st['sd']:.5f}"
+            print(f"  {e:16s} n={st['n']}  RMSE {st['mean']:.5f} +/- {s}")
+    print(f"\n  {'kontrast':32s} {'delta':>10s} {'p':>8s}  ponad szumem  istotny+ponad")
+    for k, v in sd["kontrasty"].items():
+        if v.get("delta") is not None:
+            p = "—" if v.get("p") is None else f"{v['p']:.4f}"
+            print(f"  {k:32s} {v['delta']:>+10.5f} {p:>8s}  {str(v['ponad_podloga_szumu']):>12s}"
+                  f"  {v['istotny_i_ponad_podloga']}")
+    if sd["rozpietosc_random_minus_depth_trained"] is not None:
+        print(f"\n  rozpietosc skali (random - depth_trained): "
+              f"{sd['rozpietosc_random_minus_depth_trained']:+.5f}")
+        print("  pokrycie rozpietosci: " + " · ".join(
+            f"{e} {v:.1f} %" for e, v in sorted(sd["pokrycie_rozpietosci_pct"].items(),
+                                                key=lambda x: -x[1])))
+    rz = sd.get("rozklad_przewagi_K36_nad_K4") or {}
+    if rz:
+        print("\n  ROZKLAD PRZEWAGI K36 NAD K4 (kontrola K36@16par):")
+        for k in ("gestosc_katowa_danych", "liczba_par"):
+            v = rz[k]
+            print(f"    {k:22s} {v['delta']:+.5f} RMSE = {v['pp_rozpietosci']:+5.1f} pp  "
+                  f"p={v['p']:.4f}   [{v['porownanie']}]")
+    print(f"\n  WERDYKT: {sd['werdykt']}")
+    print(f"  {sd['uzasadnienie']}")
+
+    sp = payload["sondy_pomocnicze"]
+    print("\n" + "=" * 90)
+    print("SONDY POMOCNICZE -- co ta reprezentacja NIESIE")
+    print("=" * 90)
+    for zad, jedn, los in (("orientacja", "MAAE st.", "90,0"),
+                           ("orientacja_top1", "top-1", "2,8 %"),
+                           ("scena", "top-1", "6,7 %")):
+        blok = sp.get(zad, {})
+        row = "  ".join(f"{e}={blok[e]['mean']:.3f}" for e in
+                        ("pretext_K36", "random", "depth_trained")
+                        if blok.get(e, {}).get("n"))
+        if row:
+            print(f"  {zad:16s} ({jedn:9s} losowo {los:>6s}):  {row}")
+
+    if payload["cka"].get("wyniki"):
+        print("\n" + "=" * 90)
+        print("CKA -- podobienstwo reprezentacji warstwa po warstwie")
+        print("=" * 90)
+        print(f"  {'para':34s} " + " ".join(f"{f'conv{i}':>7s}" for i in range(1, 6)))
+        for k, v in payload["cka"]["wyniki"].items():
+            print(f"  {k:34s} " + " ".join(f"{v[f'conv{i}']:7.3f}" for i in range(1, 6)))
+
     print(f"\nzapisano: {OUT}")
     return 0
 

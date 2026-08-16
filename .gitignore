@@ -65,6 +65,14 @@ outputs/**
 # przedstawiaja -- inaczej rysunek w tekscie i liczba w tabeli moga sie rozjechac
 # bez sladu. Odtwarzalne: `ml/analysis/figures.py`, zero GPU.
 !outputs/ml/figures/*.png
+# Sesja 2026-08-17: sondowanie zamrozonych reprezentacji. Wchodza `status.json`
+# (niosa SUMY KONTROLNE potwierdzajace, ze enkoder byl zamrozony -- bez nich
+# wynik sondy jest nie do zweryfikowania), `best.json`, `cka.json` i regula
+# zapisana przed pomiarem. `metrics.jsonl` zostaje poza gitem.
+!outputs/ml/probing/*.json
+!outputs/ml/probing/*.md
+!outputs/ml/probing/*/status.json
+!outputs/ml/probing/*/best.json
 # Zdjecia wag z kontroli niedeterminizmu: ~15 GB, kasowane automatycznie po
 # zapisaniu liczb do JSON-a. Wymienione jawnie na wypadek przerwanego przebiegu.
 outputs/ml/determinism/_snapshots/**

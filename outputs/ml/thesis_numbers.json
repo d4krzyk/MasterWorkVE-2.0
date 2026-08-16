@@ -989,6 +989,114 @@
       "uwaga": "wartość DODATNIA = `patched` GORSZY; 1.4-4.5x podlogi szumu"
     },
     {
+      "grupa": "wyniki_echo",
+      "nazwa": "SONDA GŁĘBI: RMSE wg zamrożonego enkodera",
+      "wartosc": {
+        "pretext_K36": "0.38908 ± 0.00243",
+        "pretext_K4": "0.46932 ± 0.00535",
+        "random": "0.55695 ± 0.00878",
+        "depth_trained": "0.29234 ± 0.00157",
+        "pretext_K36_p16": "0.43232 ± 0.00154"
+      },
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-17.md §1",
+      "uwaga": "enkoder ZAMROŻONY (weryfikowane sumą kontrolną z buforami BatchNormu), uczony wyłącznie dekoder; 3 ziarna, dekoder identyczny we wszystkich warunkach przy danym ziarnie"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Sonda głębi: pretext_K36_minus_random",
+      "wartosc": "-0.16787 (p=0.0004)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-17.md §1",
+      "uwaga": "; ponad podłogą szumu: True. Wartość UJEMNA = lepiej niż LOSOWY zamrożony enkoder"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Sonda głębi: pretext_K4_minus_random",
+      "wartosc": "-0.08763 (p=0.0004)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-17.md §1",
+      "uwaga": "; ponad podłogą szumu: True. Wartość UJEMNA = lepiej niż LOSOWY zamrożony enkoder"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Sonda głębi: depth_trained_minus_random",
+      "wartosc": "-0.26462 (p=0.0002)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-17.md §1",
+      "uwaga": "; ponad podłogą szumu: True. Wartość UJEMNA = lepiej niż LOSOWY zamrożony enkoder"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Sonda głębi: pretext_K36_p16_minus_random",
+      "wartosc": "-0.12463 (p=0.0012)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-17.md §1",
+      "uwaga": "; ponad podłogą szumu: True. Wartość UJEMNA = lepiej niż LOSOWY zamrożony enkoder"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "WERDYKT: dlaczego transfer nie działa",
+      "wartosc": "CECHY SA UZYTECZNE -- problem w dynamice dostrajania",
+      "jednostka": "—",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-17.md §0",
+      "uwaga": "S_K36 jest lepsze od losowego o 0.16787 (p=0.0004), a mimo to pelny transfer nie pomaga -- niepowodzenie nie lezy w tresci reprezentacji — reguła zapisana PRZED pomiarem: outputs/ml/probing/REGULA_PRZED_POMIAREM.md"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Sonda pomocnicza: orientacja",
+      "wartosc": {
+        "pretext_K36": "64.9155",
+        "random": "70.8357",
+        "depth_trained": "59.6074"
+      },
+      "jednostka": "stopnie MAAE",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-17.md §2",
+      "uwaga": "poziom losowy 90°; liniowa głowa na uśrednionych cechach conv5. NAJLEPSZY jest `depth_trained` — hipoteza, że pretrening uczy głównie dyskryminacji widoku, została OBALONA"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Sonda pomocnicza: scena",
+      "wartosc": {
+        "pretext_K36": "0.6403",
+        "random": "0.6089",
+        "depth_trained": "0.7435"
+      },
+      "jednostka": "top-1",
+      "status": "[Z]",
+      "dowod": "echo_ablation/final_results_2026-08-15.json",
+      "sekcja": "RAPORT_SESJI_2026-08-17.md §2",
+      "uwaga": "poziom losowy 6,7 %; liniowa głowa na uśrednionych cechach conv5. NAJLEPSZY jest `depth_trained` — hipoteza, że pretrening uczy głównie dyskryminacji widoku, została OBALONA"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "CKA: podobieństwo do enkodera głębi (conv5)",
+      "wartosc": {
+        "pretext_K36__vs__depth_trained": "0.943",
+        "random__vs__depth_trained": "0.902",
+        "pretext_K36__vs__random": "0.906"
+      },
+      "jednostka": "linear CKA",
+      "status": "[Z-]",
+      "dowod": "probing/cka.json",
+      "sekcja": "RAPORT_SESJI_2026-08-17.md §3",
+      "uwaga": "para `random__vs__depth_trained` jest PODŁOGĄ; liczone na cechach uśrednionych przestrzennie, więc liczy się uporządkowanie, nie wartości bezwzględne"
+    },
+    {
       "grupa": "geometria",
       "nazwa": "Δ na trzech maskach: EPA_minus_EA (3 ziarna)",
       "wartosc": {
