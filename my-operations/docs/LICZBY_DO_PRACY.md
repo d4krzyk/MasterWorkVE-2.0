@@ -9,6 +9,16 @@ zmiany przepadną przy następnym uruchomieniu. Źródło maszynowe: `outputs/ml
 | **[Z-]** | zmierzone z zastrzeżeniem, które trzeba cytować razem z liczbą |
 | **[W]** | wywnioskowane z kodu/źródła, nie z pomiaru |
 
+**To jest katalog, nie tekst do pracy.** Zawiera każdą zmierzoną liczbę, także techniczne
+i zastąpione. Liczby do tekstu przepisuje się ze `STAN_WYNIKOW.md`; tutaj sprawdza się, skąd
+pochodzą. Filtr dla pozycji, które w ogóle mogą trafić do pracy: status [Z] albo [Z-] (ten
+drugi z zastrzeżeniem) i brak „ZASTĄPIONE" / „nie cytować" w nazwie lub uwadze.
+
+**Konwencja znaku** (`KONWENCJE.md` §2): etykieta `X − Y` znaczy dosłownie X − Y; dla RMSE
+i MAAE wartość **ujemna = mniejszy błąd = lepiej**. Pozycje nazwane „spadek RMSE" podają
+wielkość poprawy i są dodatnie. „RMSE" bez dopisku to RMSE głębi w metrach; „RMSE
+spektrogramu" to odległość RMS dwóch spektrogramów, nie metryka modelu (`KONWENCJE.md` §3).
+
 ## 1. Zbiór danych
 
 | wielkość | wartość | jedn. | status | dowód | sekcja |
@@ -129,10 +139,10 @@ Uwagi:
 | RMSE test@36: ED | **0.64432 ± 0.00238** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
 | RMSE test@36: EB | **0.58223 ± 0.00348** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
 | RMSE test@36: ESE | **1.16292 ± 0.00362** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
-| Kontrast: gestosc katowa D-A | **0.14672 ± 0.01303** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
-| Kontrast: ilosc danych B-D | **0.06209 ± 0.00435** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
-| Kontrast: laczny B-A | **0.20882 ± 0.01132** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
-| Kontrast: wklad echa | **0.58070 ± 0.00076** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
+| Kontrast: gęstość kątowa D − A | **-0.14672 ± 0.01303** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
+| Kontrast: ilość danych B − D | **-0.06209 ± 0.00435** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
+| Kontrast: łączny B − A | **-0.20882 ± 0.01132** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
+| Kontrast: wkład echa ESE − EB | **+0.58070 ± 0.00076** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
 | Udział gęstości kątowej w efekcie łącznym | **70.2 ± 3.0** | % | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
 | Luka generalizacji kątowej EA (0° → 40°) | **0.31477 ± 0.02860** | RMSE | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
 | Krzywa RMSE(odległość kątowa), EA | **0: 0.59626, 10: 0.66296, 20: 0.78249, 30: 0.87034, 40: 0.91103** | RMSE per kubełek | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
@@ -140,17 +150,17 @@ Uwagi:
 | Rozrzut po ziarnach: EA vs pozostałe | **0,01066 wobec 0,0024–0,0036** | RMSE (sd) | [Z] | `echo_ablation/echo_3seeds.json` | RAPORT_SESJI_2026-08-11.md §3 |
 | c_full — wkład echa w PEŁNYM modelu | **0.02228** | RMSE | [Z-] | `echo_ablation/full_model_gate.json` | RAPORT_SESJI_2026-08-11.md §2 |
 | Względny wkład echa w pełnym modelu | **9.2** | % | [Z-] | `echo_ablation/full_model_gate.json` | RAPORT_SESJI_2026-08-11.md §2 |
-| EA vs EB na test@4 (nowy protokół, 3 ziarna) | **0,01787 ± 0,01128** | RMSE | [Z] | `eval/compare_EA_seed*_vs_EB_seed*_test4.json` | RAPORT_SESJI_2026-08-11.md §4.1 |
+| EA − EB na test@4 (nowy protokół, 3 ziarna) | **+0,01787 ± 0,01128** | RMSE | [Z] | `eval/compare_EA_seed*_vs_EB_seed*_test4.json` | RAPORT_SESJI_2026-08-11.md §4.1 |
 | Całkowity wkład echa (echo2depth, walidacja) | **0.6074** | RMSE | [Z-] | `echo_ablation/echo_ablation.json` | RAPORT_SESJI_2026-08-10.md §3.3 |
 | Luka test@36 − test@4 per warunek (1 ziarno, stary protokół) | **EA: 0.22473, ED: 0.00093, EB: 0.00141, ESE: 0.00399** | RMSE | [Z-] | `echo_ablation/gap_table_seed0.json` | RAPORT_SESJI_2026-08-11.md §4.2 |
-| EA vs EB na test@4 (sparowane, te same 732 próbki) | **0.0015** | RMSE | [Z-] | `eval/compare_EA_seed0_vs_EB_seed0_test4.json` | RAPORT_SESJI_2026-08-11.md §4.1 |
+| EA − EB na test@4 (sparowane, te same 732 próbki) | **0.0015** | RMSE | [Z-] | `eval/compare_EA_seed0_vs_EB_seed0_test4.json` | RAPORT_SESJI_2026-08-11.md §4.1 |
 | KRZYWA STAŁEGO BUDŻETU: RMSE w funkcji siatki K | **K=4: 0.79104, K=6: 0.70623, K=9: 0.66342, K=12: 0.65331, K=18: 0.64804, K=36: 0.64432** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §1 |
-| Nasycenie krzywej stałego budżetu | **4→9: 0.128 · 9→36: 0.019** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §1 |
-| Krzywa stałego budżetu: K=4 → K=36 | **0.132** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §1 |
+| Nasycenie krzywej stałego budżetu (spadek RMSE) | **4→9: 0.128 · 9→36: 0.019** | spadek RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §1 |
+| Krzywa stałego budżetu: K=36 − K=4 | **-0.132** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §1 |
 | PEŁNY MODEL: RMSE test@36 (A / B / D) — 1 ziarno, ZASTĄPIONE | **A: 0.28739, B: 0.24205, D: 0.26909** | RMSE | [Z-] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §2 |
 | Pełny model: gęstość / ilość danych — 1 ziarno, ZASTĄPIONE | **-0.01831 / -0.02703** | RMSE | [Z-] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §2 |
-| Model 2: MAAE zadania pretekstowego | **K4: 61.23, K12: 55.73, K36: 25.13, K36_p16: 61.77** | stopnie | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §4 |
-| Model 2: rozkład MAAE pretekstu (stopnie) | **ilość par -36.64° · rozdzielczość +0.54°** | stopnie | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: MAAE zadania pretekstowego — 1 ziarno, ZASTĄPIONE | **K4: 61.23, K12: 55.73, K36: 25.13, K36_p16: 61.77** | stopnie | [Z-] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: rozkład MAAE pretekstu (stopnie) — 1 ziarno, ZASTĄPIONE | **ilość par -36.64° · rozdzielczość +0.54°** | stopnie | [Z-] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §4 |
 | Model 2: transfer RGB2Depth (5 ziaren) | **pretext_K4_seed0: 0.28699, pretext_K36_p16_seed0: 0.28927, scratch: 0.28986, pretext_K36_seed0: 0.29439, pretext_K12_seed0: 0.29688** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §5 |
 | Model 2: transfer pretext_K12_seed0 vs scratch | **+0.00702 (p=0.074)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §5 |
 | Model 2: transfer pretext_K36_p16_seed0 vs scratch | **-0.00059 (p=0.751)** | RMSE | [Z] | `echo_ablation/final_results_2026-08-13.json` | RAPORT_SESJI_2026-08-13.md §5 |
@@ -205,10 +215,10 @@ Uwagi:
 - **RMSE test@36: ED** — średnia ± sd po 3 ziarnach
 - **RMSE test@36: EB** — średnia ± sd po 3 ziarnach
 - **RMSE test@36: ESE** — średnia ± sd po 3 ziarnach
-- **Kontrast: gestosc katowa D-A** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [0.11231236253503095, 0.1517812154830765]
-- **Kontrast: ilosc danych B-D** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [0.0512386921897015, 0.07880838719573234]
-- **Kontrast: laczny B-A** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [0.1697141469308697, 0.2254509038481209]
-- **Kontrast: wklad echa** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [0.5404420619067919, 0.6240416489197484]
+- **Kontrast: gęstość kątowa D − A** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.15178, -0.11231]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2
+- **Kontrast: ilość danych B − D** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.07881, -0.05124]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2
+- **Kontrast: łączny B − A** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.22545, -0.16971]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2
+- **Kontrast: wkład echa ESE − EB** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [0.54044, 0.62404]
 - **Udział gęstości kątowej w efekcie łącznym** — gęstość 2,36× większa niż ilość danych
 - **Luka generalizacji kątowej EA (0° → 40°)** — 52.84 %, monotoniczna w 3/3 ziarnach; stary protokół dawał +0,35540 — zawyżał o 0.04063
 - **Krzywa RMSE(odległość kątowa), EA** — kubełki 0/10/20/30/40°; 45° nie występuje przy siatce co 10°
@@ -216,17 +226,17 @@ Uwagi:
 - **Rozrzut po ziarnach: EA vs pozostałe** — warunek o najrzadszym pokryciu kątowym jest 3–4× wrażliwszy na inicjalizację
 - **c_full — wkład echa w PEŁNYM modelu** — 95 % CI [0.0184, 0.02643], ziarno 0; 26,4× mniej niż w echo2depth
 - **Względny wkład echa w pełnym modelu** — u Gao 7,5 % — zgodność rzędu wielkości potwierdza poprawność potoku, NIE jest zestawieniem wyników
-- **EA vs EB na test@4 (nowy protokół, 3 ziarna)** — 91,4 % kary EA powstaje na kątach NIEWIDZIANYCH
+- **EA − EB na test@4 (nowy protokół, 3 ziarna)** — 91,4 % kary EA powstaje na kątach NIEWIDZIANYCH
 - **Całkowity wkład echa (echo2depth, walidacja)** — ziarno 0
 - **Luka test@36 − test@4 per warunek (1 ziarno, stary protokół)** — ZASTĄPIONE przez wersję z 3 ziaren (`echo_3seeds.json`) — nie cytować obu naraz
-- **EA vs EB na test@4 (sparowane, te same 732 próbki)** — 95 % CI [−0,01325; +0,01731] — OBEJMUJE ZERO
+- **EA − EB na test@4 (sparowane, te same 732 próbki)** — 95 % CI [−0,01325; +0,01731] — OBEJMUJE ZERO
 - **KRZYWA STAŁEGO BUDŻETU: RMSE w funkcji siatki K** — echo2depth, 4 próbki/lokalizację (5 496) w KAŻDYM punkcie — liczność stała, zmienia się wyłącznie siatka; 3 ziarna
-- **Nasycenie krzywej stałego budżetu** — przejście 4→9 daje 6,7× więcej niż 9→36 — punkt odcięcia ok. K = 9–12
-- **Krzywa stałego budżetu: K=4 → K=36** — 95 % CI [0.11231; 0.15178], bootstrap po lokalizacjach
+- **Nasycenie krzywej stałego budżetu (spadek RMSE)** — przejście 4→9 daje 6,7× więcej niż 9→36 — punkt odcięcia ok. K = 9–12
+- **Krzywa stałego budżetu: K=36 − K=4** — 95 % CI [-0.15178; -0.11231], bootstrap po lokalizacjach; wartość ujemna = K=36 lepsze
 - **PEŁNY MODEL: RMSE test@36 (A / B / D) — 1 ziarno, ZASTĄPIONE** — ZASTĄPIONE przez wersję z 3 ziaren (RAPORT_SESJI_2026-08-15.md §3.2) — nie cytować
 - **Pełny model: gęstość / ilość danych — 1 ziarno, ZASTĄPIONE** — ZASTĄPIONE: na 3 ziarnach gęstość wynosi −0,02048 (p = 0,0096), a nie −0,01831; patrz RAPORT_SESJI_2026-08-15.md §3.2 — nie cytować tej wersji
-- **Model 2: MAAE zadania pretekstowego** — poziom losowy 90° NIEZALEŻNIE od K
-- **Model 2: rozkład MAAE pretekstu (stopnie)** — CAŁA przewaga K=36 pochodzi z 81× większej liczby par, NIE z rozdzielczości kątowej. NIE mylić z rozkładem RMSE zadania docelowego (§5) — ta sama arytmetyka, inna wielkość i inna jednostka
+- **Model 2: MAAE zadania pretekstowego — 1 ziarno, ZASTĄPIONE** — poziom losowy 90° NIEZALEŻNIE od K; ZASTĄPIONE przez wersję z 3 ziaren (`pretext/summary.json`) — nie cytować
+- **Model 2: rozkład MAAE pretekstu (stopnie) — 1 ziarno, ZASTĄPIONE** — CAŁA przewaga K=36 pochodzi z 81× większej liczby par, NIE z rozdzielczości kątowej. NIE mylić z rozkładem RMSE zadania docelowego (§5) — ta sama arytmetyka, inna wielkość i inna jednostka. ZASTĄPIONE przez wersję z 3 ziaren (STAN_WYNIKOW.md §4: −33,05° / −1,24°) — nie cytować
 - **Model 2: transfer RGB2Depth (5 ziaren)** — WYNIK NEGATYWNY — żadna różnica wobec `scratch` nie jest istotna
 - **Model 2: transfer pretext_K12_seed0 vs scratch** — test Welcha, 5 ziaren; wartość ujemna = lepiej niż scratch
 - **Model 2: transfer pretext_K36_p16_seed0 vs scratch** — test Welcha, 5 ziaren; wartość ujemna = lepiej niż scratch

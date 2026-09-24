@@ -1,5 +1,14 @@
 # Raport sesji — 2026-08-17: diagnoza negatywnego transferu. **Zamknięcie fazy eksperymentalnej**
 
+> **ERRATA 2026-09-21 — konwencja znaku (tylko etykiety, żadna wartość bezwzględna się nie zmienia).**
+> Konwencja obowiązująca od tej daty: etykieta `X − Y` znaczy dosłownie wartość(X) − wartość(Y);
+> dla RMSE ujemne = lepiej (`KONWENCJE.md` §2). Ten raport zostaje bez zmian jako zapis
+> chronologiczny, ale poniższe miejsca mają etykietę niezgodną z arytmetyką:
+>
+> - §7, tabela zamykająca: wiersze 1, 4 i 5 („D−A = 0,14672", „D−A = 0,02048", „B−A = 0,04881") podają wielkości bez znaku; w konwencji −0,14672, −0,02048, −0,04881.
+>
+> Wartości obowiązujące: `STAN_WYNIKOW.md`.
+
 Jedno pytanie: **dlaczego pretrening orientacyjny nie pomaga w predykcji głębi**, mimo że samo
 zadanie pretekstowe jest rozwiązane bardzo dobrze. Odpowiedź szukana przez **sondowanie
 zamrożonych reprezentacji** — żaden enkoder nie był w tej sesji uczony.

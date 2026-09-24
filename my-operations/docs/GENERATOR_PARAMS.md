@@ -7,6 +7,11 @@ Każda pozycja ma odwołanie do eksperymentu, który ją rozstrzygnął. Surowe 
 `outputs/diagnose_rlr_noise_out/diagnostics_report.json` (klucz podany przy każdej pozycji).
 Konteksty: `docs/PKL_FORMAT.md` (kamera i zbiór lokalizacji), `docs/REPLICA_MATERIALS.md` (materiały akustyczne).
 
+> **Uwaga terminologiczna (dodane 2026-09-21).** W tym dokumencie „RMSE" oznacza **odległość RMS
+> między dwoma spektrogramami** (pierwiastek ze średniej po 85 324 komórkach kwadratu różnicy), a nie
+> metrykę jakości modelu głębi. To są dwie różne wielkości o tej samej nazwie — `KONWENCJE.md` §3.
+> W tekście pracy nazywać ją inaczej niż RMSE głębi.
+
 ---
 
 ## 1. Tabela parametrów
@@ -149,6 +154,22 @@ patrz `diagnostics_report.json → gpu_memory_scale`.
 ---
 
 ## 3. Adaptacyjne N
+
+> **Streszczenie §3 — stan końcowy (dodane 2026-09-21, bez nowych decyzji).** Sekcja niżej zawiera
+> też historię rewizji (`N_MAX` 24 → 40 → 64); obowiązuje wyłącznie to:
+>
+> | co | wartość | gdzie uzasadnione |
+> |---|---|---|
+> | dlaczego adaptacyjnie | szum renderu zależy od **pozycji** (waha się 2,7×), sygnał 10° nie zależy od sceny | §3.1 |
+> | reguła | sonda 8 renderów przy 0° → `sigma_1` → `N = clamp(ceil((3.5·sigma_1/0.0644)²), 6, 64)` | §3.2 |
+> | `TARGET_SNR = 3.5` | **wybór projektowy**, nie wielkość wyprowadzona | §3.2 |
+> | `N_MAX = 64` | pełny census 1 740 lokalizacji: żadna nie jest obcinana przy planowaniu | §3.2 |
+> | zakres decyzji | raz na lokalizację (1 740 decyzji), to samo `N` dla wszystkich 36 orientacji | §3.3 |
+> | kontrola jakości | po fakcie: próbki z `snr_final` < 3.5 są dorenderowywane (~40 % próbek, z konstrukcji reguły) | §3.4 |
+> | zysk | **2,14×** taniej niż stałe `N` o tej samej gwarancji | §3.1 |
+>
+> Godziny z tabeli w §3.1 (44,6 h / 95,2 h) są sprzed zmiany z §4.3 i **nie są** budżetem zbioru;
+> aktualny budżet jest w §4. Ważny pozostaje stosunek 2,14×.
 
 ### 3.1 Dlaczego nie stałe N
 
@@ -500,7 +521,8 @@ Reguła spójności, którą warto sprawdzić po generacji: `n_rendered_extra > 
 
 Próbki z `clamped == "max"` i `snr_final < 3.5` to jedyne, dla których gwarancja jakości nie obowiązuje — one
 muszą trafić do raportu w pracy (§5, ograniczenie 6). Przy `N_MAX = 40` oczekujemy ich zero, ale to ma być
-stwierdzone pomiarem, nie założeniem.
+stwierdzone pomiarem, nie założeniem. *(Uwaga 2026-09-21: akapit sprzed zmiany na `N_MAX = 64`; poprawne
+kryterium identyfikacji takich próbek jest w §5, ograniczenie 6, „Sprostowanie kryterium".)*
 
 ### 3.5 Sformułowanie do pracy
 
@@ -515,7 +537,7 @@ stwierdzone pomiarem, nie założeniem.
 >
 > Zbiór raportuje **dwa** rozkłady SNR: `snr_probe` — osiągnięty po liczbie renderów przewidzianej przez regułę,
 > przed jakąkolwiek korektą, będący miarą trafności samego estymatora — oraz `snr_final`, po uzupełnieniu
-> nielicznych próbek, które nie dobiły progu, będący gwarancją jakości zbioru. Rozdzielenie tych dwóch
+> próbek, które nie dobiły progu (z konstrukcji reguły około 40 %, §3.4), będący gwarancją jakości zbioru. Rozdzielenie tych dwóch
 > wielkości jest konieczne, ponieważ sam `snr_final` jest z definicji ocenzurowany od dołu i nie pozwala
 > ocenić, jak dokładna była reguła.
 
@@ -829,7 +851,10 @@ python my-operations/measurements/patch_scene_holes.py --all
 5. Liczby szumu z wczesnej charakteryzacji (E1–E4, checkpoint-boundary) mierzono przy słuchaczu na 1.5 m;
    produkcja idzie na 1.25 m. Wartości z Bloków 3 i `noise_floor_orientation` są już przy 1.25 m i zgadzają się
    z historycznymi w granicach rozrzutu.
-6. **Próbki obcięte przez `N_MAX`.** Dla pozycji o szumie powyżej `sigma_1 = 0.1164` reguła adaptacyjna zażąda
+6. **Próbki obcięte przez `N_MAX`.** *(Uwaga 2026-09-21: progi 40 i `sigma_1 = 0.1164` w tym punkcie są
+   sprzed zmiany na `N_MAX = 64` (§3.2); przy 64 próg `sigma_1` wynosi 0.14720. Liczbę próbek spełniających
+   kryterium z „Sprostowania" niżej dla **gotowego** zbioru podaje `echo_ctl.py verify` — wpisać ją tu przed
+   pisaniem rozdziału 3 pracy.)* Dla pozycji o szumie powyżej `sigma_1 = 0.1164` reguła adaptacyjna zażąda
    więcej niż 40 renderów i zostanie obcięta; takie próbki mogą nie osiągnąć SNR 3.5 i gwarancja jakości ich
    nie obejmuje. Identyfikacja w metadanych (§3.4.1) jest jednoznaczna:
 

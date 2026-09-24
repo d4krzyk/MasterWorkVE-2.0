@@ -472,43 +472,43 @@
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Kontrast: gestosc katowa D-A",
-      "wartosc": "0.14672 ± 0.01303",
+      "nazwa": "Kontrast: gęstość kątowa D − A",
+      "wartosc": "-0.14672 ± 0.01303",
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "echo_ablation/echo_3seeds.json",
       "sekcja": "RAPORT_SESJI_2026-08-11.md §3",
-      "uwaga": "sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [0.11231236253503095, 0.1517812154830765]"
+      "uwaga": "sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.15178, -0.11231]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Kontrast: ilosc danych B-D",
-      "wartosc": "0.06209 ± 0.00435",
+      "nazwa": "Kontrast: ilość danych B − D",
+      "wartosc": "-0.06209 ± 0.00435",
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "echo_ablation/echo_3seeds.json",
       "sekcja": "RAPORT_SESJI_2026-08-11.md §3",
-      "uwaga": "sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [0.0512386921897015, 0.07880838719573234]"
+      "uwaga": "sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.07881, -0.05124]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Kontrast: laczny B-A",
-      "wartosc": "0.20882 ± 0.01132",
+      "nazwa": "Kontrast: łączny B − A",
+      "wartosc": "-0.20882 ± 0.01132",
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "echo_ablation/echo_3seeds.json",
       "sekcja": "RAPORT_SESJI_2026-08-11.md §3",
-      "uwaga": "sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [0.1697141469308697, 0.2254509038481209]"
+      "uwaga": "sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.22545, -0.16971]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Kontrast: wklad echa",
-      "wartosc": "0.58070 ± 0.00076",
+      "nazwa": "Kontrast: wkład echa ESE − EB",
+      "wartosc": "+0.58070 ± 0.00076",
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "echo_ablation/echo_3seeds.json",
       "sekcja": "RAPORT_SESJI_2026-08-11.md §3",
-      "uwaga": "sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [0.5404420619067919, 0.6240416489197484]"
+      "uwaga": "sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [0.54044, 0.62404]"
     },
     {
       "grupa": "wyniki_echo",
@@ -593,8 +593,8 @@
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "EA vs EB na test@4 (nowy protokół, 3 ziarna)",
-      "wartosc": "0,01787 ± 0,01128",
+      "nazwa": "EA − EB na test@4 (nowy protokół, 3 ziarna)",
+      "wartosc": "+0,01787 ± 0,01128",
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "eval/compare_EA_seed*_vs_EB_seed*_test4.json",
@@ -628,7 +628,7 @@
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "EA vs EB na test@4 (sparowane, te same 732 próbki)",
+      "nazwa": "EA − EB na test@4 (sparowane, te same 732 próbki)",
       "wartosc": 0.0015,
       "jednostka": "RMSE",
       "status": "[Z-]",
@@ -655,9 +655,9 @@
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Nasycenie krzywej stałego budżetu",
+      "nazwa": "Nasycenie krzywej stałego budżetu (spadek RMSE)",
       "wartosc": "4→9: 0.128 · 9→36: 0.019",
-      "jednostka": "RMSE",
+      "jednostka": "spadek RMSE",
       "status": "[Z]",
       "dowod": "echo_ablation/final_results_2026-08-13.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §1",
@@ -665,13 +665,13 @@
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Krzywa stałego budżetu: K=4 → K=36",
-      "wartosc": 0.13200250786306456,
+      "nazwa": "Krzywa stałego budżetu: K=36 − K=4",
+      "wartosc": -0.13200250786306456,
       "jednostka": "RMSE",
       "status": "[Z]",
       "dowod": "echo_ablation/final_results_2026-08-13.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §1",
-      "uwaga": "95 % CI [0.11231; 0.15178], bootstrap po lokalizacjach"
+      "uwaga": "95 % CI [-0.15178; -0.11231], bootstrap po lokalizacjach; wartość ujemna = K=36 lepsze"
     },
     {
       "grupa": "wyniki_echo",
@@ -713,7 +713,7 @@
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: MAAE zadania pretekstowego",
+      "nazwa": "Model 2: MAAE zadania pretekstowego — 1 ziarno, ZASTĄPIONE",
       "wartosc": {
         "K4": "61.23",
         "K12": "55.73",
@@ -721,20 +721,20 @@
         "K36_p16": "61.77"
       },
       "jednostka": "stopnie",
-      "status": "[Z]",
+      "status": "[Z-]",
       "dowod": "echo_ablation/final_results_2026-08-13.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
-      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K"
+      "uwaga": "poziom losowy 90° NIEZALEŻNIE od K; ZASTĄPIONE przez wersję z 3 ziaren (`pretext/summary.json`) — nie cytować"
     },
     {
       "grupa": "wyniki_echo",
-      "nazwa": "Model 2: rozkład MAAE pretekstu (stopnie)",
+      "nazwa": "Model 2: rozkład MAAE pretekstu (stopnie) — 1 ziarno, ZASTĄPIONE",
       "wartosc": "ilość par -36.64° · rozdzielczość +0.54°",
       "jednostka": "stopnie",
-      "status": "[Z]",
+      "status": "[Z-]",
       "dowod": "echo_ablation/final_results_2026-08-13.json",
       "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
-      "uwaga": "CAŁA przewaga K=36 pochodzi z 81× większej liczby par, NIE z rozdzielczości kątowej. NIE mylić z rozkładem RMSE zadania docelowego (§5) — ta sama arytmetyka, inna wielkość i inna jednostka"
+      "uwaga": "CAŁA przewaga K=36 pochodzi z 81× większej liczby par, NIE z rozdzielczości kątowej. NIE mylić z rozkładem RMSE zadania docelowego (§5) — ta sama arytmetyka, inna wielkość i inna jednostka. ZASTĄPIONE przez wersję z 3 ziaren (STAN_WYNIKOW.md §4: −33,05° / −1,24°) — nie cytować"
     },
     {
       "grupa": "wyniki_echo",

@@ -53,9 +53,10 @@ bez uwagi. Przedrostek **`E`**: `EA`, `EB`, `ED`, `ESE`, `EK6..EK18`, `EPA`/`EPB
 gęstości kątowej echa tonie w priorze wizualnym. Wersja bez obrazu jest **najczystszym testem
 hipotezy pracy** — cała informacja pochodzi wtedy z echa.
 
-**To rozróżnienie jest źródłem pozornej sprzeczności w raportach.** Efekt gęstości wynosi **0,147**
-w `echo2depth` i **0,018** w `full`. Oba są dodatnie; różnią się siłą, bo w pełnym modelu poprawa
-echa działa na 9 % całości, nie na 100 %.
+**To rozróżnienie jest źródłem pozornej sprzeczności w raportach.** Efekt gęstości (spadek RMSE)
+wynosi **0,147** w `echo2depth` i **0,020** w `full` (3 ziarna; wcześniejsze 0,018 pochodziło
+z 1 ziarna). W konwencji `D − A` (`KONWENCJE.md` §2) oba są ujemne, czyli oba oznaczają poprawę;
+różnią się siłą, bo w pełnym modelu poprawa echa działa na 9 % całości, nie na 100 %.
 
 ---
 

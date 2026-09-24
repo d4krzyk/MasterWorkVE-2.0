@@ -29,6 +29,7 @@ chronologicznym i zawierają liczby później zastąpione.
 
 | dokument | zawiera |
 |---|---|
+| `docs/KONWENCJE.md` | **czytać najpierw** — konwencja znaku różnic, dwie wielkości „RMSE", słownik oznaczeń (`EA`, `ESE`, `test@36`, [Z]…) |
 | `docs/STAN_WYNIKOW.md` | **stan obowiązujący** — wszystkie wyniki, bez historii |
 | `docs/LICZBY_DO_PRACY.md` | 143 liczby ze statusem, plikiem dowodowym i sekcją kontroli spójności (generowane) |
 | `docs/GENERATOR_PARAMS.md` | zamrożona specyfikacja generatora danych — źródło prawdy dla każdego parametru |
@@ -90,7 +91,8 @@ conda env create -f configs/environment-final.yml   # tworzy env `habitat`
 conda activate habitat
 ```
 
-Python 3.10.14, PyTorch 2.13.0+cu130. Alternatywne snapshoty tego samego środowiska:
+System: **Ubuntu 22.04 LTS, natywnie** (bez WSL i bez kontenera). Conda 23.7.4, Python 3.10.14,
+CMake 3.25.3, PyTorch 2.13.0+cu130, numpy przypięty do 1.26.4 (< 2). Alternatywne snapshoty tego samego środowiska:
 `configs/requirements.txt`, `configs/requirements-2026-07-18.txt`, `configs/spec-file.txt` —
 sprawdź, który odpowiada twojej instalacji, zanim założysz wersje pakietów.
 
@@ -248,7 +250,8 @@ przy każdym.
 
 ## 4. Sprzęt, na którym to powstało
 
-RTX 5070 Ti (16 GB, Blackwell), sterownik 580.159.03+, toolkit CUDA 12.4. Czasy zmierzone:
+Ubuntu 22.04 LTS (natywnie), RTX 5070 Ti (16 GB, Blackwell), sterownik 580.159.03+, toolkit CUDA 12.4
+(do budowy habitat-sim; PyTorch ma własne środowisko uruchomieniowe CUDA 13.0). Czasy zmierzone:
 
 | operacja | czas |
 |---|---|

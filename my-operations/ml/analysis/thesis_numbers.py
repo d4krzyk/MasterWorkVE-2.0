@@ -195,11 +195,27 @@ def collect() -> tuple[list[dict], list[dict]]:
         for c, v in s3.get("RMSE_test36", {}).items():
             add("wyniki_echo", f"RMSE test@36: {c}", f"{v['mean']:.5f} ± {v['sd']:.5f}", "RMSE", "[Z]",
                 "echo_ablation/echo_3seeds.json", f"{R11} §3", "średnia ± sd po 3 ziarnach")
+        # KONWENCJA ZNAKU (docs/KONWENCJE.md §2): etykieta `X − Y` znaczy dosłownie X − Y,
+        # a dla RMSE Delta = nowy − bazowy (ujemne = mniejszy błąd = lepiej).
+        # `echo_3seeds.json` zapisuje kontrasty jako A − D, D − B, A − B (wartości DODATNIE)
+        # pod etykietami "D-A", "B-D", "B-A" -- etykieta nie zgadza się z arytmetyką
+        # (sprawdzenie: ED − EA = 0,64432 − 0,79104 = −0,14672). Plik dowodowy zostaje
+        # bez zmian, bo odwołują się do niego raporty; tu znak i etykieta są sprowadzane
+        # do konwencji. "wklad echa" to ESE − EB i ma poprawny znak (dodatni = echo pomaga).
+        znak_s3 = {"gestosc katowa D-A": ("gęstość kątowa D − A", -1.0),
+                   "ilosc danych B-D": ("ilość danych B − D", -1.0),
+                   "laczny B-A": ("łączny B − A", -1.0),
+                   "wklad echa": ("wkład echa ESE − EB", 1.0)}
         for lab, v in s3.get("kontrasty", {}).items():
-            add("wyniki_echo", f"Kontrast: {lab}", f"{v['mean']:.5f} ± {v['sd_seeds']:.5f}", "RMSE", "[Z]",
-                "echo_ablation/echo_3seeds.json", f"{R11} §3",
+            nazwa, zn = znak_s3.get(lab, (lab, 1.0))
+            ci = [zn * x for x in v["ci_per_seed"][0]]
+            ci = [round(min(ci), 5), round(max(ci), 5)]
+            add("wyniki_echo", f"Kontrast: {nazwa}", f"{zn * v['mean']:+.5f} ± {v['sd_seeds']:.5f}",
+                "RMSE", "[Z]", "echo_ablation/echo_3seeds.json", f"{R11} §3",
                 f"sd po ZIARNACH; istotne we wszystkich 3: {v['wszystkie_istotne']}; "
-                f"CI po lokalizacjach (ziarno 0) {v['ci_per_seed'][0]}")
+                f"CI po lokalizacjach (ziarno 0) {ci}"
+                + ("; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica "
+                   "odwrotna) — KONWENCJE.md §2" if zn < 0 else ""))
         ug = s3.get("udzial_gestosci_pct", {})
         add("wyniki_echo", "Udział gęstości kątowej w efekcie łącznym",
             f"{ug.get('mean'):.1f} ± {ug.get('sd'):.1f}", "%", "[Z]",
@@ -233,8 +249,8 @@ def collect() -> tuple[list[dict], list[dict]]:
             "echo_ablation/full_model_gate.json", f"{R11} §2",
             "u Gao 7,5 % — zgodność rzędu wielkości potwierdza poprawność potoku, "
             "NIE jest zestawieniem wyników")
-        add("wyniki_echo", "EA vs EB na test@4 (nowy protokół, 3 ziarna)",
-            "0,01787 ± 0,01128", "RMSE", "[Z]", "eval/compare_EA_seed*_vs_EB_seed*_test4.json",
+        add("wyniki_echo", "EA − EB na test@4 (nowy protokół, 3 ziarna)",
+            "+0,01787 ± 0,01128", "RMSE", "[Z]", "eval/compare_EA_seed*_vs_EB_seed*_test4.json",
             f"{R11} §4.1", "91,4 % kary EA powstaje na kątach NIEWIDZIANYCH")
     if abl:
         w = abl.get("wynik", {})
@@ -252,7 +268,7 @@ def collect() -> tuple[list[dict], list[dict]]:
             {r["warunek"]: round(r["luka"], 5) for r in gap.get("wiersze", [])},
             "RMSE", "[Z-]", "echo_ablation/gap_table_seed0.json", f"{R11} §4.2",
             "ZASTĄPIONE przez wersję z 3 ziaren (`echo_3seeds.json`) — nie cytować obu naraz")
-    add("wyniki_echo", "EA vs EB na test@4 (sparowane, te same 732 próbki)", 0.00150, "RMSE", "[Z-]",
+    add("wyniki_echo", "EA − EB na test@4 (sparowane, te same 732 próbki)", 0.00150, "RMSE", "[Z-]",
         "eval/compare_EA_seed0_vs_EB_seed0_test4.json", f"{R11} §4.1",
         "95 % CI [−0,01325; +0,01731] — OBEJMUJE ZERO")
 
@@ -269,15 +285,18 @@ def collect() -> tuple[list[dict], list[dict]]:
                 "echo2depth, 4 próbki/lokalizację (5 496) w KAŻDYM punkcie — liczność stała, "
                 "zmienia się wyłącznie siatka; 3 ziarna")
             k4, k9, k36 = pts["4"]["mean"], pts["9"]["mean"], pts["36"]["mean"]
-            add("wyniki_echo", "Nasycenie krzywej stałego budżetu",
-                f"4→9: {k4-k9:.3f} · 9→36: {k9-k36:.3f}", "RMSE", "[Z]",
+            add("wyniki_echo", "Nasycenie krzywej stałego budżetu (spadek RMSE)",
+                f"4→9: {k4-k9:.3f} · 9→36: {k9-k36:.3f}", "spadek RMSE", "[Z]",
                 "echo_ablation/final_results_2026-08-13.json", f"{R13} §1",
                 "przejście 4→9 daje 6,7× więcej niż 9→36 — punkt odcięcia ok. K = 9–12")
             c = kr.get("kontrasty", {}).get("K4_do_K36", {})
             if c:
-                add("wyniki_echo", "Krzywa stałego budżetu: K=4 → K=36", c.get("delta_point"),
+                # `delta_point` z bootstrapu to RMSE(K4) − RMSE(K36) (bootstrap zwraca
+                # pierwszy − drugi). Sprowadzone do konwencji K36 − K4 (KONWENCJE.md §2).
+                add("wyniki_echo", "Krzywa stałego budżetu: K=36 − K=4", -c.get("delta_point"),
                     "RMSE", "[Z]", "echo_ablation/final_results_2026-08-13.json", f"{R13} §1",
-                    f"95 % CI [{c.get('ci_low'):.5f}; {c.get('ci_high'):.5f}], bootstrap po lokalizacjach")
+                    f"95 % CI [{-c.get('ci_high'):.5f}; {-c.get('ci_low'):.5f}], bootstrap po "
+                    "lokalizacjach; wartość ujemna = K=36 lepsze")
         # POZYCJE ZASTAPIONE 2026-08-15/16 przez wersje z 3 ziaren.
         #
         # Zostaja w eksporcie, bo raporty 2026-08-13 sie do nich odwoluja i autor
@@ -305,18 +324,23 @@ def collect() -> tuple[list[dict], list[dict]]:
                 f"teza o pogorszeniu we wszystkich trzech warunkach NIE utrzymuje się; {R15} §3.1")
         m2 = fr.get("model2_pretekst", {})
         if m2.get("MAAE"):
-            add("wyniki_echo", "Model 2: MAAE zadania pretekstowego",
-                {k: f"{v:.2f}" for k, v in m2["MAAE"].items()}, "stopnie", "[Z]",
+            # 1 ziarno -- ZASTĄPIONE przez `pretext/summary.json` (3 ziarna), pozycje
+            # "Model 2: MAAE pretekstu wg wariantu". Ta sama konwencja co wyżej: nazwa
+            # niesie "ZASTĄPIONE", żeby 61,23 / 55,73 nie dało się wziąć za obowiązujące.
+            add("wyniki_echo", "Model 2: MAAE zadania pretekstowego — 1 ziarno, ZASTĄPIONE",
+                {k: f"{v:.2f}" for k, v in m2["MAAE"].items()}, "stopnie", "[Z-]",
                 "echo_ablation/final_results_2026-08-13.json", f"{R13} §4",
-                "poziom losowy 90° NIEZALEŻNIE od K")
+                "poziom losowy 90° NIEZALEŻNIE od K; ZASTĄPIONE przez wersję z 3 ziaren "
+                "(`pretext/summary.json`) — nie cytować")
             r = m2["rozklad"]
-            add("wyniki_echo", "Model 2: rozkład MAAE pretekstu (stopnie)",
+            add("wyniki_echo", "Model 2: rozkład MAAE pretekstu (stopnie) — 1 ziarno, ZASTĄPIONE",
                 f"ilość par {r['ilosc_par_K36_minus_K36p16']:+.2f}° · "
-                f"rozdzielczość {r['rozdzielczosc_K36p16_minus_K4']:+.2f}°", "stopnie", "[Z]",
+                f"rozdzielczość {r['rozdzielczosc_K36p16_minus_K4']:+.2f}°", "stopnie", "[Z-]",
                 "echo_ablation/final_results_2026-08-13.json", f"{R13} §4",
                 "CAŁA przewaga K=36 pochodzi z 81× większej liczby par, NIE z rozdzielczości "
                 "kątowej. NIE mylić z rozkładem RMSE zadania docelowego (§5) — ta sama "
-                "arytmetyka, inna wielkość i inna jednostka")
+                "arytmetyka, inna wielkość i inna jednostka. ZASTĄPIONE przez wersję z 3 ziaren "
+                "(STAN_WYNIKOW.md §4: −33,05° / −1,24°) — nie cytować")
         tr = fr.get("model2_transfer", {}).get("punkty", {})
         if tr:
             add("wyniki_echo", "Model 2: transfer RGB2Depth (5 ziaren)",
@@ -599,6 +623,16 @@ def render_md(N: list[dict], BRAK: list[dict], DUP: list[dict] | None = None) ->
          "| **[Z]** | zmierzone: skrypt, surowe wyjście, liczba w dokumencie |",
          "| **[Z-]** | zmierzone z zastrzeżeniem, które trzeba cytować razem z liczbą |",
          "| **[W]** | wywnioskowane z kodu/źródła, nie z pomiaru |",
+         "",
+         "**To jest katalog, nie tekst do pracy.** Zawiera każdą zmierzoną liczbę, także techniczne",
+         "i zastąpione. Liczby do tekstu przepisuje się ze `STAN_WYNIKOW.md`; tutaj sprawdza się, skąd",
+         "pochodzą. Filtr dla pozycji, które w ogóle mogą trafić do pracy: status [Z] albo [Z-] (ten",
+         "drugi z zastrzeżeniem) i brak „ZASTĄPIONE\" / „nie cytować\" w nazwie lub uwadze.",
+         "",
+         "**Konwencja znaku** (`KONWENCJE.md` §2): etykieta `X − Y` znaczy dosłownie X − Y; dla RMSE",
+         "i MAAE wartość **ujemna = mniejszy błąd = lepiej**. Pozycje nazwane „spadek RMSE\" podają",
+         "wielkość poprawy i są dodatnie. „RMSE\" bez dopisku to RMSE głębi w metrach; „RMSE",
+         "spektrogramu\" to odległość RMS dwóch spektrogramów, nie metryka modelu (`KONWENCJE.md` §3).",
          ""]
     for key, title in GRUPY:
         rows = [n for n in N if n["grupa"] == key]

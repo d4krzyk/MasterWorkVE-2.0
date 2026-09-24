@@ -1,5 +1,17 @@
 # Raport sesji — 2026-08-10: domknięcie fazy przygotowawczej przed treningiem
 
+> **ERRATA 2026-09-21 — konwencja znaku (tylko etykiety, żadna wartość bezwzględna się nie zmienia).**
+> Konwencja obowiązująca od tej daty: etykieta `X − Y` znaczy dosłownie wartość(X) − wartość(Y);
+> dla RMSE ujemne = lepiej (`KONWENCJE.md` §2). Ten raport zostaje bez zmian jako zapis
+> chronologiczny, ale poniższe miejsca mają etykietę niezgodną z arytmetyką:
+>
+> - §0, wiersz 1: „D−A = +0,1396 [0,114; 0,166]" to w rzeczywistości **A − D** (0,80265 − 0,66308). W konwencji: `D − A` = −0,1396.
+> - §5.6, tabela „Rozkład efektu": `D − A` +0,13957, `B − D` +0,08525, `B − A` +0,22482 to **A − D, D − B, A − B** — bootstrap `evaluate.py --compare X Y` zwraca X − Y i był wołany z warunkiem gorszym na pierwszym miejscu. W konwencji wszystkie trzy są ujemne.
+> - §5.6, tabela „Skala efektów wobec szumu": „efekt samej gęstości kątowej (D − A) 0,1396" to wielkość spadku RMSE, nie różnica `D − A`.
+> - Wszystkie te liczby są z **1 ziarna** i zostały zastąpione wersją z 3 ziaren (`RAPORT_SESJI_2026-08-11.md` §3).
+>
+> Wartości obowiązujące: `STAN_WYNIKOW.md`.
+
 Dokument do pracy magisterskiej. Sesja **nie uruchamia macierzy eksperymentów** — domyka to, co
 musi być rozstrzygnięte, zanim ruszy pierwszy pełny przebieg, bo po starcie te decyzje są
 nieodwracalne bez powtórzenia wszystkiego.

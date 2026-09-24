@@ -14,6 +14,17 @@ przy zaburzeniach widzenia barw (najgorsza para: ΔE 9,2 w deuteranopii, 27,6 w 
 normalnym — progi to odpowiednio 8 i 15). Każda seria jest **opisana bezpośrednio przy krzywej**,
 nie tylko w legendzie, żeby rysunek pozostał czytelny po wydruku w skali szarości.
 
+**Jedna nazwa metryki i jeden separator.** Oś wartości na rysunkach 1–4 jest podpisana zawsze
+tak samo: **RMSE głębi [m]**. W projekcie są dwie różne wielkości nazywane „RMSE" — metryka
+jakości modelu w metrach i odległość RMS spektrogramów (`KONWENCJE.md` §3) — więc oś bez
+jednostki pozwalałaby je pomylić. Separator dziesiętny jest wszędzie **przecinkiem**: na
+podziałkach, etykietach i w adnotacjach (funkcje `_pl()` / `_przecinki()` w `figures.py`).
+
+**Znak — dwa różne ujęcia, oba zgodne z konwencją.** Rysunek 1 pokazuje **zmianę** RMSE wzdłuż
+krzywej, więc wartości są ujemne (−0,128). Rysunki 3 i 4 pokazują **wielkość spadku** RMSE, więc
+słupki są dodatnie (0,147). Ta sama wielkość może więc wystąpić z minusem i bez — dlatego każda
+oś i każdy podpis mówi wprost, które z dwóch ujęć jest na rysunku (`KONWENCJE.md` §2).
+
 **Wąsy — dwie różne wielkości, zawsze podpisane pod rysunkiem.** Na rysunkach 1–3 to
 **odchylenie standardowe po ziarnach**, bo rysowane są wartości bezpośrednio mierzone. Na
 rysunku 4 rysowana jest **różnica** dwóch niezależnych średnich, więc wąsy to **błąd standardowy
@@ -28,8 +39,9 @@ są to przedziały ufności.
 > echo), RMSE na zbiorze testowym obejmującym wszystkie 36 orientacji. W każdym punkcie krzywej
 > zbiór treningowy liczy **dokładnie 5 496 próbek** (4 na lokalizację); zmienia się wyłącznie
 > siatka *K*, z której losowane są kąty. Punkty to średnie z 3 ziaren, wąsy to odchylenie
-> standardowe. Przejście z 4 do 9 orientacji daje **−0,128 RMSE**, a całe pozostałe rozszerzenie
-> z 9 do 36 tylko **−0,019** — 6,7× mniej. Krzywa nasyca się w okolicy *K* = 9–12 (obszar
+> standardowe. Liczby przy strzałkach to **zmiana RMSE**, ujemna oznacza poprawę: przejście
+> z 4 do 9 orientacji daje **−0,128**, a całe pozostałe rozszerzenie z 9 do 36 tylko **−0,019**,
+> czyli 6,7× mniej. Krzywa nasyca się w okolicy *K* = 9–12 (obszar
 > zacieniony).
 
 **Co ten rysunek dowodzi, a czego nie.** Dowodzi, że przy **stałym koszcie generowania danych**
@@ -49,7 +61,7 @@ nie rozstrzyga i nie należy go interpretować; rozstrzygający jest odcinek 4 �
 
 ## Rysunek 2 — generalizacja kątowa (`rys_2_generalizacja_katowa.png`)
 
-> **Rys. 2.** Błąd predykcji w funkcji odległości testowanego kąta od najbliższego kąta obecnego
+> **Rys. 2.** RMSE głębi w funkcji odległości testowanego kąta od najbliższego kąta obecnego
 > w zbiorze treningowym. Sieć głębi (tylko echo), 3 ziarna, wąsy to odchylenie standardowe.
 > Warunek `EA` (4 kierunki kardynalne, baseline VisualEchoes) pogarsza się monotonicznie:
 > od 0,596 przy kątach widzianych do 0,911 przy odchyleniu 40°, czyli o **53 %**. Linie poziome
@@ -73,9 +85,11 @@ wersja tego twierdzenia była artefaktem doboru punktu kontrolnego.
 
 ## Rysunek 3 — rozkład efektu (`rys_3_rozklad_efektu.png`)
 
-> **Rys. 3.** Rozkład poprawy RMSE na dwie składowe — samą gęstość kątową (różnica `D − A`, przy
-> równej liczbie próbek) i samą ilość danych (różnica `B − D`, przy równej gęstości) — dla obu
-> architektur. 3 ziarna, wąsy to odchylenie standardowe. W sieci opartej wyłącznie na echu gęstość
+> **Rys. 3.** Rozkład poprawy RMSE na dwie składowe — samą gęstość kątową (spadek RMSE przy
+> przejściu A → D, przy równej liczbie próbek) i samą ilość danych (spadek RMSE przy przejściu
+> D → B, przy równej gęstości) — dla obu architektur. Słupki pokazują wielkość poprawy, więc są
+> dodatnie; różnice `D − A` i `B − D` w konwencji z `KONWENCJE.md` §2 są ujemne. 3 ziarna,
+> wąsy to odchylenie standardowe. W sieci opartej wyłącznie na echu gęstość
 > kątowa odpowiada za **70,2 %** efektu łącznego; w sieci pełnej, gdzie obraz RGB niesie większość
 > informacji o głębi, jej udział spada do **42 %**, a sam efekt maleje 7,2× (0,147 → 0,020).
 > **Uwaga: panele mają różne skale osi Y.**
@@ -101,8 +115,8 @@ istotny (p = 0,0096, przedział bootstrapowy wyklucza zero w 3 ziarnach na 3).
 
 > **Rys. 4.** Ile informacji o głębi niesie **zamrożony** koder wizualny, zależnie od tego, na
 > jakim pretreningu powstał. Sonda: koder zamrożony (`requires_grad=False` oraz `eval()`), uczony
-> wyłącznie dekoder; 3 ziarna, wąsy to błąd standardowy różnicy. Oś pozioma to **poprawa RMSE
-> względem losowego zamrożonego kodera**, więc zero oznacza koder nieuczony (podłoga), a linia
+> wyłącznie dekoder; 3 ziarna, wąsy to błąd standardowy różnicy. Oś pozioma to **spadek RMSE
+> głębi względem losowego zamrożonego kodera**, więc zero oznacza koder nieuczony (podłoga), a linia
 > przerywana — koder, który przeszedł pełne uczenie na głębi (górna granica, 100 %). Pretrening
 > na 36 orientacjach pokrywa **63,4 %** tej rozpiętości. Strzałki rozkładają przewagę na dwa
 > czynniki: **gęstość kątową danych** (+14,0 pp, p = 0,0042; porównanie przy równym budżecie

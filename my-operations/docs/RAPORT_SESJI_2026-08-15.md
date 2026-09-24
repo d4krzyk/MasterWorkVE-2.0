@@ -1,5 +1,15 @@
 # Raport sesji — 2026-08-15/16: audyt liczb, diagnoza transferu, domknięcie fazy
 
+> **ERRATA 2026-09-21 — konwencja znaku (tylko etykiety, żadna wartość bezwzględna się nie zmienia).**
+> Konwencja obowiązująca od tej daty: etykieta `X − Y` znaczy dosłownie wartość(X) − wartość(Y);
+> dla RMSE ujemne = lepiej (`KONWENCJE.md` §2). Ten raport zostaje bez zmian jako zapis
+> chronologiczny, ale poniższe miejsca mają etykietę niezgodną z arytmetyką:
+>
+> - §1.3 (blok „zmierzone … D − A w pełnym modelu = 0,01831") i §3.2, tabela „Co to mówi o heurystyce z §1.3": „D − A = 0,01831" / „0,02048" to wielkość spadku RMSE (w konwencji: −0,01831 / −0,02048). Tabela składowych w §3.2 ma znak poprawny.
+> - §5.3, tabela „Wnioski do pracy": „D−A = 0,14672" i „D−A = 0,02048 ± 0,00350" — w konwencji −0,14672 i −0,02048.
+>
+> Wartości obowiązujące: `STAN_WYNIKOW.md`.
+
 Sesja **nie dokłada nowych osi badawczych**. Naprawia niespójności w liczbach, testuje
 falsyfikowalne przewidywanie z §5.1 poprzedniego raportu i domyka istotność wszędzie tam, gdzie
 była tania — łącznie 56 przebiegów GPU w 15,1 h, 0 błędów.

@@ -16,6 +16,20 @@ normalizacje i nawet zly model wygladalby dobrze.
 
 Piksele NIEWAZNE (glebia 0 w prawdzie) sa wyszarzane, bo model nie jest na nich
 punktowany; bez tego czytelnik widzi "blad" tam, gdzie zadnej prawdy nie ma.
+Kolor "nieważnych" jest USTAWIANY JAWNIE (szary) -- domyslny kolor maski to
+przezroczystosc, ktora na bialym tle czyta sie jak obiekt tuz przed kamera,
+a w scenach z dziura w suficie zajmuje cwierc kadru.
+
+DWA PASKI SKALI, oba na dole: glebia (wspolna dla kolumn z mapami glebi) i blad
+bezwzgledny. Rysunek deklaruje wspolna skale 0..max_depth, wiec musi ja tez
+pokazac -- bez paska zaden panel glebi nie daje sie odczytac ilosciowo.
+
+CZEGO TEN RYSUNEK NIE POKAZUJE. Kolumna "SAM OBRAZ bez echa" NIE jest pomiarem
+wkladu echa: ten model rozni sie od sasiednich nie tylko brakiem echa, ale tez
+brakiem mechanizmu uwagi, brakiem sieci materialu i 19x mniejsza liczba
+parametrow (STAN_WYNIKOW.md §8). Czystym pomiarem wkladu echa jest warunek `SE`
+(echo przetasowane). Ostrzezenie jest drukowane POD rysunkiem, bo bez niego
+kolumna czyta sie dokladnie odwrotnie do intencji.
 """
 
 from __future__ import annotations
@@ -77,6 +91,16 @@ def load_any(spec: str, device, splits):
                                    weights_only=True))
     return RGBOnlyModel(net, MAX_DEPTH_REPLICA).to(device).eval()
 
+# Kolor pikseli niewaznych. Szary, nie bialy: bialy na bialym tle rysunku czyta
+# sie jak obiekt tuz przed kamera.
+SZARY_NIEWAZNE = "#d9d9d6"
+
+
+def _pl(x: float, nd: int = 3) -> str:
+    """Przecinek dziesietny -- praca jest po polsku (docs/RYSUNKI.md)."""
+    return f"{x:.{nd}f}".replace(".", ",")
+
+
 IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
@@ -98,6 +122,13 @@ def main(argv=None) -> int:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import FuncFormatter
+
+    # Kolor pikseli niewaznych ustawiany JAWNIE -- patrz naglowek modulu.
+    cmap_glebia = plt.get_cmap("turbo").copy()
+    cmap_blad = plt.get_cmap("inferno").copy()
+    for cm in (cmap_glebia, cmap_blad):
+        cm.set_bad(SZARY_NIEWAZNE)
 
     device = torch.device("cuda")
     splits = load_splits()
@@ -171,24 +202,52 @@ def main(argv=None) -> int:
         axes[r, 0].imshow(rgb[r]); axes[r, 0].set_ylabel(
             f"{meta[r][0]}\nlok {meta[r][1]}, {meta[r][2]}°", fontsize=6)
         g = np.ma.masked_where(~valid[r], gt[r])
-        axes[r, 1].imshow(g, cmap="turbo", vmin=0, vmax=MAX_DEPTH_REPLICA)
+        im_glebia = axes[r, 1].imshow(g, cmap=cmap_glebia, vmin=0, vmax=MAX_DEPTH_REPLICA)
         for c, p in enumerate(preds):
-            axes[r, 2 + c].imshow(np.ma.masked_where(~valid[r], p[r]), cmap="turbo",
+            axes[r, 2 + c].imshow(np.ma.masked_where(~valid[r], p[r]), cmap=cmap_glebia,
                                   vmin=0, vmax=MAX_DEPTH_REPLICA)
         # Blad liczony wzgledem PIERWSZEGO wskazanego przebiegu -- domyslnie
         # pelnego modelu, czyli tego, ktory ma byc odniesieniem.
         err = np.ma.masked_where(~valid[r], np.abs(preds[0][r] - gt[r]))
-        im = axes[r, -1].imshow(err, cmap="inferno", vmin=0, vmax=3.0)
+        im_blad = axes[r, -1].imshow(err, cmap=cmap_blad, vmin=0, vmax=3.0)
         for c in range(ncol):
             axes[r, c].set_xticks([]); axes[r, c].set_yticks([])
 
-    heads = ["RGB (wejście)", "prawda"] + labels + [f"|błąd| {labels[0].splitlines()[0]}"]
+    # Naglowek kolumny bledu MUSI niesc pelna etykiete modelu odniesienia
+    # (lacznie z liczba katow), inaczej nie wiadomo, czyj to blad.
+    heads = (["RGB (wejście)", "prawda"] + labels
+             + ["|błąd|\n" + labels[0].replace("\n", ", ")])
     for c, h in enumerate(heads):
         axes[0, c].set_title(h, fontsize=7)
 
-    fig.suptitle("Predykcja głębi — porównanie wersji modelu (wspólna skala 0–14,104 m)",
-                 fontsize=10)
-    fig.colorbar(im, ax=axes[:, -1].tolist(), fraction=0.03, label="|błąd| [m]")
+    fig.suptitle(f"Predykcja głębi — porównanie wersji modelu "
+                 f"(wspólna skala 0–{_pl(MAX_DEPTH_REPLICA)} m)", fontsize=10)
+
+    # Paski skali na DOLE: pierwszy pod kolumnami glebi, drugi pod kolumna bledu.
+    # Wczesniej byl tylko pasek bledu, przyklejony z boku w polowie wysokosci --
+    # nie bylo wiadomo, do ktorej kolumny nalezy, a szesc kolumn glebi nie mialo
+    # zadnej skali mimo deklaracji we wspolnym tytule.
+    cb_g = fig.colorbar(im_glebia, ax=axes[:, 1:-1].ravel().tolist(),
+                        orientation="horizontal", location="bottom",
+                        fraction=0.015, pad=0.015, aspect=55)
+    cb_g.set_label("głębia [m]", fontsize=8)
+    cb_b = fig.colorbar(im_blad, ax=axes[:, -1].tolist(),
+                        orientation="horizontal", location="bottom",
+                        fraction=0.015, pad=0.015, aspect=12)
+    cb_b.set_label("|błąd| [m]", fontsize=8)
+    for cb in (cb_g, cb_b):
+        cb.ax.tick_params(labelsize=7)
+        cb.ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: _pl(v, 0)))
+
+    stopka = ("szary = piksele nieważne (brak prawdy: dziury w skanie, niebo) — "
+              "model nie jest na nich punktowany")
+    if any(lab.startswith("SAM OBRAZ") for lab in labels):
+        stopka += ("\nkolumna „SAM OBRAZ bez echa” NIE mierzy wkładu echa: ten model różni się "
+                   "też brakiem uwagi, brakiem sieci materiału i 19× liczbą parametrów "
+                   "(STAN_WYNIKOW.md §8)")
+    # Stopka PONIZEJ obszaru figury (va="top" przy y=0): wewnatrz kolidowalaby
+    # z paskami skali, a `bbox_inches="tight"` i tak ja obejmie przy zapisie.
+    fig.text(0.5, -0.004, stopka, ha="center", va="top", fontsize=7.5, color="#52514e")
     out = args.out or (paths.ML_OUTPUTS / "gallery" / "depth_gallery.png")
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=150, bbox_inches="tight")
@@ -208,7 +267,7 @@ def main(argv=None) -> int:
     ds.close()
     print(f"\nzapisano: {out}")
     for k, v in stats.items():
-        print(f"  {k:28s} RMSE na tych {args.n} probkach: {v['mean']:.4f}")
+        print(f"  {k:28s} RMSE na tych {args.n} probkach: {_pl(v['mean'], 4)}")
     return 0
 
 

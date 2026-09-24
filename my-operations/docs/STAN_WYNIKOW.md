@@ -8,6 +8,8 @@ wyłącznie stan **obowiązujący**, bez historii. Przy rozbieżności między t
 sesji — **obowiązuje ten plik**.
 
 Ostatnia aktualizacja: **2026-08-17**, po zamknięciu fazy eksperymentalnej (84 przebiegi GPU).
+Poprawka redakcyjna **2026-09-21**: ujednolicona konwencja znaku różnic (bez zmiany żadnej wartości
+bezwzględnej) — patrz ramka niżej.
 
 **Rysunki** (`outputs/ml/figures/`, odtwarzalne przez `ml/analysis/figures.py`, zero GPU):
 
@@ -28,7 +30,19 @@ precyzję, której te pomiary nie mają.
 `outputs/ml/thesis_numbers.json`. Pełny wykaz liczb: `LICZBY_DO_PRACY.md`.
 
 Statusy: **[Z]** zmierzone · **[Z-]** zmierzone z zastrzeżeniem, które trzeba cytować razem
-z liczbą · **[W]** wywnioskowane z kodu, nie z pomiaru.
+z liczbą · **[W]** wywnioskowane z kodu, nie z pomiaru. Pełny słownik oznaczeń: `KONWENCJE.md`.
+
+> **Konwencja znaku (obowiązuje w całym pliku od 2026-09-21).** Etykieta `X − Y` znaczy dosłownie
+> wartość(X) − wartość(Y). Dla RMSE i MAAE **wartość ujemna = mniejszy błąd = lepiej**; przykład:
+> `D − A` = 0,64432 − 0,79104 = **−0,14672**. Tam, gdzie podawana jest wielkość poprawy, kolumna
+> nazywa się wprost „spadek RMSE" i wartości są dodatnie. Wyjątki z własnymi nazwami (wkład echa,
+> luka generalizacji, pp rozpiętości) — `KONWENCJE.md` §2. Wcześniejsza wersja tego pliku podawała
+> w §0 i §1 te same liczby bez minusa, choć §2 i §3 miały już minus; wartości bezwzględne się
+> nie zmieniły.
+>
+> **„RMSE" w tym pliku to zawsze RMSE głębi w metrach** (metryka modelu). Odległość RMS
+> spektrogramów, używana w `GENERATOR_PARAMS.md` (np. `SIGNAL_10DEG` = 0,0644), to inna wielkość —
+> `KONWENCJE.md` §3.
 
 ---
 
@@ -36,12 +50,12 @@ z liczbą · **[W]** wywnioskowane z kodu, nie z pomiaru.
 
 | # | twierdzenie | liczba | poparcie | status |
 |---|---|---|---|---|
-| 1 | Gęstość kątowa echa poprawia predykcję głębi | D−A = **0,14672** (echo2depth) | 3 ziarna, CI z bootstrapu wyklucza zero | **[Z]** |
-| 2 | Krzywa nasyca się przy **K = 9–12** — dalsze zagęszczanie nie zwraca kosztu | 4→9: **0,128** · 9→36: **0,019** | 3 ziarna, stały budżet próbek, 6 punktów | **[Z]** |
-| 3 | Efekt utrzymuje się w pełnym modelu | D−A = **0,02048** | 3 ziarna, p = 0,0096 | **[Z]** |
+| 1 | Gęstość kątowa echa poprawia predykcję głębi | D − A = **−0,14672** (echo2depth) | 3 ziarna, CI z bootstrapu wyklucza zero | **[Z]** |
+| 2 | Krzywa nasyca się przy **K = 9–12** — dalsze zagęszczanie nie zwraca kosztu | spadek RMSE 4→9: **0,128** · 9→36: **0,019** | 3 ziarna, stały budżet próbek, 6 punktów | **[Z]** |
+| 3 | Efekt utrzymuje się w pełnym modelu | D − A = **−0,02048** | 3 ziarna, p = 0,0096 | **[Z]** |
 | 4 | Efekt nie zależy od wariantu geometrii sceny | main −0,14672 vs patched −0,13504 | 3 ziarna, różnica nieistotna (p = 0,26) | **[Z]** |
 | 5 | Zadanie pretekstowe orientacji jest rozwiązywalne | MAAE **25,65 ± 0,74°** wobec 90° losowo | 3 ziarna | **[Z]** |
-| 6 | Pretrening **uczy koder cech geometrycznych**, ale standardowe dostrajanie ich nie zachowuje | sonda: −0,168 vs losowy (63,4 % rozpiętości); dostrajanie: wszystkie p > 0,07 | 3 ziarna sondy, 5 ziaren transferu | **[Z]** |
+| 6 | Pretrening **uczy koder cech geometrycznych**, ale standardowe dostrajanie ich nie zachowuje | sonda: K36 − random = −0,168 (63,4 % rozpiętości); dostrajanie: wszystkie p > 0,07 | 3 ziarna sondy, 5 ziaren transferu | **[Z]** |
 | 7 | **Gęstsze echo kształtuje koder nawet gdy nie poprawia zadania pretekstowego** | gęstość kątowa: p = 0,83 w MAAE, ale **+14,0 pp (p = 0,0042)** w sondzie głębi | 3 ziarna | **[Z]** |
 
 Twierdzenie 2 jest **głównym wkładem praktycznym** — nikt wcześniej nie mógł go sformułować,
@@ -64,10 +78,13 @@ Wszystko na 3 ziarnach, RMSE `test@36`, wariant geometrii `main`.
 
 | składowa | wartość | udział |
 |---|---|---|
-| **gęstość kątowa** (D − A) | **0,14672** | **70,2 ± 3,0 %** |
-| ilość danych (B − D) | 0,06209 | 29,8 % |
-| łączny (B − A) | 0,20882 | 100 % |
-| całkowity wkład echa (ESE − EB) | 0,58070 | — |
+| **gęstość kątowa** (D − A) | **−0,14672 ± 0,01303** | **70,2 ± 3,0 %** |
+| ilość danych (B − D) | −0,06209 ± 0,00435 | 29,8 % |
+| łączny (B − A) | −0,20882 ± 0,01132 | 100 % |
+| całkowity wkład echa (ESE − EB) | +0,58070 ± 0,00076 | — |
+
+Udział = (D − A) / (B − A); wartość dodatnia wkładu echa znaczy, że model z prawdziwym echem ma
+mniejszy błąd niż z przetasowanym.
 
 **Gęstość kątowa waży 2,36× więcej niż ilość danych.** Warunek `ED` jest tu kluczowy: ma
 **dokładnie tyle samo próbek** co `EA`, więc różnica `D − A` izoluje samą różnorodność kątową.
@@ -86,10 +103,11 @@ losowane są kąty. Końcami są `EA` i `ED`.
 | 18 | 0,64804 | 0,01362 |
 | 36 | 0,64432 | 0,00238 |
 
-`K=4 → K=36`: **−0,13200**, 95 % CI [−0,15178; −0,11231] (bootstrap sparowany po 183 lokalizacjach).
+`K36 − K4` = **−0,13200**, 95 % CI [−0,15178; −0,11231] (bootstrap sparowany po 183 lokalizacjach,
+ziarno 0).
 
-**Punkt odcięcia:** 4→9 daje **0,128**, a 9→36 tylko **0,019** — przejście do 9 orientacji daje
-**6,7× więcej** niż całe pozostałe rozszerzenie do 36.
+**Punkt odcięcia:** spadek RMSE 4→9 wynosi **0,128**, a 9→36 tylko **0,019** — przejście do
+9 orientacji daje **6,7× więcej** niż całe pozostałe rozszerzenie do 36.
 
 > **Zalecenie praktyczne do pracy:** przy stałym koszcie generowania (4 rendery na pozycję)
 > losować kąty z siatki **9–12 orientacji** zamiast przybijać je do 4 kierunków kardynalnych.
@@ -112,8 +130,9 @@ dla każdej lokalizacji. Ten sam koszt generowania, RMSE niższe o 16 %.
 
 ### Luka generalizacji kątowej [Z]
 
-`EA` − `EB` na 4 kątach, **które oba modele widziały** (sparowane, 732 próbki): **+0,01787 ±
-0,01128**. Na wszystkich 36 kątach: **+0,20882**.
+`EA − EB` na 4 kątach, **które oba modele widziały** (sparowane, 732 próbki): **+0,01787 ±
+0,01128**. Na wszystkich 36 kątach: **+0,20882**. Wartości dodatnie, bo tu odejmowany jest warunek
+lepszy od gorszego — to jest wielkość kary warunku `EA`.
 
 **91,4 % kary warunku `EA` powstaje na orientacjach, których nie widział.** Baseline Gao głównie
 **nie pokrywa przestrzeni orientacji**, a nie „uczy się gorzej" — ale **nie wolno pisać**, że
@@ -162,7 +181,7 @@ warto nazwać w pracy wprost, bo jest mocniejsza niż porównanie międzypracowe
 
 **Odwrócenie proporcji wobec `echo2depth`:** udział gęstości spada z 70,2 % do **42,0 %** — w pełnym
 modelu ilość danych waży więcej niż gęstość. Zgodne z obrazem, w którym prior wizualny przykrywa
-część struktury kątowej echa: sam efekt gęstości spada 7,2× (0,147 → 0,020).
+część struktury kątowej echa: sam efekt gęstości (spadek RMSE) maleje 7,2× (0,147 → 0,020).
 
 **Bramka wykonalności [Z-]:** całkowity wkład echa do pełnego modelu `c_full` = **0,02228**,
 95 % CI [0,01840; 0,02643] (warunek `SE`, echo permutowane, **1 ziarno**, CI z bootstrapu po
@@ -175,7 +194,7 @@ lokalizacjach). U Gao echo daje 7,5 % — zgodność rzędu wielkości potwierdz
 
 `echo2depth`, 3 ziarna, maska pełna.
 
-| warunek | `main` | `patched` | Δ | p |
+| warunek | `main` | `patched` | Δ = patched − main | p |
 |---|---|---|---|---|
 | `cardinal` | 0,79104 | 0,78982 | **−0,00123** | 0,870 |
 | `all` | 0,58223 | 0,59458 | **+0,01235** | **0,013** |
@@ -279,7 +298,7 @@ przy najdrobniejszej granulacji**.
 
 RGB2Depth **bez audio w czasie testu**; różni się wyłącznie inicjalizacją enkodera.
 
-| inicjalizacja | RMSE (5 ziaren) | Δ vs `scratch` | p | odniesienie Gao |
+| inicjalizacja | RMSE (5 ziaren) | Δ = X − `scratch` | p | odniesienie Gao |
 |---|---|---|---|---|
 | pretrening K=4 | 0,28699 ± 0,00433 | −0,00287 | 0,231 | 0,332 |
 | K=36 @ 16 par | 0,28927 ± 0,00340 | −0,00059 | 0,751 | — |
@@ -299,7 +318,7 @@ pretekstowe jest równie trudne jak K=4, transfer wychodzi tak samo nijako.
 Ograniczany wyłącznie zbiór treningowy (podzbiór stratyfikowany po lokalizacji, stałe ziarno
 podzbioru, budżet 40 000 kroków bez zmian). Walidacja i test zawsze pełne.
 
-| ułamek | próbek | `scratch` | K=4 | K=36 |
+| ułamek | próbek | `scratch` (RMSE) | K=4 − `scratch` | K=36 − `scratch` |
 |---|---|---|---|---|
 | 10 % | 4 946 | 0,35396 | +0,00439 (p = 0,54) | **−0,00005** (p = 0,99) |
 | 25 % | 12 366 | 0,30083 | +0,00486 (p = 0,26) | +0,00433 (p = 0,16) |
@@ -314,7 +333,7 @@ Enkoder zamrożony (`requires_grad=False` **oraz** `eval()`, weryfikowane sumą 
 bufory BatchNormu), uczony wyłącznie dekoder. 3 ziarna, identyczny dekoder we wszystkich warunkach
 przy danym ziarnie.
 
-| enkoder (zamrożony) | RMSE sondy | Δ vs `random` | p | pokrycie rozpiętości |
+| enkoder (zamrożony) | RMSE sondy | Δ = X − `random` | p | pokrycie rozpiętości |
 |---|---|---|---|---|
 | `depth_trained` *(górna granica)* | 0,29234 ± 0,00157 | −0,26462 | 0,0002 | 100 % |
 | **`pretext_K36`** | **0,38908 ± 0,00243** | **−0,16787** | **0,0004** | **63,4 %** |
@@ -337,7 +356,7 @@ Kontrola `K36@16par` (gęsta siatka 36 orientacji, budżet par równy `K=4`) roz
 **Oba czynniki wnoszą prawie po równo i oba są istotne.**
 
 > **DYSOCJACJA — do wypunktowania w pracy.** W samym zadaniu pretekstowym gęstsza siatka
-> **nie poprawiała wyniku w ogóle** (−1,24°, p = 0,83; §4). W zamrożonym koderze poprawia
+> **nie poprawiała wyniku w ogóle** (`K36@16par − K4` = −1,24° MAAE, p = 0,83; §4). W zamrożonym koderze poprawia
 > zawartość geometryczną o **14 pp**, mimo że `K36@16par` ma MAAE 58,70° — praktycznie tyle samo
 > co `K4` (59,94°). **Gęstsze echo kształtuje koder wizualny nawet wtedy, gdy nie poprawia wyniku
 > w zadaniu orientacyjnym.** MAAE zadania pretekstowego **nie jest** wskaźnikiem tego, czego uczy

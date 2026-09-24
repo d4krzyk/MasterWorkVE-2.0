@@ -24,6 +24,17 @@ ZASADY, KTORE TU OBOWIAZUJA (i dlaczego, zeby nikt ich potem nie "poprawil"):
 4. Os X rysunku 1 jest LOGARYTMICZNA. K to liczebnosc siatki (skala ilorazowa),
    a wartosci 4..36 na osi liniowej sciskaja caly interesujacy zakres 4-12 przy
    lewej krawedzi -- czyli dokladnie tam, gdzie jest wniosek pracy.
+5. SEPARATOR DZIESIETNY TO PRZECINEK -- wszedzie: podzialki osi, etykiety
+   punktow, adnotacje, procenty. Praca jest po polsku. Sluzy do tego `_pl()`
+   i `_przecinki()`; nie formatowac liczb goly m f-stringiem.
+6. NAZWA METRYKI JEST TA SAMA NA WSZYSTKICH RYSUNKACH: "RMSE glebi [m]".
+   W projekcie sa DWIE rozne wielkosci nazywane RMSE (metryka glebi w metrach
+   i odleglosc RMS spektrogramow) -- patrz docs/KONWENCJE.md §3. Os bez
+   jednostki pozwalalaby pomylic je na rysunku.
+7. ZNAK. Rysunki 3 i 4 pokazuja WIELKOSC poprawy (spadek RMSE, slupki dodatnie),
+   rysunek 1 pokazuje ZMIANE RMSE wzdluz krzywej (wartosci ujemne). Jedno i
+   drugie jest zgodne z konwencja z docs/KONWENCJE.md §2, ale MUSI byc nazwane
+   na osi i w podpisie, bo inaczej ta sama wielkosc raz ma minus, a raz nie.
 """
 
 from __future__ import annotations
@@ -66,6 +77,39 @@ def _style():
     })
 
 
+# Nazwa metryki uzywana na KAZDYM rysunku (zasada 6 w naglowku modulu).
+OS_RMSE = "RMSE głębi [m]"
+
+
+def _pl(x: float, nd: int = 3, znak: bool = False) -> str:
+    """Liczba po polsku: przecinek dziesietny, opcjonalnie jawny znak."""
+    return f"{x:{'+' if znak else ''}.{nd}f}".replace(".", ",")
+
+
+def _przecinki(ax, osie: str = "y", nd: int = 3) -> None:
+    """Przecinek dziesietny na podzialkach osi."""
+    from matplotlib.ticker import FuncFormatter
+    f = FuncFormatter(lambda v, _: _pl(v, nd))
+    if "y" in osie:
+        ax.yaxis.set_major_formatter(f)
+    if "x" in osie:
+        ax.xaxis.set_major_formatter(f)
+
+
+def _naglowek(ax, tytul: str, *linie: str) -> None:
+    """Tytul + podtytul w stalym rytmie -- ten sam na wszystkich rysunkach.
+
+    Podtytul jest lamany RECZNIE (kolejne argumenty = kolejne wiersze), bo
+    automatyczne lamanie zalezy od szerokosci figury i przy eksporcie do pracy
+    potrafi wjechac na tytul albo poza obszar rysunku.
+    """
+    n = len(linie)
+    ax.set_title(tytul, loc="left", fontweight="bold", pad=14 + 13 * n)
+    for i, wiersz in enumerate(linie):
+        ax.text(0.0, 1.02 + 0.052 * (n - 1 - i), wiersz, transform=ax.transAxes,
+                fontsize=8.5, color=INK_2, va="bottom")
+
+
 def _clean(ax, ygrid=True):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -95,7 +139,7 @@ def rysunek_1_krzywa_nasycenia() -> Path:
     # Obszar nasycenia -- to jest WNIOSEK rysunku, wiec musi byc widoczny
     # zanim czytelnik zacznie odczytywac punkty.
     ax.axvspan(9, 12, color=C_MAIN, alpha=0.07, zorder=1)
-    ax.annotate("nasycenie\nK = 9–12", xy=(10.4, y.max() - 0.012),
+    ax.annotate("nasycenie\nK = 9–12", xy=(10.4, y.max() - 0.004),
                 ha="center", va="top", fontsize=9, color=INK_2)
 
     ax.errorbar(x, y, yerr=e, color=C_MAIN, linewidth=2, marker="o",
@@ -104,9 +148,13 @@ def rysunek_1_krzywa_nasycenia() -> Path:
 
     # Etykiety tylko przy koncach i przy punkcie odciecia -- nie przy kazdym
     # punkcie (patrz zasada "nigdy liczba nad kazdym markerem").
-    for k, xi, yi in ((4, x[0], y[0]), (9, x[2], y[2]), (36, x[-1], y[-1])):
-        ax.annotate(f"{yi:.3f}", xy=(xi, yi), xytext=(0, 13),
-                    textcoords="offset points", ha="center", fontsize=9,
+    # Konce krzywej w lewo/prawo od punktu, srodkowy w gore -- inaczej etykieta
+    # K=4 siada na przerywanej linii zysku, a K=36 wychodzi poza obszar osi.
+    for xi, yi, dx, dy, ha in ((x[0], y[0], 10, 9, "left"),
+                               (x[2], y[2], 0, 14, "center"),
+                               (x[-1], y[-1], 6, 5, "left")):
+        ax.annotate(_pl(yi), xy=(xi, yi), xytext=(dx, dy),
+                    textcoords="offset points", ha=ha, fontsize=9,
                     color=INK, fontweight="bold")
 
     ax.set_xscale("log")
@@ -114,25 +162,26 @@ def rysunek_1_krzywa_nasycenia() -> Path:
     ax.set_xticklabels([f"{int(k)}" for k in x])
     ax.minorticks_off()
     ax.set_xlabel("liczba orientacji w siatce K, z której losowane są kąty")
-    ax.set_ylabel("RMSE na zbiorze testowym (36 orientacji)")
-    ax.set_title("Nasycenie efektu gęstości kątowej przy stałym budżecie próbek",
-                 loc="left", fontweight="bold", pad=14)
-    ax.text(0.0, 1.02, "sieć głębi (tylko echo) · 4 próbki na lokalizację (5 496) w każdym "
-                       "punkcie · 3 ziarna, wąsy = sd",
-            transform=ax.transAxes, fontsize=8.5, color=INK_2, va="bottom")
+    ax.set_ylabel(OS_RMSE)
+    _przecinki(ax, "y", 3)
+    _naglowek(ax, "Nasycenie efektu gęstości kątowej przy stałym budżecie próbek",
+              "sieć głębi (tylko echo) · test na 36 orientacjach · 4 próbki na lokalizację "
+              "(5 496) w każdym punkcie",
+              "3 ziarna, wąsy = sd · liczby przy strzałkach to zmiana RMSE, ujemna = poprawa")
 
     # Strzalki zysku: cala wartosc rysunku to porownanie tych dwoch odcinkow.
     ax.annotate("", xy=(9, y[2]), xytext=(4, y[0]),
                 arrowprops=dict(arrowstyle="-", color=C_ALT, lw=1.2, ls=(0, (4, 3))))
-    ax.annotate(f"4 → 9:  −{y[0] - y[2]:.3f}", xy=(6.0, (y[0] + y[2]) / 2),
-                xytext=(6, 6), textcoords="offset points",
+    ax.annotate(f"4 → 9:   −{_pl(y[0] - y[2])}", xy=(6.0, (y[0] + y[2]) / 2),
+                xytext=(8, 7), textcoords="offset points",
                 fontsize=9.5, color=C_ALT, fontweight="bold")
     # Adnotacja idzie NAD plaska czescia krzywej, nie pod nia: pod spodem
     # wchodzila na os X i na wasy punktu K=18.
-    ax.annotate(f"9 → 36:  −{y[2] - y[-1]:.3f}   (6,7× mniej)",
-                xy=(20, y[3] + 0.011), ha="center", va="bottom",
+    krotnosc = (y[0] - y[2]) / (y[2] - y[-1])
+    ax.annotate(f"9 → 36:   −{_pl(y[2] - y[-1])}   ({_pl(krotnosc, 1)}× mniej)",
+                xy=(20, y[3] + 0.013), ha="center", va="bottom",
                 fontsize=9.5, color=INK_2)
-    ax.set_ylim(y.min() - e[-1] - 0.012, y.max() + e[0] + 0.016)
+    ax.set_ylim(y.min() - e[-1] - 0.014, y.max() + e[0] + 0.018)
 
     OUT.mkdir(parents=True, exist_ok=True)
     p = OUT / "rys_1_krzywa_nasycenia.png"
@@ -163,7 +212,7 @@ def rysunek_2_generalizacja_katowa() -> Path:
     for val, col, name in ((r["ED"]["mean"], C_ALT, "ED — 4 kąty losowe z 36"),
                            (r["EB"]["mean"], C_THIRD, "EB — wszystkie 36")):
         ax.axhline(val, color=col, linewidth=2, ls=(0, (5, 3)), zorder=2)
-        ax.annotate(f"{name}   {val:.3f}", xy=(x[-1], val), xytext=(-2, 6),
+        ax.annotate(f"{name}   {_pl(val)}", xy=(x[-1], val), xytext=(-2, 6),
                     textcoords="offset points", ha="right", fontsize=9,
                     color=col, fontweight="bold")
 
@@ -176,19 +225,24 @@ def rysunek_2_generalizacja_katowa() -> Path:
                 textcoords="offset points", ha="center", fontsize=9,
                 color=C_MAIN, fontweight="bold")
 
-    ax.annotate(f"luka {y[-1] - y[0]:+.3f}\n({100 * (y[-1] - y[0]) / y[0]:.0f} %)",
-                xy=(x[-1], y[-1]), xytext=(-16, -36), textcoords="offset points",
-                ha="center", fontsize=9, color=INK_2)
-    ax.set_ylim(min(r["EB"]["mean"], y.min()) - 0.022, y.max() + e[-1] + 0.030)
+    # Luka jest WNIOSKIEM rysunku, wiec stoi przy samej strzalce miedzy 0 a 40,
+    # a nie jako luzny napis przy prawej krawedzi.
+    ax.annotate("", xy=(x[0] + 1.2, y[-1]), xytext=(x[0] + 1.2, y[0]),
+                arrowprops=dict(arrowstyle="<->", color=INK_2, lw=1.4))
+    ax.annotate(f"luka {_pl(y[-1] - y[0], 3, znak=True)}\n"
+                f"({_pl(100 * (y[-1] - y[0]) / y[0], 0)} %)",
+                xy=(x[0] + 1.2, (y[0] + y[-1]) / 2), xytext=(8, 0),
+                textcoords="offset points", ha="left", va="center",
+                fontsize=9, color=INK_2, fontweight="bold")
+    ax.set_ylim(min(r["EB"]["mean"], y.min()) - 0.020, y.max() + e[-1] + 0.026)
 
     ax.set_xticks(x)
     ax.set_xlabel("odległość testowanego kąta od najbliższego kąta treningowego [°]")
-    ax.set_ylabel("RMSE")
-    ax.set_title("Baseline 4-kierunkowy nie pokrywa przestrzeni orientacji",
-                 loc="left", fontweight="bold", pad=14)
-    ax.text(0.0, 1.02, "sieć głębi (tylko echo) · 3 ziarna, wąsy = sd · warunki ED i EB nie mają "
-                       "tej osi: pokrywają całą siatkę",
-            transform=ax.transAxes, fontsize=8.5, color=INK_2, va="bottom")
+    ax.set_ylabel(OS_RMSE)
+    _przecinki(ax, "y", 2)
+    _naglowek(ax, "Baseline 4-kierunkowy nie pokrywa przestrzeni orientacji",
+              "sieć głębi (tylko echo) · 3 ziarna, wąsy = sd",
+              "ED i EB są liniami odniesienia: pokrywają całą siatkę, więc nie mają tej osi")
 
     OUT.mkdir(parents=True, exist_ok=True)
     p = OUT / "rys_2_generalizacja_katowa.png"
@@ -205,49 +259,57 @@ def rysunek_3_rozklad_efektu() -> Path:
     gl = _load(paths.ML_OUTPUTS / "echo_ablation" / "final_results_2026-08-15.json")
     sk = gl["glowne_3ziarna"]["skladowe"]
 
+    # Słupki pokazują WIELKOŚĆ poprawy (spadek RMSE), więc są dodatnie. Etykiety
+    # opisują przejście (A → D), a nie różnicę `D − A`, bo ta w konwencji
+    # z docs/KONWENCJE.md §2 jest ujemna. `echo_3seeds.json` trzyma te kontrasty
+    # jako A − D / D − B (dodatnie, pod etykietami "D-A" / "B-D"); pełny model
+    # trzyma poprawne D − A / B − D (ujemne) -- stąd abs() w obu panelach.
     panele = (
         ("sieć głębi (tylko echo)",
-         [("gęstość kątowa\n(D − A)", e3["gestosc katowa D-A"]["mean"],
+         [("gęstość kątowa\n(A → D)", abs(e3["gestosc katowa D-A"]["mean"]),
            e3["gestosc katowa D-A"]["sd_seeds"]),
-          ("ilość danych\n(B − D)", e3["ilosc danych B-D"]["mean"],
+          ("ilość danych\n(D → B)", abs(e3["ilosc danych B-D"]["mean"]),
            e3["ilosc danych B-D"]["sd_seeds"])],
          70.2),
         ("sieć głębi (pełna: obraz + echo)",
-         [("gęstość kątowa\n(D − A)", abs(sk["gestosc_D_minus_A"]["mean"]),
+         [("gęstość kątowa\n(A → D)", abs(sk["gestosc_D_minus_A"]["mean"]),
            sk["gestosc_D_minus_A"]["sd"]),
-          ("ilość danych\n(B − D)", abs(sk["ilosc_danych_B_minus_D"]["mean"]),
+          ("ilość danych\n(D → B)", abs(sk["ilosc_danych_B_minus_D"]["mean"]),
            sk["ilosc_danych_B_minus_D"]["sd"])],
          42.0),
     )
 
-    fig, axes = plt.subplots(1, 2, figsize=(8.2, 4.2))
+    fig, axes = plt.subplots(1, 2, figsize=(8.4, 4.0))
     for ax, (tytul, slupki, udzial) in zip(axes, panele):
         _clean(ax)
         xs = np.arange(len(slupki))
         vals = [s[1] for s in slupki]
         errs = [s[2] for s in slupki]
-        ax.bar(xs, vals, yerr=errs, width=0.55,
+        ax.bar(xs, vals, yerr=errs, width=0.52,
                color=[C_MAIN, C_ALT], capsize=5,
                error_kw=dict(elinewidth=1.4, ecolor=INK_2), zorder=3)
         for xi, v, er in zip(xs, vals, errs):
-            ax.annotate(f"{v:.3f}", xy=(xi, v + er), xytext=(0, 6),
+            ax.annotate(_pl(v), xy=(xi, v + er), xytext=(0, 6),
                         textcoords="offset points", ha="center",
                         fontsize=10, fontweight="bold", color=INK)
         ax.set_xticks(xs)
         ax.set_xticklabels([s[0] for s in slupki], fontsize=9)
-        ax.set_ylim(0, max(v + e for v, e in zip(vals, errs)) * 1.32)
-        ax.set_title(tytul, loc="left", fontsize=10, fontweight="bold", pad=10)
-        ax.text(0.0, 1.005, f"udział gęstości: {udzial:.1f} %",
+        ax.set_ylim(0, max(v + e for v, e in zip(vals, errs)) * 1.30)
+        # Obie osie podpisane TA SAMA nazwa, mimo ze to powtorzenie: panele maja
+        # rozne skale, a wspolny podpis tylko po lewej sugerowalby wspolna os.
+        ax.set_ylabel(f"spadek: {OS_RMSE}", fontsize=9)
+        _przecinki(ax, "y", 3)
+        ax.set_title(tytul, loc="left", fontsize=10, fontweight="bold", pad=22)
+        ax.text(0.0, 1.02, f"udział gęstości: {_pl(udzial, 1)} %",
                 transform=ax.transAxes, fontsize=9, color=INK_2, va="bottom")
-    axes[0].set_ylabel("poprawa RMSE (wartość dodatnia = lepiej)")
 
     fig.suptitle("Prior wizualny przykrywa strukturę kątową echa",
-                 x=0.005, y=0.985, ha="left", va="top", fontweight="bold", fontsize=11.5)
-    fig.text(0.005, 0.925,
-             "3 ziarna, wąsy = sd · UWAGA: osie Y mają różne skale — efekt w pełnym modelu "
-             "jest 7,2× mniejszy",
+                 x=0.008, y=0.995, ha="left", va="top", fontweight="bold", fontsize=11.5)
+    fig.text(0.008, 0.955,
+             "3 ziarna, wąsy = sd · UWAGA: panele mają różne skale osi Y — efekt "
+             "w pełnym modelu jest 7,2× mniejszy",
              fontsize=8.5, color=INK_2, ha="left", va="top")
-    fig.tight_layout(rect=(0, 0, 1, 0.915))
+    fig.tight_layout(rect=(0, 0, 1, 0.965), w_pad=2.5)
 
     OUT.mkdir(parents=True, exist_ok=True)
     p = OUT / "rys_3_rozklad_efektu.png"
@@ -262,6 +324,9 @@ def rysunek_3_rozklad_efektu() -> Path:
 def rysunek_4_sonda_glebi() -> Path:
     d = _load(paths.ML_OUTPUTS / "echo_ablation" / "final_results_2026-08-15.json")["sonda_glebi"]
     P = d["punkty"]
+    # p-wartosci czytane z pliku dowodowego, nie wpisane recznie -- przy
+    # przeliczeniu macierzy rysunek ma sie zmienic razem z liczbami.
+    rozklad = d["rozklad_przewagi_K36_nad_K4"]
     rnd = np.array(P["random"]["values"], dtype=float)
     span = P["random"]["mean"] - P["depth_trained"]["mean"]
 
@@ -291,40 +356,45 @@ def rysunek_4_sonda_glebi() -> Path:
     # PIONOWO przy samej linii -- poziomo nie miesci sie miedzy linia a krawedzia
     # i wypada poza obszar rysunku.
     ax.axvline(span, color=INK_2, linewidth=2, ls=(0, (5, 3)), zorder=2)
-    ax.annotate("koder uczony wprost na głębi  (100 %)",
-                xy=(span, (len(encs) - 1) / 2), xytext=(-9, 0),
-                textcoords="offset points", rotation=90, ha="center", va="center",
-                fontsize=8.5, color=INK_2, fontweight="bold")
+    # Etykieta PIONOWO przy samej linii i przy DOLNEJ czesci osi: poziomo nie
+    # miesci sie miedzy linia a krawedzia, a wysrodkowana pionowo wchodzila
+    # na podtytul.
+    ax.annotate("koder uczony na głębi (100 %)",
+                xy=(span, -0.34), xytext=(-10, 0),
+                textcoords="offset points", rotation=90, ha="center", va="bottom",
+                fontsize=8.5, color=INK_2, fontweight="bold", annotation_clip=False)
 
-    ax.barh(y, vals, xerr=errs, height=0.52, color=C_MAIN, capsize=5,
+    # Slupki wezsze niz domyslnie: miedzy nimi musi zmiescic sie strzalka
+    # rozkladu z dwuwierszowym opisem.
+    ax.barh(y, vals, xerr=errs, height=0.44, color=C_MAIN, capsize=5,
             error_kw=dict(elinewidth=1.4, ecolor=INK_2), zorder=3)
     for yi, v, e in zip(y, vals, errs):
-        ax.annotate(f"{100 * v / span:.1f} %", xy=(v + e, yi), xytext=(8, 0),
+        ax.annotate(f"{_pl(100 * v / span, 1)} %", xy=(v + e, yi), xytext=(8, 0),
                     textcoords="offset points", va="center", fontsize=10,
                     fontweight="bold", color=INK)
 
     # Rozklad: co dokłada gestosc katowa, a co sama liczba par.
-    for i, (lab, col) in enumerate(((f"gęstość kątowa\n+{100 * (vals[1] - vals[0]) / span:.1f} pp"
-                                     "   p = 0,0042", C_ALT),
-                                    (f"liczba par\n+{100 * (vals[2] - vals[1]) / span:.1f} pp"
-                                     "   p = 0,0001", C_THIRD))):
+    opisy = ((("gęstość kątowa", vals[1] - vals[0], rozklad["gestosc_katowa_danych"]["p"]), C_ALT),
+             (("liczba par", vals[2] - vals[1], rozklad["liczba_par"]["p"]), C_THIRD))
+    for i, ((nazwa, delta, pval), col) in enumerate(opisy):
+        lab = f"{nazwa}\n+{_pl(100 * delta / span, 1)} pp   p = {_pl(pval, 4)}"
         x0, x1 = vals[i], vals[i + 1]
-        ax.annotate("", xy=(x1, i + 0.5), xytext=(x0, i + 0.5),
+        ax.annotate("", xy=(x1, i + 0.58), xytext=(x0, i + 0.58),
                     arrowprops=dict(arrowstyle="<->", color=col, lw=1.6))
-        ax.annotate(lab, xy=((x0 + x1) / 2, i + 0.5), xytext=(0, 7),
-                    textcoords="offset points", ha="center", fontsize=8.5,
-                    color=col, fontweight="bold")
+        # Opis POD strzalka, nie nad nia: nad strzalka wchodzil na slupek
+        # lezacy wyzej.
+        ax.annotate(lab, xy=((x0 + x1) / 2, i + 0.58), xytext=(0, -9),
+                    textcoords="offset points", ha="center", va="top",
+                    fontsize=8.5, color=col, fontweight="bold")
 
     ax.set_yticks(y)
     ax.set_yticklabels([n for _, n in encs], fontsize=9)
     ax.set_xlim(0, span * 1.13)
-    ax.set_xlabel("poprawa RMSE wobec LOSOWEGO zamrożonego enkodera\n"
-                  "(0 = koder losowy — podłoga)")
-    ax.set_title("Zamrożony koder z pretreningu niesie informację o głębi",
-                 loc="left", fontweight="bold", pad=14)
-    ax.text(0.0, 1.02, "sonda: koder zamrożony, uczony wyłącznie dekoder · 3 ziarna, "
-                       "wąsy = błąd standardowy różnicy",
-            transform=ax.transAxes, fontsize=8.5, color=INK_2, va="bottom")
+    _przecinki(ax, "x", 2)
+    ax.set_xlabel(f"spadek: {OS_RMSE} względem kodera losowego (0 = podłoga)")
+    _naglowek(ax, "Zamrożony koder z pretreningu niesie informację o głębi",
+              "sonda: koder zamrożony, uczony wyłącznie dekoder",
+              "3 ziarna, wąsy = błąd standardowy różnicy · pp = punkty procentowe rozpiętości")
 
     OUT.mkdir(parents=True, exist_ok=True)
     p = OUT / "rys_4_sonda_glebi.png"

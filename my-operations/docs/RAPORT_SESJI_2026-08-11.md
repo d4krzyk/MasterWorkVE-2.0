@@ -1,5 +1,15 @@
 # Raport sesji — 2026-08-11: domknięcie protokołu, bramka pełnego modelu, potwierdzenie wyniku
 
+> **ERRATA 2026-09-21 — konwencja znaku (tylko etykiety, żadna wartość bezwzględna się nie zmienia).**
+> Konwencja obowiązująca od tej daty: etykieta `X − Y` znaczy dosłownie wartość(X) − wartość(Y);
+> dla RMSE ujemne = lepiej (`KONWENCJE.md` §2). Ten raport zostaje bez zmian jako zapis
+> chronologiczny, ale poniższe miejsca mają etykietę niezgodną z arytmetyką:
+>
+> - §3, tabela „Rozkład efektu — 3 ziarna": wiersze `D − A` +0,14672, `B − D` +0,06209, `B − A` +0,20882 (i ich CI) to **A − D, D − B, A − B**. W konwencji: −0,14672 [−0,15178; −0,11231], −0,06209 [−0,07881; −0,05124], −0,20882 [−0,22545; −0,16971]. Wiersz „wkład echa (ESE − EB)" ma znak poprawny.
+> - Źródło przestawienia: `outputs/ml/echo_ablation/echo_3seeds.json` zapisuje te kontrasty jako różnice odwrotne pod etykietami `D-A` / `B-D` / `B-A`. Plik zostaje bez zmian; `thesis_numbers.py` odwraca znak przy eksporcie.
+>
+> Wartości obowiązujące: `STAN_WYNIKOW.md`.
+
 Kontynuacja `RAPORT_SESJI_2026-08-10.md`. Trzy cele: naprawić protokół walidacji (blokował
 macierz), zmierzyć wkład echa w **pełnym** modelu (decyduje o grupie `glowne`), potwierdzić wynik
 grupy `echo` na 3 ziarnach. Plus poprawki interpretacyjne i eksport liczb do pisania tekstu.
