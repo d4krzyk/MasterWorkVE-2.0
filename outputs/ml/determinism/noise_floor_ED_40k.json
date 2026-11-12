@@ -1,0 +1,54 @@
+{
+  "opis": "Podloga szumu niedeterminizmu GPU na pelnym budzecie: ten sam warunek i ziarno treningu, identyczna konfiguracja co oryginal (AMP, bez use_deterministic_algorithms), tylko niedeterminizm GPU rozni przebiegi.",
+  "warunek": "ED",
+  "ziarno": 0,
+  "kroki": 40000,
+  "metryka": "RMSE test@36 (all)",
+  "n_przebiegow": 5,
+  "przebiegi": [
+    {
+      "run_id": "ED_seed0_nf0",
+      "RMSE_test36": 0.6514301599664293,
+      "best_step": 7000,
+      "best_val36_rmse": 0.6311174863476954
+    },
+    {
+      "run_id": "ED_seed0_nf1",
+      "RMSE_test36": 0.649861340348524,
+      "best_step": 9000,
+      "best_val36_rmse": 0.6285939658022891
+    },
+    {
+      "run_id": "ED_seed0_nf2",
+      "RMSE_test36": 0.6547724922588907,
+      "best_step": 7000,
+      "best_val36_rmse": 0.6350811707389016
+    },
+    {
+      "run_id": "ED_seed0_nf3",
+      "RMSE_test36": 0.6533133785833898,
+      "best_step": 6000,
+      "best_val36_rmse": 0.6341982624741028
+    },
+    {
+      "run_id": "ED_seed0_nf4",
+      "RMSE_test36": 0.6528824145553546,
+      "best_step": 9000,
+      "best_val36_rmse": 0.6291125057478074
+    }
+  ],
+  "srednia": 0.6524519571425177,
+  "sd": 0.0018753392061014356,
+  "rozstep": 0.004911151910366618,
+  "min": 0.649861340348524,
+  "max": 0.6547724922588907,
+  "oryginal": {
+    "run_id": "ED_seed0",
+    "RMSE_test36": 0.6469504859683798,
+    "best_step": 9000,
+    "best_val36_rmse": 0.6323645213665104,
+    "roznica_od_sredniej_powtorzen": -0.005501471174137906,
+    "w_zakresie_powtorzen": false,
+    "z_wzgledem_sd": -2.9335872445042543
+  }
+}
