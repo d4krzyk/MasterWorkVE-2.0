@@ -94,13 +94,16 @@ def find_running() -> dict[str, int]:
         if not any(a.endswith("train_condition.py") for a in args):
             continue
         cond = seed = None
+        tag = ""
         for i, a in enumerate(args):
             if a == "--condition" and i + 1 < len(args):
                 cond = args[i + 1]
             elif a == "--seed" and i + 1 < len(args):
                 seed = args[i + 1]
+            elif a == "--tag" and i + 1 < len(args):
+                tag = args[i + 1]
         if cond and seed is not None:
-            out[f"{cond}_seed{seed}"] = int(entry.name)
+            out[f"{cond}_seed{seed}" + (f"_{tag}" if tag else "")] = int(entry.name)
     return out
 
 
@@ -346,10 +349,12 @@ def cmd_start(args) -> int:
         print("Uzyj --allow-parallel, jesli naprawde tego chcesz (ryzyko OOM).")
         return 3
 
-    spec = RunSpec(condition=cond, seed=seed)
+    spec = RunSpec(condition=cond, seed=seed, tag=args.tag)
     d = spec.run_dir()
     d.mkdir(parents=True, exist_ok=True)
     cmd = [sys.executable, str(TRAIN_SCRIPT), "--condition", cond, "--seed", str(seed)]
+    if args.tag:
+        cmd += ["--tag", args.tag]
     if args.fast_bilinear:
         cmd.append("--fast-bilinear")
     if args.resume:
@@ -472,6 +477,7 @@ def build_parser():
     sr.add_argument("seed", type=int)
     sr.add_argument("--fast-bilinear", action="store_true")
     sr.add_argument("--resume", action="store_true")
+    sr.add_argument("--tag", default="", help="dopisek do nazwy przebiegu (domyslnie pusty)")
     sr.add_argument("--allow-parallel", action="store_true")
     sr.add_argument("--dry-run", action="store_true")
     sr.add_argument("--extra", default=None, help="dodatkowe argumenty do train_condition.py")

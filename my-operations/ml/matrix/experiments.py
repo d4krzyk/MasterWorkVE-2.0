@@ -387,10 +387,15 @@ class RunSpec:
     display_freq: int = 100
     edge_threshold_m: float = 0.10
     extra: dict = field(default_factory=dict)
+    # Opcjonalny tag dopisywany do `run_id` (np. `nf0` -> `ED_seed0_nf0`). Pusty = zachowanie
+    # dotychczasowe. Sluzy do przebiegow POWTORZONYCH przy tym samym warunku i ziarnie
+    # (pomiar podlogi niedeterminizmu GPU), ktore nie moga nadpisac przebiegu z macierzy.
+    tag: str = ""
 
     @property
     def run_id(self) -> str:
-        return f"{self.condition}_seed{self.seed}"
+        base = f"{self.condition}_seed{self.seed}"
+        return f"{base}_{self.tag}" if self.tag else base
 
     def run_dir(self) -> Path:
         return paths.RUNS_DIR / self.run_id

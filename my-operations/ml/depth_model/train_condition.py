@@ -298,6 +298,9 @@ def main(argv=None) -> int:
                    help="tozsamy matematycznie, ~19x szybszy zamiennik nn.Bilinear w attentionNet "
                         "(16.8 h -> 0.86 h na przebieg); patrz fast_bilinear.py")
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--tag", default="",
+                   help="dopisek do nazwy przebiegu (<warunek>_seed<N>_<tag>); domyslnie pusty, "
+                        "wtedy katalog i zachowanie jak dotad")
     p.add_argument("--force", action="store_true", help="nadpisz istniejacy katalog przebiegu")
     p.add_argument("--dry-run", action="store_true",
                    help="pokaz konfiguracje i licznosci, NIE trenuj (nie dotyka GPU)")
@@ -309,7 +312,7 @@ def main(argv=None) -> int:
         batch_size=args.batch_size, num_workers=args.num_workers,
         amp=not args.no_amp, validation_freq=args.validation_freq,
         display_freq=args.display_freq, edge_threshold_m=args.edge_threshold,
-        extra={"fast_bilinear": args.fast_bilinear},
+        extra={"fast_bilinear": args.fast_bilinear}, tag=args.tag,
     )
     run_dir = spec.run_dir()
     splits = load_splits(variant=cond.geometry)
