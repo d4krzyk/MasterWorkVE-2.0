@@ -509,6 +509,23 @@ zawiodła w sposób przewidywalny i wykrywalny**, a nie przez pecha.
 | `TARGET_SNR = 3.5` bez wyprowadzenia | opisać jako **wybór konserwatywny**, nigdy jako wielkość wyprowadzoną (raport §2.17) |
 | Warianty `main` / `patched` różnią też `depth` | **zakaz porównywania po błędzie bezwzględnym** — porównywać przewagę 36 vs 4 wewnątrz każdego (raport §2.16) |
 
+### Dwa fakty dopisane 2026-11-12 (do podania przy cytowaniu)
+
+1. **`office_4` nie ma w teście RT60 vs Sabine/Eyring.** Jest to ósma scena szczelna (§1, grupa
+   „szczelne"), a przebieg A testu objął **7** scen szczelnych: `room_0`, `office_1`, `hotel_0`,
+   `apartment_0`, `room_1`, `room_2`, `office_0` (`outputs/measurements/sabine/A_sealed.log`,
+   `summary.txt`). Sceny podano jawnie przez `--scenes`; `office_4` nie ma też w `DEFAULT_SCENES`
+   (`measurements/rt60_vs_sabine.py:65`). **Powód pominięcia nie jest nigdzie zapisany** — ani
+   w logu (brak błędu i wpisu o pominięciu), ani w `RAPORT_SESJI_2026-07-26_29.md` („na 7 scenach").
+   Nie jest to wykluczenie sceny held-out jako takiej, bo `frl_apartment_5` (też held-out) jest
+   w przebiegach B i C. Wynik „1.27×, n = 21" dotyczy więc 7 z 8 scen szczelnych.
+2. **Trzy pliki dowodowe powstały ad hoc.** `outputs/ml/echo_ablation/final_results_2026-08-13.json`,
+   `echo_ablation.json` i `echo_3seeds.json` nie mają programu, który by je zapisywał — w kodzie
+   repo są wyłącznie ich odczyty (`ml/analysis/thesis_numbers.py`, `ml/analysis/figures.py`).
+   `ml/analysis/final_results.py:16` potwierdza to wprost dla `final_results_2026-08-13.json`.
+   Liczby z tych plików da się sprawdzić tylko z surowych `outputs/ml/eval/*/eval.json`
+   i `compare_*.json`, nie odtworzyć jednym poleceniem.
+
 ## 6. Otwarte pytania do rozstrzygnięcia przy pisaniu
 
 1. Czy raportować wyniki **z podziałem na sceny otwarte/zamknięte**? Rekomendacja: tak, jako

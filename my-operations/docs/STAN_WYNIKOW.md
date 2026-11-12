@@ -10,6 +10,9 @@ sesji — **obowiązuje ten plik**.
 Ostatnia aktualizacja: **2026-08-17**, po zamknięciu fazy eksperymentalnej (84 przebiegi GPU).
 Poprawka redakcyjna **2026-09-21**: ujednolicona konwencja znaku różnic (bez zmiany żadnej wartości
 bezwzględnej) — patrz ramka niżej.
+Poprawka **2026-11-12** (bez zmiany żadnej zmierzonej wartości): §1 „16 %" → 18,5 % ze średnich
+3 ziaren; zastrzeżenia (a)–(c) do twierdzenia 3; mechanizm transferu (§5, §10.1) opisany jako
+hipoteza, nie ustalenie.
 
 **Rysunki** (`outputs/ml/figures/`, odtwarzalne przez `ml/analysis/figures.py`, zero GPU):
 
@@ -52,11 +55,24 @@ z liczbą · **[W]** wywnioskowane z kodu, nie z pomiaru. Pełny słownik oznacz
 |---|---|---|---|---|
 | 1 | Gęstość kątowa echa poprawia predykcję głębi | D − A = **−0,14672** (echo2depth) | 3 ziarna, CI z bootstrapu wyklucza zero | **[Z]** |
 | 2 | Krzywa nasyca się przy **K = 9–12** — dalsze zagęszczanie nie zwraca kosztu | spadek RMSE 4→9: **0,128** · 9→36: **0,019** | 3 ziarna, stały budżet próbek, 6 punktów | **[Z]** |
-| 3 | Efekt utrzymuje się w pełnym modelu | D − A = **−0,02048** | 3 ziarna, p = 0,0096 | **[Z]** |
+| 3 | Efekt utrzymuje się w pełnym modelu | D − A = **−0,02048** | 3 ziarna, p = 0,0096; **zastrzeżenia (a)–(c) pod tabelą** | **[Z]** |
 | 4 | Efekt nie zależy od wariantu geometrii sceny | main −0,14672 vs patched −0,13504 | 3 ziarna, różnica nieistotna (p = 0,26) | **[Z]** |
 | 5 | Zadanie pretekstowe orientacji jest rozwiązywalne | MAAE **25,65 ± 0,74°** wobec 90° losowo | 3 ziarna | **[Z]** |
-| 6 | Pretrening **uczy koder cech geometrycznych**, ale standardowe dostrajanie ich nie zachowuje | sonda: K36 − random = −0,168 (63,4 % rozpiętości); dostrajanie: wszystkie p > 0,07 | 3 ziarna sondy, 5 ziaren transferu | **[Z]** |
+| 6 | Pretrening **uczy koder cech geometrycznych**, ale standardowe dostrajanie nie daje z nich mierzalnej korzyści (przyczyna: hipoteza, §5) | sonda: K36 − random = −0,168 (63,4 % rozpiętości); dostrajanie: wszystkie p > 0,07 | 3 ziarna sondy, 5 ziaren transferu | **[Z]** |
 | 7 | **Gęstsze echo kształtuje koder nawet gdy nie poprawia zadania pretekstowego** | gęstość kątowa: p = 0,83 w MAAE, ale **+14,0 pp (p = 0,0042)** w sondzie głębi | 3 ziarna | **[Z]** |
+
+**Zastrzeżenia do twierdzenia 3 (model pełny)** — podawać razem z liczbą:
+
+- **(a)** W warunkach `A` / `D` / `B` **nie ma kontroli RGB-only** (ten sam model bez echa przy tej
+  samej siatce kątów), więc efekt gęstości w modelu pełnym **nie jest przypisany samemu echu** —
+  siatka kątów zmienia też obrazy RGB widziane w treningu.
+- **(b)** Model pełny zawiera `MaterialPropertyNet` (wagi losowe, **bez straty materiałowej** —
+  jedyną stratą jest `LogDepthLoss` na głębi) oraz `attentionNet`; ich udziału w efekcie
+  **nie rozdzielono**.
+- **(c)** Efekt nie występuje istotnie w każdej scenie testowej: `D − A` na `office_4` =
+  **−0,01630 ± 0,02188, p = 0,326** (ziarno 0: +0,00013). Na `apartment_2` −0,02465 (p = 0,011),
+  na `frl_apartment_5` −0,01775 (p = 0,027); test t na różnicach po 3 ziarnach,
+  `LICZBY_DO_PRACY.md`.
 
 Twierdzenie 2 jest **głównym wkładem praktycznym** — nikt wcześniej nie mógł go sformułować,
 bo nikt nie miał 36 orientacji do podpróbkowania. Twierdzenia 6 i 7 są **głównym wkładem
@@ -126,7 +142,10 @@ przestaje pomagać.
 **Co czyni ten wynik darmowym.** Liczba renderów jest identyczna w każdym punkcie krzywej — 4 na
 lokalizację. Zmienia się wyłącznie to, **z jakiej siatki losowane są te 4 kąty**: baseline bierze
 zawsze te same cztery kierunki kardynalne, warunek gęstszy losuje 4 kąty z szerszej siatki, inne
-dla każdej lokalizacji. Ten sam koszt generowania, RMSE niższe o 16 %.
+dla każdej lokalizacji. Ten sam koszt generowania, RMSE niższe o **18,5 %** ze średnich z 3 ziaren
+(D − A = −0,14672 przy `EA` = 0,79104; per ziarno 16,9 / 19,6 / 19,0 %). Wcześniej podawane
+„16 %" odpowiadało ziarnu 0 (`K36 − K4` = −0,13200 z bootstrapu wyżej) — nie cytować go jako
+wartości z 3 ziaren.
 
 ### Luka generalizacji kątowej [Z]
 
@@ -327,7 +346,7 @@ podzbioru, budżet 40 000 kroków bez zmian). Walidacja i test zawsze pełne.
 **Δ nie rośnie, gdy zbiór maleje.** Ograniczenie zadziałało jako manipulacja (RMSE rośnie o 22 %),
 więc eksperyment miał moc — pretrening po prostu nie zaczyna pomagać.
 
-### Sondowanie zamrożonych reprezentacji — **mechanizm ustalony** [Z]
+### Sondowanie zamrożonych reprezentacji — pomiar [Z], mechanizm [W] (hipoteza)
 
 Enkoder zamrożony (`requires_grad=False` **oraz** `eval()`, weryfikowane sumą kontrolną obejmującą
 bufory BatchNormu), uczony wyłącznie dekoder. 3 ziarna, identyczny dekoder we wszystkich warunkach
@@ -381,9 +400,11 @@ orientacyjnego. CKA potwierdza: `pretext_K36` jest bliżej `depth_trained` niż 
 warstwie, a przewaga **rośnie z głębokością** (0,010 na `conv1` → 0,041 na `conv5`).
 
 > **Wniosek obowiązujący, zastępujący „transfer nie działa":** zadanie pretekstowe uczy koder
-> wizualny cech geometrycznych użytecznych dla głębi, a **standardowe dostrajanie całej sieci ich
-> nie zachowuje** — przepisuje enkoder (odległość wag końcowych od startowych 0,95–0,98)
-> i zaciera ślad inicjalizacji. Wąskim gardłem jest **protokół przenoszenia, nie pretrening**.
+> wizualny cech geometrycznych użytecznych dla głębi [Z], a standardowe dostrajanie całej sieci
+> przepisuje enkoder (odległość wag końcowych od startowych 0,95–0,98) i nie daje mierzalnej
+> korzyści [Z]. **Hipoteza [W]:** wąskim gardłem jest protokół przenoszenia, a nie pretrening.
+> Nie jest to ustalone: protokołów chroniących cechy nie zmierzono, a zamrożony koder `K=36`
+> (RMSE sondy 0,38908) wypada **gorzej** niż trening od zera nawet na 10 % danych (0,35396).
 
 **Przewidywanie [W], niezmierzone:** protokoły chroniące cechy (zamrożenie enkodera, niższy krok
 uczenia na enkoderze, stopniowe odmrażanie) powinny tu działać, bo sonda pokazuje, że jest co
@@ -401,14 +422,15 @@ Cztery pomiary, które **pozostają w mocy**:
 4. Przewaga startowa **istnieje i zanika**: na kroku 1 000 K36 jest o 14 % lepszy od `scratch`
    (−0,07325, p = 0,060), przewaga znika około kroku 4 000.
 
-> **Mechanizm ustalony 2026-08-17** — patrz sekcja „Sondowanie zamrożonych reprezentacji" wyżej.
+> **Mechanizm — hipoteza z 2026-08-17 [W]**, patrz sekcja „Sondowanie zamrożonych reprezentacji" wyżej.
 > Wykluczono cztery wyjaśnienia: że pretrening nic nie zmienia w enkoderze, że zadanie
 > pretekstowe jest za łatwe, że zbiór docelowy jest za duży, oraz — **sprawdzone i obalone
 > sondowaniem** — że cechy przydatne do przewidywania obrotu są po prostu innymi cechami niż
 > cechy przydatne do przewidywania głębi. Ta ostatnia hipoteza była tu wpisana jako otwarta;
 > pomiar pokazał, że jest **fałszywa**: cechy pretekstowe pokrywają 63,4 % rozpiętości do
 > enkodera uczonego wprost na głębi, a przy orientacji i tożsamości sceny wypadają **gorzej**
-> niż enkoder uczony na głębi. Wąskim gardłem jest protokół dostrajania.
+> niż enkoder uczony na głębi. Pozostała hipoteza, nieweryfikowana bezpośrednio: wąskim gardłem
+> jest protokół dostrajania.
 
 ---
 
@@ -493,17 +515,20 @@ w tej kolejności i z liczbami — brzmi to inaczej niż ogólnikowe „warto ro
 **Dowód, że jest co zyskać:** zamrożony koder z pretreningu `K=36` niesie **63,4 %** informacji
 o głębi względem kodera trenowanego wprost na głębi (Δ = −0,16787 wobec losowego, p = 0,0004,
 23× podłoga szumu). Jednocześnie standardowe dostrajanie całej sieci nie daje **nic** (wszystkie
-p > 0,07), a odległość wag końcowych od startowych wynosi 0,95–0,98 — **optymalizacja przepisuje
-koder i wyrzuca to, co pretrening zbudował**.
+p > 0,07), a odległość wag końcowych od startowych wynosi 0,95–0,98 — **hipoteza [W]: optymalizacja
+przepisuje koder i wyrzuca to, co pretrening zbudował**. Przeciwko zbyt mocnemu odczytaniu: sam
+zamrożony koder `K=36` (RMSE sondy 0,38908) jest gorszy niż trening od zera na 10 % danych
+(0,35396), więc nie wiadomo, ile protokół chroniący cechy faktycznie by odzyskał.
 
 **Co zrobić:** zamrożenie enkodera, niższy krok uczenia na enkoderze albo stopniowe odmrażanie.
 To jest zmiana kilku linii w `ml/pretext_model/transfer.py` — infrastruktura sondy
 (`probe.py::freeze_encoder`, kontrola sumą kontrolną z buforami BatchNormu) już istnieje
 i jest zweryfikowana na 27 przebiegach.
 
-**Dlaczego to jest mocna pozycja:** żadne wzmocnienie sygnału echa tego nie odzyska. To jedyne
-miejsce w pracy, gdzie mamy **zmierzony dowód**, że użyteczna reprezentacja istnieje i jest
-tracona przez protokół, a nie przez brak informacji w danych.
+**Dlaczego to jest mocna pozycja:** mamy **zmierzony dowód**, że użyteczna reprezentacja istnieje
+(sonda) i że standardowe dostrajanie nie daje z niej korzyści. To, że jest **tracona przez
+protokół**, a nie np. po prostu słabsza niż to, co sieć uczy się wprost z danych docelowych,
+pozostaje **hipotezą** — rozstrzygnąłby ją dopiero pomiar protokołu chroniącego cechy.
 
 ### 10.2 Wydłużenie okna czasowego echa [W]
 

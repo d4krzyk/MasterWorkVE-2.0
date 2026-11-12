@@ -92,9 +92,13 @@ To **nie jest** ocena modelu. Służy do charakteryzacji silnika akustycznego (r
 
 | porównanie | typowa wartość | nazwa w dokumentach |
 |---|---|---|
-| ten sam kąt, dwa rendery | 0,03–0,16 | szum renderu, `sigma_1` |
+| ten sam kąt, szum pojedynczego renderu | 0,0253–0,1345 (census, 1 740 lok.; maks. ≈ 2,1× Δ) | szum renderu, `sigma_1` |
 | kąty 0° i 10° | 0,0644 | `SIGNAL_10DEG`, „sygnał 10°" |
 | kąty oddalone o 90° | 0,30–0,35 | — |
+
+Źródło zakresu `sigma_1`: `outputs/probe_census/_all_scenes.csv` (kolumna `sigma_1`, sonda
+8 renderów). Wcześniej podawane „0,03–0,16" to RMSE **dwóch** renderów tego samego kąta z wczesnej
+diagnostyki (≈ √2·`sigma_1`), a nie `sigma_1` — nie cytować.
 
 W `GENERATOR_PARAMS.md`, `RAPORT_SESJI_2026-07-26_29.md` i w `diagnose_rlr_noise*` słowo „RMSE"
 oznacza **zawsze** tę wielkość, chyba że zaznaczono inaczej.
