@@ -1,0 +1,22 @@
+{
+  "run_id": "RGBONLY_A_seed1",
+  "step": 40000,
+  "total_steps": 40000,
+  "finished": true,
+  "interrupted": false,
+  "dry_run": false,
+  "val_angle_subset": "all",
+  "best_val_rmse": 0.371632387599756,
+  "best_step": 26000,
+  "best_val4_rmse": 0.3647808279003284,
+  "best_step_val4": 26000,
+  "best_step_fraction_of_budget": 0.65,
+  "epochs": 233,
+  "train_seconds": 678.6,
+  "validation_seconds": 127.3,
+  "eval_done": true,
+  "eval_seconds": 2.8,
+  "test36_rmse": 0.36650028522394934,
+  "test4_rmse": 0.361920559259273,
+  "ended_utc": "2026-11-13T07:36:39.224604+00:00"
+}

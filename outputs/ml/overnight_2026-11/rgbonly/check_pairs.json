@@ -1,0 +1,64 @@
+{
+  "split_fingerprint": "e0bf7547668d9e0a",
+  "conditions": {
+    "A": {
+      "angle_subset": "cardinal",
+      "angle_seed": 0,
+      "geometry": "main",
+      "n_rgbonly": 5496,
+      "n_train_condition": 5496,
+      "n_expected": 5496,
+      "n_from_full_model_run_config": 5496,
+      "no_duplicates": true,
+      "sets_identical": true,
+      "order_identical": true,
+      "identical_to_split_x_select_angles": true,
+      "hdf5_rows_match": true,
+      "fingerprint": "fcdf22de7ec4ee9d",
+      "n_locations": 1374,
+      "ok": true
+    },
+    "D": {
+      "angle_subset": "random_4",
+      "angle_seed": 0,
+      "geometry": "main",
+      "n_rgbonly": 5496,
+      "n_train_condition": 5496,
+      "n_expected": 5496,
+      "n_from_full_model_run_config": 5496,
+      "no_duplicates": true,
+      "sets_identical": true,
+      "order_identical": true,
+      "identical_to_split_x_select_angles": true,
+      "hdf5_rows_match": true,
+      "fingerprint": "66b5c838241ba273",
+      "n_locations": 1374,
+      "ok": true
+    },
+    "B": {
+      "angle_subset": "all",
+      "angle_seed": 0,
+      "geometry": "main",
+      "n_rgbonly": 49464,
+      "n_train_condition": 49464,
+      "n_expected": 49464,
+      "n_from_full_model_run_config": 49464,
+      "no_duplicates": true,
+      "sets_identical": true,
+      "order_identical": true,
+      "identical_to_split_x_select_angles": true,
+      "hdf5_rows_match": true,
+      "fingerprint": "6aa6add6be15d576",
+      "n_locations": 1374,
+      "ok": true
+    }
+  },
+  "ok": true,
+  "eval_counts": {
+    "val": 6588,
+    "test@36": 6588,
+    "test@4": 732
+  },
+  "eval_counts_ok": true,
+  "created_utc": "2026-11-13T06:17:27.435199+00:00"
+}
