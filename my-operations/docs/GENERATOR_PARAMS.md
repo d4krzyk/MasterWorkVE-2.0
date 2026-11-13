@@ -269,7 +269,8 @@ wynik. Koszt jest kwadratowy (`N ~ SNR^2`) — zmierzone na gotowym zbiorze śre
 | 5.0 | 23.40 | 1.93× |
 
 **Jak wyszło w praktyce** (`snr_final` po dorenderowaniu, oba warianty): mediana 3.72 / 3.66, a **79 % / 94 %
-próbek leży w przedziale 3.5–4.0** i **0.0 % powyżej 6**. Reguła celuje dokładnie w próg i go nie
+próbek leży w przedziale 3.5–4.0** i **0.0 % powyżej 6** (dokładnie: w `main` 6 próbek z 62 640, tj. 0.01 % — `apartment_2` 4 i `frl_apartment_3` 2, maks. 6.21;
+w `patched` żadna; po jednej próbce poniżej 3.5 w każdym wariancie: 3.43 w `main`/`apartment_0`, 3.12 w `patched`/`frl_apartment_2`). Reguła celuje dokładnie w próg i go nie
 przekracza — to zamierzone (§4), ale znaczy też, że zbiór **nie ma zapasu**: obniżenie progu wymagałoby
 regeneracji, a nie odrzucenia części renderów.
 

@@ -14,7 +14,10 @@ Gęstość kątowa poprawia predykcję głębi wyraźnie i istotnie, ale **krzyw
 orientacjach**: przejście z 4 do 9 daje 6,7× więcej niż całe pozostałe rozszerzenie do 36. Przy
 stałym koszcie generowania danych opłaca się więc **losować kąty z siatki 9–12 orientacji**
 zamiast przybijać je do 4 kierunków. Efekt utrzymuje się w pełnym modelu audiowizualnym
-(p = 0,0096) i nie zależy od wariantu geometrii sceny.
+(p = 0,0096) i nie zależy od wariantu geometrii sceny. Poprawka Holma w rodzinach testów nie zmienia
+żadnego wniosku o istotności (po konserwatywnej korekcie na wszystkie 17 testów nie przeżywa efekt gęstości
+w modelu pełnym, p = 0,096, i efekt geometrii `EPB − EB`, p = 0,11); rozrzut GPU między powtórzeniami tego
+samego przebiegu to sd ≈ 0,002 (rozstęp 0,005) — `STAN_WYNIKOW.md` §11.
 
 Osobno badane zadanie pretekstowe przewidywania orientacji jest rozwiązywalne (MAAE 25,65° wobec
 90° losowego) i **uczy koder wizualny cech geometrycznych** — sondowanie zamrożonych reprezentacji
@@ -33,7 +36,7 @@ chronologicznym i zawierają liczby później zastąpione.
 |---|---|
 | `docs/KONWENCJE.md` | **czytać najpierw** — konwencja znaku różnic, dwie wielkości „RMSE", słownik oznaczeń (`EA`, `ESE`, `test@36`, [Z]…) |
 | `docs/STAN_WYNIKOW.md` | **stan obowiązujący** — wszystkie wyniki, bez historii |
-| `docs/LICZBY_DO_PRACY.md` | 167 liczb ze statusem, plikiem dowodowym i sekcją kontroli spójności (generowane) |
+| `docs/LICZBY_DO_PRACY.md` | 200 liczb (generowane, w tym sekcja 8: kontrole z 2026-11-13) ze statusem, plikiem dowodowym i sekcją kontroli spójności (generowane) |
 | `docs/GENERATOR_PARAMS.md` | zamrożona specyfikacja generatora danych — źródło prawdy dla każdego parametru |
 | `docs/RYSUNKI.md` | podpisy rysunków i uzasadnienia decyzji wizualnych |
 | `docs/MODELE.md` | nazewnictwo modeli |
@@ -229,7 +232,14 @@ python my-operations/ml/pretext_model/summarize.py   # tabele Modelu 2
 python my-operations/ml/pretext_model/probe.py cka    # podobienstwo reprezentacji (wymaga GPU)
 python my-operations/ml/analysis/final_results.py    # plik dowodowy sesji
 python my-operations/ml/analysis/thesis_numbers.py   # -> docs/LICZBY_DO_PRACY.md
-python my-operations/ml/analysis/figures.py          # -> outputs/ml/figures/ (rys. 1-4)
+python my-operations/ml/analysis/figures.py          # -> outputs/ml/figures/ (rys. 1-4; wersje v2 i 2b: funkcje z v2=True / rysunek_2b_krzywe_K())
+python my-operations/ml/analysis/echo_only_tables.py # -> outputs/ml/tables_5_3_5_5/ (tabele 5.3-5.5)
+python my-operations/ml/analysis/holm_families.py    # poprawka Holma (CPU)
+python my-operations/ml/analysis/depth_range_stats.py # piksele > 10,29 m (CPU)
+python my-operations/ml/analysis/bootstrap_ea_eb.py  # bootstrap EA vs EB, n_boot = 2000 (CPU)
+python my-operations/ml/analysis/branch_diagnostics.py --conditions A D B --seeds 0 1 2   # galezie, alfa, material (GPU)
+python my-operations/ml/checks/noise_floor.py run --n 5   # niedeterminizm GPU na pelnym budzecie (GPU, ~1 h)
+# calosc 2026-11 jednym skryptem: outputs/ml/overnight_2026-11/overnight.sh (kroki 1-4, ~5 min)
 python my-operations/ml/analysis/depth_gallery.py    # galeria (wymaga GPU i checkpointów)
 ```
 
@@ -249,6 +259,9 @@ plików dowodowych, i wypisuje kolizje. Ta kontrola powstała po realnym błędz
 | `outputs/ml/eval/<przebieg>/` | metryki testowe, `eval.json` **jest** w repo |
 | `outputs/ml/echo_ablation/*.json` | pliki dowodowe wyników — **w repo** |
 | `outputs/ml/figures/*.png` | rysunki do pracy — **w repo** |
+| `outputs/ml/overnight_2026-11/` | Holm, bootstrap, piksele > 10,29 m, diagnostyka gałęzi + `PLAN.md`/`PROGRESS.md`/`SUMMARY.md` |
+| `outputs/ml/tables_5_3_5_5/` | tabele §5.3–5.5 (`tables.json`, `tables.md`) |
+| `outputs/ml/determinism/` | sprawdzian determinizmu (2 000 kroków), pomiar podłogi szumu na pełnym budżecie, kopia zapasowa `reeval_backup/` |
 
 Wersjonowane są **liczby i rysunki**, nie wagi. `.gitignore` wymienia wyjątki jawnie, z powodem
 przy każdym.
@@ -332,7 +345,7 @@ są poprawne.
 > `sound-spaces/data/mp3d_material_config.json`, bo jest zbudowany na kategoriach Matterport3D
 > i na scenach Replica wypisuje setki linii „Material for category 'X' was not found. Using default
 > material instead." Liczba ostrzeżeń jest myląca, bo liczy kategorie, nie powierzchnię: po
-> powierzchni config mp3d dopasowuje **88,6 %** sceny, 1,9 % jest niejednoznaczne, a materiał
+> powierzchni config mp3d dopasowuje **89,1 %** sceny, 1,9 % jest niejednoznaczne, a materiał
 > domyślny dostaje **9,0 %** (`my-operations/docs/REPLICA_MATERIALS.md` §3). Problemem są raczej
 > błędne przypisania (np. `ceiling → Acoustic Tile`) obejmujące 24,5 % powierzchni — stąd osobny
 > config dla Repliki.
@@ -403,6 +416,13 @@ W kodzie upstreamu są **dwa realne błędy**. Oba są **obchodzone** w
   który ma mierzyć — stąd adaptacyjna liczba renderów uśrednianych na lokalizację (patrz
   `GENERATOR_PARAMS.md` §3). Starsza wartość „0,03–0,16 / 3×" pochodziła z wczesnej diagnostyki
   na kilku pozycjach i dotyczyła RMSE **dwóch** renderów (≈ √2·`sigma_1`), nie `sigma_1`.
+
+- **Niedeterminizm GPU jest większy niż się zdawało.** Na pełnym budżecie pięć powtórzeń `ED_seed0` ma sd 0,0019
+  i rozstęp 0,0049 RMSE; oryginalny przebieg z sierpnia leży poza tym zakresem (−2,9 sd), mimo identycznej
+  konfiguracji, a ponowna ewaluacja jego wag daje to samo RMSE co wcześniej (|Δ| ≤ 10⁻⁷). Różnice rzędu 0,005
+  między przebiegami nie świadczą o efekcie warunku (`STAN_WYNIKOW.md` §11.5).
+- **Okno echa 60 ms obejmuje prawie wszystkie piksele.** Dalej niż 10,29 m leży 0,014 % ważnych pikseli test@36;
+  argument o „73 % zakresu głębi" nie przekłada się na udział pikseli (`STAN_WYNIKOW.md` §10.2, §11.3).
 
 ## 7. Uwagi metodologiczne warte przeczytania przed modyfikacją
 

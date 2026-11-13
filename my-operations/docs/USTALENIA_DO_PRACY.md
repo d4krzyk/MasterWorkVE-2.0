@@ -6,7 +6,7 @@
 - Szum σ₁ (census, 1740 lok.): 0,0253–0,1345, mediana 0,0583; maks. ok. 2,1× Δ=0,0644. Stare „0,03–0,16" to nie σ₁.
 - Średnie N: 12,08 (census), 12,13 (gotowy zbiór main). Stałe N o tej gwarancji: 54 (100% lok.), 35 (99%), 25 (95%); N=21 pokrywa 91,21%.
 - „2,14×" = 21/9,83 z 12 pozycji sprzed census. Z census: 54/12,13 ≈ 4,45×.
-- mp3d: 88,6% dopasowane, 1,9% remis, 9,0% domyślne.
+- mp3d: 89,1% dopasowane, 1,9% remis, 9,0% domyślne (przeliczone z surowych danych 2026-11-13; wcześniej 88,6%, suma 99,5%).
 - RT60: 7 z 8 scen szczelnych, powód pominięcia office_4 nie jest nigdzie zapisany.
 
 ## Protokół ML
@@ -32,3 +32,13 @@
 ## Rozstrzygnięte
 - Błędne przypisania materiałów: 24,5% = dwa rażące błędy (sufit→Acoustic Tile 11,14% + podłoga→Carpet 13,40%); 29,55% = trzy (z roletami→Glass 5,01%). Praca używa trzech, więc „ok. 30%" jest zgodne (REPLICA_MATERIALS.md §3.1–3.3).
 - Przyspieszenie BilinearEinsum: 38,7× sama warstwa (743,4 → 19,2 ms, RAPORT_SESJI_2026-08-05 §3.9); 16,15× pętla treningowa (1,5391 → 0,0953 s/krok, determinism_check.json; dolne oszacowanie, zawiera narzut diagnostyczny); 19,5× iteracja pełnego modelu (1513,5 → 77,57 ms). Do pracy: 16,15× z przypisem o 38,7×.
+
+## Kontrole z 2026-11-13 (STAN_WYNIKOW.md §11)
+- Holm w rodzinach: żaden wniosek o istotności się nie zmienia; `EPB−EB` p Holm = 0,038. Konserwatywnie na 17 testów: `D−A` model pełny 0,096, `EPB−EB` 0,11.
+- Bootstrap EA vs EB, n_boot = 2000: CI ziarno 0 [+0,16936; +0,22596], ziarno 1 [+0,18549; +0,24552], ziarno 2 [+0,19016; +0,24446]; stare CI (n_boot = 200) było węższe.
+- Piksele z głębią > 10,29 m: test@36 0,014 %, trening B 0,018 %; > 8 m: 0,143 %. Argument „73 % zakresu głębi" (§10.2) nie przekłada się na udział pikseli.
+- Diagnostyka gałęzi: stała α → RMSE +0,41–0,45 m; cechy materiału zero/przetasowane → +0,46–0,53 m; gałęzie osobno 1,4 m (obraz) i 4,3–4,6 m (audio).
+- Niedeterminizm GPU (ED, 40 000 kroków): sd 0,00188, rozstęp 0,00491; oryginalny ED_seed0 poza zakresem 5 powtórzeń (−2,9 sd); ziarna 1 i 2: −0,0007 i +0,0049; ponowna ewaluacja oryginalnych wag |Δ| ≤ 1,1·10⁻⁷.
+- Krzywa K: kroki powyżej K = 12 to 2,1× / 1,1× / 0,8× rozstępu 0,00491, czyli w zakresie niedeterminizmu GPU.
+- Zweryfikowane i skorygowane: „żadna > 6" dla `snr_final` nie jest prawdą w `main` (6 próbek, maks. 6,21); „43 poprawione kategorie" = 41 kategorii nazwanych z domyślnego na konkretny materiał (51 ze zmienionym przypisaniem).
+

@@ -13,6 +13,10 @@ bezwzględnej) — patrz ramka niżej.
 Poprawka **2026-11-12** (bez zmiany żadnej zmierzonej wartości): §1 „16 %" → 18,5 % ze średnich
 3 ziaren; zastrzeżenia (a)–(c) do twierdzenia 3; mechanizm transferu (§5, §10.1) opisany jako
 hipoteza, nie ustalenie.
+Aktualizacja **2026-11-13** (bez zmiany żadnej wartości z §0–§10): nowy §11 — poprawka Holma, bootstrap
+z n_boot = 2000, rozkład głębi względem okna echa, diagnostyka gałęzi modelu pełnego, niedeterminizm GPU
+na pełnym budżecie, tabele §5.3–5.5; §10.2 przeformułowane po pomiarze (okno echa dotyczy ok. 0,01 %
+pikseli); dopisane zastrzeżenia w §3, §6, §8, §9.
 
 **Rysunki** (`outputs/ml/figures/`, odtwarzalne przez `ml/analysis/figures.py`, zero GPU):
 
@@ -23,6 +27,8 @@ hipoteza, nie ustalenie.
 | `rys_3_rozklad_efektu.png` | gęstość vs ilość danych w obu modelach | §1 i §2 |
 | `rys_4_sonda_glebi.png` | ile głębi niesie zamrożony koder + rozkład na gęstość / liczbę par | §5, sondowanie |
 | `gallery/depth_gallery.png` | predykcje obok siebie, 6 próbek | rozdział jakościowy |
+| `rys_1_krzywa_nasycenia_v2.png`, `rys_2_generalizacja_katowa_v2.png`, `rys_3_rozklad_efektu_v2.png` | wersje do pracy: bez tytułów (tytuł w podpisie), 15,5 cm, 300 dpi; dane i skale te same co wyżej | rysunki 1–3 |
+| `rys_2b_krzywe_K.png` | RMSE wg odległości od siatki dla K = 4, 6, 9, 12, 18 (średnia ± sd po 3 ziarnach) | §1, luka generalizacji; §11.6 |
 
 Każdy punkt ma słupek błędu z rzeczywistego sd po ziarnach — przy 3 ziarnach sd sięga 0,0136 RMSE
 (K=18), czyli **więcej niż cała różnica K=18 → K=36**. Gładka linia bez wąsów sugerowałaby
@@ -218,6 +224,10 @@ lokalizacjach). U Gao echo daje 7,5 % — zgodność rzędu wielkości potwierdz
 | `cardinal` | 0,79104 | 0,78982 | **−0,00123** | 0,870 |
 | `all` | 0,58223 | 0,59458 | **+0,01235** | **0,013** |
 | `random_4` | 0,64432 | 0,65477 | **+0,01045** | 0,091 |
+
+*Po poprawce Holma w rodzinie tych trzech testów (§11.1): `all` p = 0,038, `random_4` p = 0,18, `cardinal` p = 0,87 — czyli
+jedyny efekt geometrii, który przeżywa korektę, jest na granicy istotności; po konserwatywnej korekcie
+na wszystkie 17 testów (§11.1) nie przeżywa.*
 
 Domknięcie dziur w geometrii **pogarsza wynik przy gęstej siatce**, mimo że dodaje +46,3 % energii
 pogłosu. Mechanizm: obniża **względny kontrast kątowy** pola późnego o 17,5 % (niezależny pomiar
@@ -448,7 +458,7 @@ Cztery pomiary, które **pozostają w mocy**:
 | Budżet optymalizacji | **40 000 kroków**, batch 32 — **stała liczba kroków, NIE epok** |
 | Wybór checkpointu | najlepszy RMSE walidacyjny na pełnych 36 kątach |
 | `indirectRayCount` / `threadCount` | 500 / 1 (wątki dzielą budżet promieni) |
-| Podłoga szumu frameworka | 0,0023–0,0073 RMSE |
+| Podłoga szumu frameworka | 0,0023–0,0073 RMSE (2 000 kroków, warunek A); na pełnym budżecie (ED, ziarno 0, 5 powtórzeń): sd **0,00188**, rozstęp **0,00491** (§11.5) |
 | Parametry: pełny model / `echo2depth` / pretekst | 316 918 781 / 8 984 073 / 25 733 446 |
 
 **Zasada nadrzędna do wypunktowania w pracy:** każdy warunek dostaje tę samą liczbę kroków
@@ -489,6 +499,19 @@ Numeracja „Model 1 / Model 2" w raportach jest **odwrotna do intuicji**; szcze
   i **rzędu wielkości** efektu.
 - **Wariant `patched` jest mierzalnie bardziej wyidealizowany niż skany** — patrz
   `GENERATOR_PARAMS.md` §4.5.
+- **Poprawka Holma (§11.1):** w rodzinach testów żaden wniosek o istotności się nie zmienia, ale po
+  konserwatywnej korekcie na wszystkie 17 testów naraz p dla `D − A` w modelu pełnym wynosi 0,096 (nie
+  istotne), a `EPB − EB` 0,11. Przy cytowaniu tych dwóch wyników podawać, którą korektę zastosowano.
+- **Niedeterminizm GPU (§11.5):** przebiegi tego samego warunku i ziarna różnią się o sd ≈ 0,002
+  (rozstęp 0,0049); oryginalny `ED_seed0` leży poza zakresem 5 powtórzeń (−2,9 sd). Różnice rzędu
+  0,005 między przebiegami uruchomionymi w różnych terminach nie są efektem warunku. Efekty geometrii
+  (0,010–0,012) to tylko 2–2,5× ten rozstęp.
+- **Diagnostyka gałęzi (§11.4):** gałęzie `audio_depth` i `img_depth` są uczone wyłącznie jako składniki
+  mieszaniny, więc ich RMSE osobno (4,3–4,6 m i 1,4–1,5 m) nie jest „wkładem audio / obrazu". Zerowanie
+  i tasowanie cech `MaterialPropertyNet` pogarsza wynik o ok. 0,5 m — attention silnie z nich korzysta,
+  ale nie wynika stąd, że cechy kodują materiał (sieć ma wagi losowe i nie ma straty materiałowej).
+- **Piksele poza oknem echa (§11.3):** tylko 0,014 % ważnych pikseli test@36 ma głębię > 10,29 m;
+  argument o 73 % zakresu głębi dotyczy zakresu, nie pikseli.
 
 ---
 
@@ -501,14 +524,15 @@ Numeracja „Model 1 / Model 2" w raportach jest **odwrotna do intuicji**; szcze
 | Warunek `ESA` (permutacja kątów w obrębie lokalizacji) | rozdzieliłby „echo niesie pozycję" od „echo niesie orientację"; `ESE` odpowiada na słabszą wersję i jest policzony | **NIE** |
 | Protokoły chroniące pretrenowane cechy | sonda pokazała, że jest co chronić — samych protokołów nie zmierzono | **TAK** — rozwinięte w §10.1 |
 | Sonda geometrii na `office_4` | niski priorytet, nigdy nie był w planie | nie |
-| Dłuższe okno czasowe echa (> 60 ms) | wartość odziedziczona z implementacji referencyjnej; zmiana wymaga regeneracji zbioru | **TAK** — rozwinięte w §10.2 |
+| Dłuższe okno czasowe echa (> 60 ms) | wartość odziedziczona z implementacji referencyjnej; zmiana wymaga regeneracji zbioru | **TAK**, ale po pomiarze z niską przesłanką — §10.2, §11.3 |
 
 ---
 
 ## 10. Dalsze prace — dwie pozycje z dowodem liczbowym
 
-Obie mają **zmierzoną przesłankę**, a nie tylko przypuszczenie, i obie są tanie. Podawać
-w tej kolejności i z liczbami — brzmi to inaczej niż ogólnikowe „warto rozszerzyć".
+Pozycja 10.1 ma **zmierzoną przesłankę** (sonda), a nie tylko przypuszczenie, i jest tania. Pozycja 10.2 miała
+na początku tylko arytmetykę okna; pomiar z 2026-11-13 (§11.3) pokazał, że jej zasięg jest ograniczony do
+ułamka promila pikseli. Podawać w tej kolejności i z liczbami — brzmi to inaczej niż ogólnikowe „warto rozszerzyć".
 
 ### 10.1 Protokół dostrajania chroniący pretrenowane cechy — **kandydat nr 1** [W]
 
@@ -530,9 +554,9 @@ i jest zweryfikowana na 27 przebiegach.
 protokół**, a nie np. po prostu słabsza niż to, co sieć uczy się wprost z danych docelowych,
 pozostaje **hipotezą** — rozstrzygnąłby ją dopiero pomiar protokołu chroniącego cechy.
 
-### 10.2 Wydłużenie okna czasowego echa [W]
+### 10.2 Wydłużenie okna czasowego echa [W] — przesłanka słaba po pomiarze (§11.3)
 
-**Dowód, że jest co zyskać** — arytmetyka, nie hipoteza (343 m/s):
+**Arytmetyka okna** (343 m/s):
 
 | wielkość | wartość |
 |---|---|
@@ -544,12 +568,145 @@ pozostaje **hipotezą** — rozstrzygnąłby ją dopiero pomiar protokołu chron
 **Okno pokrywa 73 % zakresu głębi.** Powierzchnie dalsze niż ~10,3 m **nie mają swojego echa
 pierwszego rzędu w sygnale w ogóle** — model musi je odtwarzać z pogłosu i z obrazu.
 
+**Ale pomiar rozkładu głębi (§11.3) ogranicza skalę:** dalej niż 10,29 m leży tylko **0,014 %** ważnych
+pikseli test@36 (13 456 z 96,85 mln; `frl_apartment_5` 0,036 %, pozostałe dwie sceny ≈ 0) i 0,018 % pikseli
+treningowych; dalej niż 8 m — 0,14 %. Wydłużenie okna może więc poprawić wynik najwyżej na ułamku promila
+pikseli; wpływ na globalne RMSE byłby bardzo mały. Uzasadnienie o 73 % zakresu dotyczy zakresu głębi, a nie
+liczby pikseli — **nie pisać, że okno nie pokrywa istotnej części sceny**.
+
 **To jest ograniczenie ODZIEDZICZONE, nie błąd projektowy.** `audio_length = 0.06` pochodzi wprost
 z `beyond-image-to-depth/options/base_options.py:21`; trzymanie tej wartości było **warunkiem
 porównywalności** z implementacją referencyjną, a zamrożenie referencji jest fundamentem całej
 atrybucji efektu w tej pracy. Zmiana tutaj wymaga ponownego wygenerowania zbioru, ale **nie** ruszania
 sieci.
 
-**Przewidywanie do sprawdzenia:** zysk powinien być największy na dużych głębiach — czyli dokładnie
+**Przewidywanie do sprawdzenia (po pomiarze: o niskim priorytecie):** zysk powinien być największy na dużych głębiach — czyli dokładnie
 tam, gdzie wariant „samo echo" jest dziś najsłabszy. Da się to zweryfikować metryką stratyfikowaną
 po odległości, którą `evaluate.py` już liczy.
+
+---
+
+## 11. Dodatkowe kontrole z 2026-11-13 [Z]
+
+Źródła: `outputs/ml/overnight_2026-11/` (nocny zestaw: `holm_families.py`, `depth_range_stats.py`,
+`bootstrap_ea_eb.py`, `branch_diagnostics.py`; plan i logi: `PLAN.md`, `PROGRESS.md`, `SUMMARY.md`),
+`outputs/ml/tables_5_3_5_5/` (`echo_only_tables.py`), `outputs/ml/determinism/noise_floor_ED_40k.json` i
+`noise_floor_ED_seeds12_40k.json`. Żadna wartość z §0–§10 się nie zmieniła.
+
+### 11.1 Poprawka Holma — w rodzinach testów wnioski się nie zmieniają
+
+p surowe liczone dokładnie jak w `final_results.py` (test t po ziarnach lub Welch), korekta Holma w obrębie rodziny.
+
+| rodzina | test | p surowe | p Holm (rodzina) | p Holm (wszystkie 17) |
+|---|---|---|---|---|
+| (a) tylko-echo | `D − A` | 0,0026 | 0,0033 | 0,031 |
+| | `B − D` | 0,0016 | 0,0033 | 0,023 |
+| | `B − A` | 0,0010 | 0,0029 | 0,016 |
+| (b) krzywa vs K=36 (Welch) | K=6 | 6,0·10⁻⁶ | 2,4·10⁻⁵ | 1,0·10⁻⁴ |
+| | K=9 | 0,0032 | 0,0095 | 0,035 |
+| | K=12 | 0,0675 | 0,135 | 0,54 |
+| | K=18 | 0,685 | 0,685 | 1,0 |
+| (c) model pełny | `D − A` | 0,0096 | 0,0096 | **0,096** |
+| | `B − D` | 0,0010 | 0,0030 | 0,016 |
+| | `B − A` | 0,0018 | 0,0035 | 0,023 |
+| (d) geometria (Welch) | `EPA − EA` | 0,87 | 0,87 | 1,0 |
+| | `EPD − ED` | 0,091 | 0,18 | 0,54 |
+| | `EPB − EB` | 0,0126 | **0,038** | **0,11** |
+| (e) transfer vs `scratch` (Welch) | K=4 / K=36@16par / K=36 / K=12 | 0,231 / 0,751 / 0,207 / 0,074 | 0,62 / 0,75 / 0,62 / 0,30 | 1,0 / 1,0 / 1,0 / 0,54 |
+
+**Wniosek:** w rodzinach każdy wynik istotny przed korektą pozostaje istotny, a nieistotny — nieistotny.
+Korekta na wszystkie 17 testów naraz jest celowo konserwatywna (testy z różnych pytań nie tworzą jednej
+rodziny); przy niej istotność tracą `D − A` w modelu pełnym i `EPB − EB`. Podawać, którą korektę zastosowano.
+
+### 11.2 Bootstrap EA vs EB z n_boot = 2000 (nowe pliki, istniejące `compare_*.json` nietknięte)
+
+`EA − EB`, RMSE test@36, bootstrap sparowany po 183 lokalizacjach, `boot_seed` = 0:
+
+| ziarno | delta | CI 95 % (n_boot = 2000) | CI w dotychczasowym `compare_*.json` |
+|---|---|---|---|
+| 0 | +0,19584 | [+0,16936; +0,22596] | [+0,17170; +0,22283] (n_boot = 200) |
+| 1 | +0,21392 | [+0,18549; +0,24552] | [+0,18604; +0,24450] (n_boot = 1000) |
+| 2 | +0,21669 | [+0,19016; +0,24446] | [+0,18985; +0,24497] (n_boot = 1000) |
+
+Wszystkie przedziały wykluczają zero. Do cytowania używać wersji z 2000 losowań
+(`bootstrap_EA_vs_EB_seed{0,1,2}_nboot2000.json`, n_boot zapisane w pliku).
+
+### 11.3 Piksele poza zasięgiem okna echa (głębia > 10,29 m)
+
+Odsetek **ważnych** pikseli (depth > 0), wariant `main`, odcisk podziału `e0bf7547668d9e0a`
+(`depth_range_stats.json` — liczniki i mianowniki w pliku):
+
+| zbiór | ważnych pikseli | > 8 m | **> 10,29 m** | > 12 m |
+|---|---|---|---|---|
+| test@36 (6 588 próbek) | 96 853 180 | 0,143 % | **0,014 %** (13 456) | 0,001 % |
+| — `apartment_2` | 37 090 393 | 0,031 % | 0,000 % (35) | 0 |
+| — `frl_apartment_5` | 37 349 731 | 0,340 % | 0,036 % (13 421) | 0,003 % |
+| — `office_4` | 22 413 056 | 0 | 0 | 0 |
+| trening, `B` (36 orientacji, 49 464 próbek) | 745 360 080 | 0,196 % | 0,018 % | 0,001 % |
+| trening, `A` (kardynalne) / `ED` (`random_4`) | 82,9 mln / 82,8 mln | 0,212 % / 0,197 % | 0,022 % / 0,016 % | 0,001 % |
+
+Pikseli > `max_depth` (14,104 m): test@36 — 0, trening `B` — 131. Konsekwencja dla §10.2: patrz tam.
+
+### 11.4 Diagnostyka gałęzi modelu pełnego (`A`, `D`, `B`, 3 ziarna, test@36)
+
+Ta sama maska i agregacja co `evaluate.py`; kontrola odtworzenia: baseline = zapisane `eval.json`
+(A_seed0: 0,28739149 wobec 0,28739153). RMSE [m], średnia po ziarnach:
+
+| | `A` | `D` | `B` |
+|---|---|---|---|
+| baseline (`depth_predicted`) | 0,2925 | 0,2720 | 0,2437 |
+| sama gałąź `audio_depth` | 4,54 | 4,29 | 4,62 |
+| sama gałąź `img_depth` | 1,49 | 1,41 | 1,40 |
+| średnia α (piksele ważne) | 0,232 | 0,238 | 0,223 |
+| α := średnia α (stała) | 0,740 | 0,679 | 0,664 |
+| α := 0,5 | 1,754 | 1,647 | 1,797 |
+| cechy materiału := 0 | 0,765 | 0,751 | 0,703 |
+| cechy materiału przetasowane w batchu | 0,822 | 0,758 | 0,733 |
+
+Odczyt (to są obserwacje, nie wyjaśnienie mechanizmu):
+- gałęzie osobno są bardzo słabe, bo sieć jest uczona tylko na mieszaninie `α·audio + (1−α)·obraz`;
+- średnia α ≈ 0,23, a stała α pogarsza wynik o 0,41–0,45 m — kluczowy jest **przestrzenny układ** α;
+- zerowanie i tasowanie cech `MaterialPropertyNet` pogarsza wynik o 0,46–0,53 m we wszystkich trzech
+  warunkach; przy tasowaniu średnia α prawie się nie zmienia (≤ 0,0015), więc psuje się układ α, a nie jej poziom;
+- skala szkody jest podobna w `A`, `D`, `B` (tasowanie: +0,53 / +0,49 / +0,49).
+
+Zastrzeżenia: zerowanie cech jest zaburzeniem poza rozkładem (czystsze jest tasowanie); stała α to średnia z
+`test@36` tego samego modelu; tasowanie zależy od rozmiaru batcha (32) i zostawia część próbek na miejscu
+(np. 206 z 6 588 dla `A_seed0`); pod AMP przepisany forward różni się od `model(dev)` o ≤ 0,004 m (niedeterminizm
+cuDNN, bez AMP ~10⁻⁶). Wniosek dla zastrzeżenia (b) z §0: wpływ `MaterialPropertyNet` i attention na wynik jest
+**duży**, ale nadal **nierozdzielony** i nie dowodzi, że cechy kodują materiał (wagi losowe, brak straty materiałowej).
+
+### 11.5 Niedeterminizm GPU na pełnym budżecie (40 000 kroków, `ED`, konfiguracja jak oryginał)
+
+Pięć powtórzeń przy ziarnie 0 (`ED_seed0_nf0..4`): RMSE test@36 = 0,65143 / 0,64986 / 0,65477 / 0,65331 / 0,65288,
+średnia **0,65245**, sd **0,00188**, rozstęp **0,00491**. Oryginalny `ED_seed0` = 0,64695 leży **poza** zakresem
+powtórzeń (−0,0055, −2,9 sd), choć na walidacji (0,63236) mieści się w zakresie powtórzeń (0,62859–0,63508).
+
+| ziarno | oryginał (sierpień) | powtórzenie (listopad) | różnica |
+|---|---|---|---|
+| 0 | 0,64695 | 0,65245 (średnia z 5) | +0,0055 |
+| 1 | 0,64232 | 0,64163 | −0,0007 |
+| 2 | 0,64369 | 0,64863 | +0,0049 |
+
+Ponowna ewaluacja **oryginalnych wag** `ED_seed{0,1,2}` obecnym kodem i sterownikiem (580.178.04) daje te same
+RMSE (|Δ| ≤ 1,1·10⁻⁷) — ewaluacja jest deterministyczna, rozbieżność powstaje w treningu. `config.json` powtórzeń
+różni się od oryginału tylko polem `tag` i datą; żaden kod wpływający na trening ani ewaluację nie zmienił się po sierpniu.
+Przyczyna różnicy jest **nieustalona** (hipotezy: zmiana sterownika 580.173.02 → 580.178.04, zwykły rozrzut).
+**Wniosek praktyczny:** rozrzut tego samego warunku i ziarna ma sd ≈ 0,002 i rozstęp ≈ 0,005; różnice rzędu 0,005 między
+przebiegami z różnych terminów nie są efektem warunku. Efekt gęstości (0,147 w `echo2depth`) jest > 25× większy;
+efekty geometrii (0,010–0,012) to zaledwie 2–2,5× rozstęp, co zgadza się z ich granicznym statusem (§3, §11.1).
+
+### 11.6 Tabele §5.3–5.5 (`echo_only_tables.py`)
+
+Wszystkie 14 liczb kontrolnych z §1 zgadza się ze skryptem; poza nimi:
+- **`D − A` w `echo2depth` wg sceny** (`ED − EA`; p: test t po ziarnach): `apartment_2` −0,06332 (0,022),
+  `frl_apartment_5` −0,26265 (0,0012), `office_4` −0,07417 (0,0016); w modelu pełnym `D − A`: −0,02465 (0,011),
+  −0,01775 (0,027), **−0,01630 ± 0,02188 (0,33)** — na `office_4` efekt w modelu pełnym nie jest widoczny.
+- **Krzywa K:** udział zysku 4→36 dla K = 6 / 9 / 12 / 18: 57,8 / 87,0 / 93,9 / 97,5 %; kroki między sąsiednimi K
+  (K = 4→6→9→12→18→36): −0,0848 / −0,0428 / −0,0101 / −0,0053 / −0,0037, czyli 17,3× / 8,7× / 2,1× / 1,1× / 0,8×
+  rozstępu 0,00491 (§11.5). **Kroki powyżej K = 12 mieszczą się w zakresie niedeterminizmu GPU.**
+- **Kara wg odległości od siatki** (względem 0°): EA 10° +0,067, 20° +0,186, 30° +0,274, 40° +0,315 (wszystkie p < 0,004);
+  luka 0°→max: K=6 (30°) +0,184, K=9 (20°) +0,079, K=12 (10°) +0,036, K=18 (10°) +0,001 (p = 0,47, nieistotna);
+  krzywa EA ściśle rosnąca w każdym ziarnie. Odległość liczona od najbliższej orientacji **siatki** K, a nie
+  od faktycznie wylosowanych czterech orientacji lokalizacji.
+
