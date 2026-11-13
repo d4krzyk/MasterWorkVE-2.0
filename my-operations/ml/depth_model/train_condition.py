@@ -250,7 +250,7 @@ def _plateau_diagnostics(metrics_fp: Path, total_steps: int) -> dict:
     for line in metrics_fp.read_text(encoding="utf-8").splitlines():
         try:
             r = json.loads(line)
-            rows.append((int(r["step"]), float(r["overall"]["RMSE"])))
+            rows.append((int(r["step"]), float(r["all"]["RMSE"])))
         except (json.JSONDecodeError, KeyError, TypeError, ValueError):
             continue
     if len(rows) < 8:
