@@ -189,3 +189,5 @@ Wersje v2: bez tytułu i podtytułu (treść idzie do podpisu w pracy), 15,5 cm 
 Uwagi: paleta ma trzy zwalidowane kolory, w 2b dodano fiolet `#7b52c9` (K = 12) i szary (K = 18); serie rozróżnia też kształt markera i etykieta przy końcu krzywej.
 Przy 10° cztery serie mają prawie tę samą wartość (0,662–0,665), więc ich markery częściowo się nakrywają — to cecha danych.
 
+
+`rys_4_sonda_glebi_v2.png` (2026-11-13, tylko wygląd; dane, wąsy = błąd standardowy różnicy i skala bez zmian): bez tytułu i podtytułu (treść do podpisu), oś X „spadek RMSE głębi na walidacji [m] względem kodera losowego (0 = koder losowy)" (bez słowa „podłoga"), etykieta linii kodera uczonego na głębi poziomo nad polem wykresu, przy wartościach p dopisek „(Welch)"; 15,5 cm, 300 dpi.
