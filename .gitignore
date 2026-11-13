@@ -73,6 +73,16 @@ outputs/**
 !outputs/ml/probing/*.md
 !outputs/ml/probing/*/status.json
 !outputs/ml/probing/*/best.json
+# Sesja 2026-11-13: nocny zestaw kontroli (Holm, bootstrap n_boot=2000, piksele poza oknem echa,
+# diagnostyka galezi; ~300 KB) i tabele 5.3-5.5. Wersjonowane sa wyniki, skrypt `overnight.sh`
+# i podsumowania; logi krokow oraz podkatalogi `dryrun/` i `check/` zostaja poza gitem.
+!outputs/ml/overnight_2026-11/*.json
+!outputs/ml/overnight_2026-11/*.md
+!outputs/ml/overnight_2026-11/*.csv
+!outputs/ml/overnight_2026-11/*.sh
+!outputs/ml/overnight_2026-11/*.py
+!outputs/ml/tables_5_3_5_5/*.json
+!outputs/ml/tables_5_3_5_5/*.md
 # Zdjecia wag z kontroli niedeterminizmu: ~15 GB, kasowane automatycznie po
 # zapisaniu liczb do JSON-a. Wymienione jawnie na wypadek przerwanego przebiegu.
 outputs/ml/determinism/_snapshots/**
@@ -83,6 +93,10 @@ outputs/ml/determinism/_snapshots/**
 # (66 przebiegow) to 161 GB, albo 40 GB po skasowaniu checkpointow wznowieniowych.
 outputs/ml/runs/**
 outputs/ml/pretext/**
+# Pliki dowodowe zadania pretekstowego (~155 KB + diagnoza transferu), cytowane w STAN_WYNIKOW.md i
+# LICZBY_DO_PRACY.md; wagi i checkpointy w tym katalogu zostaja poza gitem.
+!outputs/ml/pretext/summary.json
+!outputs/ml/pretext/transfer_diagnosis.json
 outputs/ml/pretext_transfer/**
 outputs/ml/eval/**/*.npz
 # Wyniki ewaluacji (male JSON-y) zostaja w gicie -- to na nich stoja tabele pracy.
