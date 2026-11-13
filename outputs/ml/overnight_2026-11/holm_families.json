@@ -1,0 +1,470 @@
+{
+  "opis": "Holm–Bonferroni step-down w obrebie rodzin; dodatkowo po wszystkich testach",
+  "alpha": 0.05,
+  "dry_run": false,
+  "rodziny": {
+    "a": {
+      "opis": "siec tylko-echo (echo2depth): kontrasty D−A, B−D, B−A, test@36, 3 ziarna",
+      "m": 3,
+      "testy": [
+        {
+          "test": "D−A (ED−EA)",
+          "delta": -0.14672359441502528,
+          "p_raw": 0.002619005812733718,
+          "metoda": "ttest_1samp na roznicach per ziarno (df=2)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.0032699800716794554,
+          "p_holm_rodzina_lt_0.05": true
+        },
+        {
+          "test": "B−D (EB−ED)",
+          "delta": -0.06209315093503032,
+          "p_raw": 0.0016349900358397277,
+          "metoda": "ttest_1samp na roznicach per ziarno (df=2)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.0032699800716794554,
+          "p_holm_rodzina_lt_0.05": true
+        },
+        {
+          "test": "B−A (EB−EA)",
+          "delta": -0.2088167453500556,
+          "p_raw": 0.0009784911627984617,
+          "metoda": "ttest_1samp na roznicach per ziarno (df=2)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.002935473488395385,
+          "p_holm_rodzina_lt_0.05": true
+        }
+      ]
+    },
+    "b": {
+      "opis": "krzywa stalego budzetu (echo2depth): K − K36, Welch 3 vs 3",
+      "m": 4,
+      "testy": [
+        {
+          "test": "K=6 − K=36 (EK6−ED)",
+          "delta": 0.061905357539506434,
+          "p_raw": 6.043093988986667e-06,
+          "metoda": "Welch 3 vs 3 (df=3.83)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 2.4172375955946667e-05,
+          "p_holm_rodzina_lt_0.05": true
+        },
+        {
+          "test": "K=9 − K=36 (EK9−ED)",
+          "delta": 0.019097443572876238,
+          "p_raw": 0.0031553973521973827,
+          "metoda": "Welch 3 vs 3 (df=3.40)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.009466192056592148,
+          "p_holm_rodzina_lt_0.05": true
+        },
+        {
+          "test": "K=12 − K=36 (EK12−ED)",
+          "delta": 0.008993390020798908,
+          "p_raw": 0.06751920396080009,
+          "metoda": "Welch 3 vs 3 (df=2.89)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.13503840792160018,
+          "p_holm_rodzina_lt_0.05": false
+        },
+        {
+          "test": "K=18 − K=36 (EK18−ED)",
+          "delta": 0.003720196647859164,
+          "p_raw": 0.6846290575753065,
+          "metoda": "Welch 3 vs 3 (df=2.12)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.6846290575753065,
+          "p_holm_rodzina_lt_0.05": false
+        }
+      ]
+    },
+    "c": {
+      "opis": "model pelny (RGB+echo+material+uwaga): D−A, B−D, B−A, 3 ziarna",
+      "m": 3,
+      "testy": [
+        {
+          "test": "D−A",
+          "delta": -0.020484837061932198,
+          "p_raw": 0.00958064770852072,
+          "metoda": "ttest_1samp na roznicach per ziarno (df=n−1)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.00958064770852072,
+          "p_holm_rodzina_lt_0.05": true
+        },
+        {
+          "test": "B−D",
+          "delta": -0.028325394414940985,
+          "p_raw": 0.0009881163175491953,
+          "metoda": "ttest_1samp na roznicach per ziarno (df=n−1)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.002964348952647586,
+          "p_holm_rodzina_lt_0.05": true
+        },
+        {
+          "test": "B−A",
+          "delta": -0.04881023147687318,
+          "p_raw": 0.001753976145235236,
+          "metoda": "ttest_1samp na roznicach per ziarno (df=n−1)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.003507952290470472,
+          "p_holm_rodzina_lt_0.05": true
+        }
+      ]
+    },
+    "d": {
+      "opis": "geometria: patched − main, Welch, maska pelna, 3 ziarna",
+      "m": 3,
+      "testy": [
+        {
+          "test": "EPA−EA",
+          "delta": -0.0012274769620477244,
+          "p_raw": 0.8697819423328145,
+          "metoda": "Welch na RMSE test@36, maska pelna (df=2.92)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.8697819423328145,
+          "p_holm_rodzina_lt_0.05": false
+        },
+        {
+          "test": "EPD−ED",
+          "delta": 0.0104522971604194,
+          "p_raw": 0.09049661998871293,
+          "metoda": "Welch na RMSE test@36, maska pelna (df=2.55)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.18099323997742586,
+          "p_holm_rodzina_lt_0.05": false
+        },
+        {
+          "test": "EPB−EB",
+          "delta": 0.012351549022741715,
+          "p_raw": 0.012626034719860384,
+          "metoda": "Welch na RMSE test@36, maska pelna (df=2.93)",
+          "n": [
+            3,
+            3
+          ],
+          "p_holm_rodzina": 0.03787810415958115,
+          "p_holm_rodzina_lt_0.05": true
+        }
+      ]
+    },
+    "e": {
+      "opis": "transfer pretrening vs scratch, 5 ziaren, RMSE best.json",
+      "m": 4,
+      "testy": [
+        {
+          "test": "pretext_K4_seed0 − scratch",
+          "delta": -0.0028700976313211224,
+          "p_raw": 0.2309848749512705,
+          "metoda": "Welch na RMSE best.json['all'] (pelna walidacja) (df=5.70)",
+          "n": [
+            5,
+            5
+          ],
+          "p_holm_rodzina": 0.6217828337518368,
+          "p_holm_rodzina_lt_0.05": false
+        },
+        {
+          "test": "pretext_K36_p16_seed0 − scratch",
+          "delta": -0.0005880588038392753,
+          "p_raw": 0.750559302045164,
+          "metoda": "Welch na RMSE best.json['all'] (pelna walidacja) (df=6.56)",
+          "n": [
+            5,
+            5
+          ],
+          "p_holm_rodzina": 0.750559302045164,
+          "p_holm_rodzina_lt_0.05": false
+        },
+        {
+          "test": "pretext_K36_seed0 − scratch",
+          "delta": 0.004534203230552647,
+          "p_raw": 0.20726094458394562,
+          "metoda": "Welch na RMSE best.json['all'] (pelna walidacja) (df=4.75)",
+          "n": [
+            5,
+            5
+          ],
+          "p_holm_rodzina": 0.6217828337518368,
+          "p_holm_rodzina_lt_0.05": false
+        },
+        {
+          "test": "pretext_K12_seed0 − scratch",
+          "delta": 0.007017539569295517,
+          "p_raw": 0.07421278463086362,
+          "metoda": "Welch na RMSE best.json['all'] (pelna walidacja) (df=4.77)",
+          "n": [
+            5,
+            5
+          ],
+          "p_holm_rodzina": 0.29685113852345446,
+          "p_holm_rodzina_lt_0.05": false
+        }
+      ],
+      "status_finished": {
+        "scratch": {
+          "seed0": true,
+          "seed1": true,
+          "seed2": true,
+          "seed3": true,
+          "seed4": true
+        },
+        "pretext_K4_seed0": {
+          "seed0": true,
+          "seed1": true,
+          "seed2": true,
+          "seed3": true,
+          "seed4": true
+        },
+        "pretext_K36_p16_seed0": {
+          "seed0": true,
+          "seed1": true,
+          "seed2": true,
+          "seed3": true,
+          "seed4": true
+        },
+        "pretext_K36_seed0": {
+          "seed0": true,
+          "seed1": true,
+          "seed2": true,
+          "seed3": true,
+          "seed4": true
+        },
+        "pretext_K12_seed0": {
+          "seed0": true,
+          "seed1": true,
+          "seed2": true,
+          "seed3": true,
+          "seed4": true
+        }
+      }
+    }
+  },
+  "wszystkie": {
+    "opis": "DODATKOWE: Holm po wszystkich testach razem (konserwatywne)",
+    "m": 17,
+    "testy": [
+      {
+        "rodzina": "a",
+        "test": "D−A (ED−EA)",
+        "p_raw": 0.002619005812733718,
+        "p_holm_wszystkie": 0.03142806975280462,
+        "p_holm_wszystkie_lt_0.05": true
+      },
+      {
+        "rodzina": "a",
+        "test": "B−D (EB−ED)",
+        "p_raw": 0.0016349900358397277,
+        "p_holm_wszystkie": 0.022889860501756187,
+        "p_holm_wszystkie_lt_0.05": true
+      },
+      {
+        "rodzina": "a",
+        "test": "B−A (EB−EA)",
+        "p_raw": 0.0009784911627984617,
+        "p_holm_wszystkie": 0.015655858604775388,
+        "p_holm_wszystkie_lt_0.05": true
+      },
+      {
+        "rodzina": "b",
+        "test": "K=6 − K=36 (EK6−ED)",
+        "p_raw": 6.043093988986667e-06,
+        "p_holm_wszystkie": 0.00010273259781277333,
+        "p_holm_wszystkie_lt_0.05": true
+      },
+      {
+        "rodzina": "b",
+        "test": "K=9 − K=36 (EK9−ED)",
+        "p_raw": 0.0031553973521973827,
+        "p_holm_wszystkie": 0.03470937087417121,
+        "p_holm_wszystkie_lt_0.05": true
+      },
+      {
+        "rodzina": "b",
+        "test": "K=12 − K=36 (EK12−ED)",
+        "p_raw": 0.06751920396080009,
+        "p_holm_wszystkie": 0.5401536316864007,
+        "p_holm_wszystkie_lt_0.05": false
+      },
+      {
+        "rodzina": "b",
+        "test": "K=18 − K=36 (EK18−ED)",
+        "p_raw": 0.6846290575753065,
+        "p_holm_wszystkie": 1.0,
+        "p_holm_wszystkie_lt_0.05": false
+      },
+      {
+        "rodzina": "c",
+        "test": "D−A",
+        "p_raw": 0.00958064770852072,
+        "p_holm_wszystkie": 0.0958064770852072,
+        "p_holm_wszystkie_lt_0.05": false
+      },
+      {
+        "rodzina": "c",
+        "test": "B−D",
+        "p_raw": 0.0009881163175491953,
+        "p_holm_wszystkie": 0.015655858604775388,
+        "p_holm_wszystkie_lt_0.05": true
+      },
+      {
+        "rodzina": "c",
+        "test": "B−A",
+        "p_raw": 0.001753976145235236,
+        "p_holm_wszystkie": 0.022889860501756187,
+        "p_holm_wszystkie_lt_0.05": true
+      },
+      {
+        "rodzina": "d",
+        "test": "EPA−EA",
+        "p_raw": 0.8697819423328145,
+        "p_holm_wszystkie": 1.0,
+        "p_holm_wszystkie_lt_0.05": false
+      },
+      {
+        "rodzina": "d",
+        "test": "EPD−ED",
+        "p_raw": 0.09049661998871293,
+        "p_holm_wszystkie": 0.5429797199322776,
+        "p_holm_wszystkie_lt_0.05": false
+      },
+      {
+        "rodzina": "d",
+        "test": "EPB−EB",
+        "p_raw": 0.012626034719860384,
+        "p_holm_wszystkie": 0.11363431247874346,
+        "p_holm_wszystkie_lt_0.05": false
+      },
+      {
+        "rodzina": "e",
+        "test": "pretext_K4_seed0 − scratch",
+        "p_raw": 0.2309848749512705,
+        "p_holm_wszystkie": 1.0,
+        "p_holm_wszystkie_lt_0.05": false
+      },
+      {
+        "rodzina": "e",
+        "test": "pretext_K36_p16_seed0 − scratch",
+        "p_raw": 0.750559302045164,
+        "p_holm_wszystkie": 1.0,
+        "p_holm_wszystkie_lt_0.05": false
+      },
+      {
+        "rodzina": "e",
+        "test": "pretext_K36_seed0 − scratch",
+        "p_raw": 0.20726094458394562,
+        "p_holm_wszystkie": 1.0,
+        "p_holm_wszystkie_lt_0.05": false
+      },
+      {
+        "rodzina": "e",
+        "test": "pretext_K12_seed0 − scratch",
+        "p_raw": 0.07421278463086362,
+        "p_holm_wszystkie": 0.5401536316864007,
+        "p_holm_wszystkie_lt_0.05": false
+      }
+    ]
+  },
+  "holm_sprawdzenie": "statsmodels niedostepny -- tylko wlasna implementacja",
+  "kontrola": [
+    {
+      "rodzina": "a",
+      "test": "D−A (ED−EA)",
+      "oczekiwane": 0.0026,
+      "obliczone": 0.002619005812733718,
+      "tolerancja": 5e-05,
+      "zgodne": true
+    },
+    {
+      "rodzina": "a",
+      "test": "B−D (EB−ED)",
+      "oczekiwane": 0.0016,
+      "obliczone": 0.0016349900358397277,
+      "tolerancja": 5e-05,
+      "zgodne": true
+    },
+    {
+      "rodzina": "a",
+      "test": "B−A (EB−EA)",
+      "oczekiwane": 0.001,
+      "obliczone": 0.0009784911627984617,
+      "tolerancja": 5e-05,
+      "zgodne": true
+    },
+    {
+      "rodzina": "b",
+      "test": "K=9 − K=36 (EK9−ED)",
+      "oczekiwane": 0.0032,
+      "obliczone": 0.0031553973521973827,
+      "tolerancja": 5e-05,
+      "zgodne": true
+    },
+    {
+      "rodzina": "c",
+      "test": "D−A",
+      "oczekiwane": 0.0096,
+      "obliczone": 0.00958064770852072,
+      "tolerancja": 5e-05,
+      "zgodne": true
+    },
+    {
+      "rodzina": "c",
+      "test": "B−D",
+      "oczekiwane": 0.001,
+      "obliczone": 0.0009881163175491953,
+      "tolerancja": 5e-05,
+      "zgodne": true
+    },
+    {
+      "rodzina": "c",
+      "test": "B−A",
+      "oczekiwane": 0.0018,
+      "obliczone": 0.001753976145235236,
+      "tolerancja": 5e-05,
+      "zgodne": true
+    },
+    {
+      "rodzina": "d",
+      "test": "EPB−EB",
+      "oczekiwane": 0.013,
+      "obliczone": 0.012626034719860384,
+      "tolerancja": 0.0005,
+      "zgodne": true
+    }
+  ]
+}
