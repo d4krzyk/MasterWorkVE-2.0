@@ -411,7 +411,10 @@ def rysunek_3_rozklad_efektu(v2: bool = False) -> Path:
 # ------------------------------------------------------------------ rysunek 4
 
 
-def rysunek_4_sonda_glebi() -> Path:
+def rysunek_4_sonda_glebi(v2: bool = False) -> Path:
+    """v2=True: bez tytulu i podtytulu (tresc idzie do podpisu), os X bez slowa "podloga",
+    etykieta linii koderu uczonego na glebi nad osia, "(Welch)" przy p-wartosciach,
+    15,5 cm, 300 dpi, plik *_v2.png. Dane, wasy i skala bez zmian."""
     d = _load(paths.ML_OUTPUTS / "echo_ablation" / "final_results_2026-08-15.json")["sonda_glebi"]
     P = d["punkty"]
     # p-wartosci czytane z pliku dowodowego, nie wpisane recznie -- przy
@@ -437,7 +440,7 @@ def rysunek_4_sonda_glebi() -> Path:
     vals, errs = zip(*(poprawa(e) for e, _ in encs))
     y = np.arange(len(encs))
 
-    fig, ax = plt.subplots(figsize=(7.6, 4.1))
+    fig, ax = plt.subplots(figsize=(15.5 / 2.54, 3.9) if v2 else (7.6, 4.1))
     _clean(ax, ygrid=False)
     ax.grid(axis="x", color=GRID, linewidth=0.6, zorder=0)
     ax.set_axisbelow(True)
@@ -449,10 +452,18 @@ def rysunek_4_sonda_glebi() -> Path:
     # Etykieta PIONOWO przy samej linii i przy DOLNEJ czesci osi: poziomo nie
     # miesci sie miedzy linia a krawedzia, a wysrodkowana pionowo wchodzila
     # na podtytul.
-    ax.annotate("koder uczony na głębi (100 %)",
-                xy=(span, -0.34), xytext=(-10, 0),
-                textcoords="offset points", rotation=90, ha="center", va="bottom",
-                fontsize=8.5, color=INK_2, fontweight="bold", annotation_clip=False)
+    if v2:
+        # Poziomo NAD gorna krawedzia pola wykresu, konczy sie przy linii: nie dotyka
+        # osi X i nie wychodzi poza figure (po usunieciu tytulu miejsce jest wolne).
+        ax.annotate("koder uczony na głębi (100 %)",
+                    xy=(span, 1.0), xycoords=("data", "axes fraction"), xytext=(-3, 4),
+                    textcoords="offset points", ha="right", va="bottom",
+                    fontsize=9, color=INK_2, fontweight="bold", annotation_clip=False)
+    else:
+        ax.annotate("koder uczony na głębi (100 %)",
+                    xy=(span, -0.34), xytext=(-10, 0),
+                    textcoords="offset points", rotation=90, ha="center", va="bottom",
+                    fontsize=8.5, color=INK_2, fontweight="bold", annotation_clip=False)
 
     # Slupki wezsze niz domyslnie: miedzy nimi musi zmiescic sie strzalka
     # rozkladu z dwuwierszowym opisem.
@@ -467,26 +478,50 @@ def rysunek_4_sonda_glebi() -> Path:
     opisy = ((("gęstość kątowa", vals[1] - vals[0], rozklad["gestosc_katowa_danych"]["p"]), C_ALT),
              (("liczba par", vals[2] - vals[1], rozklad["liczba_par"]["p"]), C_THIRD))
     for i, ((nazwa, delta, pval), col) in enumerate(opisy):
-        lab = f"{nazwa}\n+{_pl(100 * delta / span, 1)} pp   p = {_pl(pval, 4)}"
+        if v2:
+            lab = f"{nazwa}\n+{_pl(100 * delta / span, 1)} pp, p = {_pl(pval, 4)}"
+        else:
+            lab = f"{nazwa}\n+{_pl(100 * delta / span, 1)} pp   p = {_pl(pval, 4)}"
         x0, x1 = vals[i], vals[i + 1]
         ax.annotate("", xy=(x1, i + 0.58), xytext=(x0, i + 0.58),
                     arrowprops=dict(arrowstyle="<->", color=col, lw=1.6))
         # Opis POD strzalka, nie nad nia: nad strzalka wchodzil na slupek
         # lezacy wyzej.
-        ax.annotate(lab, xy=((x0 + x1) / 2, i + 0.58), xytext=(0, -9),
-                    textcoords="offset points", ha="center", va="top",
-                    fontsize=8.5, color=col, fontweight="bold")
+        t = ax.annotate(lab, xy=((x0 + x1) / 2, i + 0.58), xytext=(0, -9),
+                        textcoords="offset points", ha="center", va="top",
+                        fontsize=8.5, color=col, fontweight="bold")
+        if v2:   # "(Welch)" drobna czcionka, doklejone do konca wiersza z p
+            ax.annotate(" (Welch)", xy=(1, 0), xycoords=t, ha="left", va="bottom",
+                        fontsize=6.5, color=col)
 
     ax.set_yticks(y)
     ax.set_yticklabels([n for _, n in encs], fontsize=9)
     ax.set_xlim(0, span * 1.13)
     _przecinki(ax, "x", 2)
-    ax.set_xlabel(f"spadek: {OS_RMSE} względem kodera losowego (0 = podłoga)")
-    _naglowek(ax, "Zamrożony koder z pretreningu niesie informację o głębi",
-              "sonda: koder zamrożony, uczony wyłącznie dekoder",
-              "3 ziarna, wąsy = błąd standardowy różnicy · pp = punkty procentowe rozpiętości")
+    if v2:
+        ax.set_xlabel("spadek RMSE głębi na walidacji [m] względem kodera losowego (0 = koder losowy)",
+                      loc="right", fontsize=9)
+    else:
+        ax.set_xlabel(f"spadek: {OS_RMSE} względem kodera losowego (0 = podłoga)")
+        _naglowek(ax, "Zamrożony koder z pretreningu niesie informację o głębi",
+                  "sonda: koder zamrożony, uczony wyłącznie dekoder",
+                  "3 ziarna, wąsy = błąd standardowy różnicy · pp = punkty procentowe rozpiętości")
+
+    print("wartosci rys.4 (spadek RMSE wzgl. losowego [m] | SE roznicy | % rozpietosci):")
+    for (e, _), v, er in zip(encs, vals, errs):
+        print(f"  {e:16s} {v:.6f}  SE {er:.6f}  {100 * v / span:.2f} %")
+    print(f"  rozpietosc (losowy - uczony na glebi) = {span:.6f}")
+    for (nazwa, delta, pval), _c in opisy:
+        print(f"  {nazwa}: +{100 * delta / span:.2f} pp, p = {pval}")
 
     OUT.mkdir(parents=True, exist_ok=True)
+    if v2:
+        p = OUT / "rys_4_sonda_glebi_v2.png"
+        fig.tight_layout()
+        with plt.rc_context({"savefig.bbox": "standard", "savefig.pad_inches": 0.0}):
+            fig.savefig(p, dpi=300)
+        plt.close(fig)
+        return p
     p = OUT / "rys_4_sonda_glebi.png"
     fig.savefig(p)
     plt.close(fig)
