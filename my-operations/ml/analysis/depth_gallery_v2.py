@@ -7,6 +7,7 @@ NIE trenuje niczego i niczego nie nadpisuje (stara galeria: `depth_gallery.py`).
 Wejscie: najlepsze checkpointy (`best_*.pth`, wybrane po walidacji) PRZEBIEGOW O ZIARNIE 0,
 wskazanych jawnie ponizej -- zadnych globow. Wyjscie (obok siebie, w `figures/gallery/`):
     depth_gallery_v2_pelna.png   8 kolumn, 15,5 x ~17,5 cm
+    depth_gallery_v2_warunki.png 8 kolumn: A | D | B | RGB-only B | EB (warunki glowne)
     depth_gallery_v2_waska.png   7 kolumn, 15,5 x ~15 cm
     depth_gallery_v2_wybor.md    wybrane probki + regula + kontrola 1e-3
     depth_gallery_v2_podpis.md   fakty do podpisu rysunku
@@ -51,7 +52,7 @@ OUT = paths.ML_OUTPUTS / "figures" / "gallery"
 RGBONLY_ROOT = paths.ML_OUTPUTS / "overnight_2026-11" / "rgbonly"
 
 # JAWNE przebiegi (ziarno 0) -- bez globow.
-FULL_RUNS = {"B": "B_seed0", "A": "A_seed0", "EB": "EB_seed0", "EA": "EA_seed0"}
+FULL_RUNS = {"B": "B_seed0", "A": "A_seed0", "D": "D_seed0", "EB": "EB_seed0", "EA": "EA_seed0"}
 RGBONLY_RUN = "RGBONLY_B_seed0"
 TABLE_B = paths.ML_OUTPUTS / "eval" / "B_seed0" / "samples_test@36.npz"
 # eval.json do naglowkow: (katalog, plik) dla kazdego ziarna 0,1,2 -- jawnie.
@@ -60,6 +61,7 @@ EVAL_JSON = {
     "A": [paths.ML_OUTPUTS / "eval" / f"A_seed{s}" / "eval.json" for s in (0, 1, 2)],
     "EB": [paths.ML_OUTPUTS / "eval" / f"EB_seed{s}" / "eval.json" for s in (0, 1, 2)],
     "EA": [paths.ML_OUTPUTS / "eval" / f"EA_seed{s}" / "eval.json" for s in (0, 1, 2)],
+    "D": [paths.ML_OUTPUTS / "eval" / f"D_seed{s}" / "eval.json" for s in (0, 1, 2)],
     "RGB": [RGBONLY_ROOT / f"RGBONLY_B_seed{s}" / "eval.json" for s in (0, 1, 2)],
 }
 
@@ -291,6 +293,7 @@ def main() -> int:
         "A": dict(kind="pred", m="A", head="obraz+echo\n4 orient.\n" + hd("A")),
         "EB": dict(kind="pred", m="EB", head="samo echo\n36 orient.\n" + hd("EB")),
         "EA": dict(kind="pred", m="EA", head="samo echo\n4 orient.\n" + hd("EA")),
+        "D": dict(kind="pred", m="D", head="obraz+echo\n4 losowane\n" + hd("D")),
         "RGB": dict(kind="pred", m="RGB", head="sam obraz 36\n(RGB-only)\n" + hd("RGB")),
         "errB": dict(kind="err", m="B", head="|błąd|\nobraz+echo\n36 orient."),
         "errR": dict(kind="err", m="RGB", head="|błąd|\nsam obraz 36\n(RGB-only)"),
@@ -298,6 +301,8 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     render([C[k] for k in ("rgb", "gt", "B", "A", "EB", "EA", "RGB", "errB")], rows, rgb, gt, preds, srm,
            None, OUT / "depth_gallery_v2_pelna.png", height_gap_in=0.34, label_w_in=0.78)
+    render([C[k] for k in ("rgb", "gt", "A", "D", "B", "RGB", "EB", "errB")], rows, rgb, gt, preds, srm,
+           None, OUT / "depth_gallery_v2_warunki.png", height_gap_in=0.34, label_w_in=0.78)
     render([C[k] for k in ("rgb", "gt", "B", "RGB", "EB", "errB", "errR")], rows, rgb, gt, preds, srm,
            None, OUT / "depth_gallery_v2_waska.png", height_gap_in=0.12, label_w_in=0.78)
 
@@ -335,7 +340,7 @@ def write_md(rows, regula, ev, params, frac10, n_valid, n_gt10, bad):
           f"(tolerancja {TOL:g}).", ""]
     (OUT / "depth_gallery_v2_wybor.md").write_text("\n".join(L), encoding="utf-8")
 
-    names = {"B": "obraz+echo, 36 orientacji (B_seed0)", "A": "obraz+echo, 4 orientacje (A_seed0)",
+    names = {"B": "obraz+echo, 36 orientacji (B_seed0)", "A": "obraz+echo, 4 orientacje (A_seed0)", "D": "obraz+echo, 4 orientacje losowane (D_seed0)",
              "EB": "samo echo, 36 orientacji (EB_seed0)", "EA": "samo echo, 4 orientacje (EA_seed0)",
              "RGB": "sam obraz, 36 orientacji, RGB-only (RGBONLY_B_seed0)"}
     P = ["# Galeria v2: fakty do podpisu", "",
@@ -350,7 +355,7 @@ def write_md(rows, regula, ev, params, frac10, n_valid, n_gt10, bad):
          "(`depth_range_stats.md`) 0,014 %. Skala błędu: 0–3 m (też obcięta). Szary = piksele bez prawdy (głębia 0).",
          "- **RMSE test@36 z `eval.json`** (średnia z 3 ziaren, ± odch. std. z próby; RMSE puli pikseli całego zbioru, "
          "nie tych 6 próbek):"]
-    for k in ("B", "A", "EB", "EA", "RGB"):
+    for k in ("B", "A", "D", "EB", "EA", "RGB"):
         m, s, v = ev[k]
         P.append(f"  - {names[k]}: {pl(m, 4)} ± {pl(s, 4)} m (ziarna: {', '.join(pl(x, 4) for x in v)})")
     P += ["- **Liczby parametrów:** "
