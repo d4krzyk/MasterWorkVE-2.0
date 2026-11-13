@@ -6,6 +6,7 @@
 - **RMSE test@36 z `eval.json`** (średnia z 3 ziaren, ± odch. std. z próby; RMSE puli pikseli całego zbioru, nie tych 6 próbek):
   - obraz+echo, 36 orientacji (B_seed0): 0,2437 ± 0,0014 m (ziarna: 0,2421, 0,2447, 0,2443)
   - obraz+echo, 4 orientacje (A_seed0): 0,2925 ± 0,0049 m (ziarna: 0,2874, 0,2971, 0,2929)
+  - obraz+echo, 4 orientacje losowane (D_seed0): 0,2720 ± 0,0027 m (ziarna: 0,2691, 0,2726, 0,2743)
   - samo echo, 36 orientacji (EB_seed0): 0,5822 ± 0,0035 m (ziarna: 0,5831, 0,5852, 0,5784)
   - samo echo, 4 orientacje (EA_seed0): 0,7910 ± 0,0107 m (ziarna: 0,7790, 0,7991, 0,7951)
   - sam obraz, 36 orientacji, RGB-only (RGBONLY_B_seed0): 0,2871 ± 0,0034 m (ziarna: 0,2907, 0,2838, 0,2868)
