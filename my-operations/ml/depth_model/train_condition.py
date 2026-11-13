@@ -301,18 +301,23 @@ def main(argv=None) -> int:
     p.add_argument("--tag", default="",
                    help="dopisek do nazwy przebiegu (<warunek>_seed<N>_<tag>); domyslnie pusty, "
                         "wtedy katalog i zachowanie jak dotad")
+    p.add_argument("--angle-seed", type=int, default=None,
+                   help="nadpisuje angle_seed warunku (losowanie katow random_K w ZBIORZE TRENINGOWYM); "
+                        "domyslnie None = wartosc z definicji warunku (dla ED/D: 0), zachowanie jak dotad")
     p.add_argument("--force", action="store_true", help="nadpisz istniejacy katalog przebiegu")
     p.add_argument("--dry-run", action="store_true",
                    help="pokaz konfiguracje i licznosci, NIE trenuj (nie dotyka GPU)")
     args = p.parse_args(argv)
 
     cond = CONDITIONS_BY_ID[args.condition]
+    angle_seed = cond.angle_seed if args.angle_seed is None else args.angle_seed
     spec = RunSpec(
         condition=cond.id, seed=args.seed, total_steps=args.steps,
         batch_size=args.batch_size, num_workers=args.num_workers,
         amp=not args.no_amp, validation_freq=args.validation_freq,
         display_freq=args.display_freq, edge_threshold_m=args.edge_threshold,
-        extra={"fast_bilinear": args.fast_bilinear}, tag=args.tag,
+        extra={"fast_bilinear": args.fast_bilinear,
+               **({"angle_seed": angle_seed} if args.angle_seed is not None else {})}, tag=args.tag,
     )
     run_dir = spec.run_dir()
     splits = load_splits(variant=cond.geometry)
@@ -329,6 +334,8 @@ def main(argv=None) -> int:
     print(f"  krokow         : {spec.total_steps} (batch {spec.batch_size})")
     print(f"  rownowaznik ep.: {cond.epochs_equivalent(splits, spec.total_steps, spec.batch_size):.1f}")
     print(f"  AMP            : {spec.amp}")
+    if args.angle_seed is not None:
+        print(f"  angle_seed     : {angle_seed}  (nadpisany; definicja warunku: {cond.angle_seed})")
     print(f"  katalog        : {run_dir}")
     print(f"  odcisk podzialu: {splits.meta.get('location_fingerprint')}")
 
@@ -359,7 +366,7 @@ def main(argv=None) -> int:
     shuffle_seed = getattr(cond, "shuffle_echo_seed", None)
     train_loader, train_ds = build_dataloader(
         DatasetConfig(variant=cond.geometry, mode="train",
-                      angle_subset=cond.angle_subset, angle_seed=cond.angle_seed,
+                      angle_subset=cond.angle_subset, angle_seed=angle_seed,
                       shuffle_echo_seed=shuffle_seed),
         batch_size=spec.batch_size, num_workers=spec.num_workers, splits=splits,
     )
