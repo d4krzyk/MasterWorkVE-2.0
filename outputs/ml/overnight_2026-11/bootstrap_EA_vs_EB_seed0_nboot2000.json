@@ -1,0 +1,20 @@
+{
+  "a": "EA_seed0",
+  "b": "EB_seed0",
+  "konwencja": "delta = EA − EB",
+  "test_set": "test@36",
+  "n_boot": 2000,
+  "seed": 0,
+  "delta_point": 0.19584144811008963,
+  "ci_low": 0.1693569580675366,
+  "ci_high": 0.22595914241911885,
+  "n_locations": 183,
+  "boot_sd": 0.014355311451011075,
+  "ci_excludes_zero": true,
+  "n_samples": 6588,
+  "alpha": 0.05,
+  "stratum": "all",
+  "metric": "RMSE",
+  "dry_run": false,
+  "czas_s": 0.4
+}

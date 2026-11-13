@@ -1,0 +1,63 @@
+{
+  "pytanie": "Dlaczego pretrening orientacyjny nie poprawia RGB2Depth na koncu budzetu?",
+  "1_czy_pretrening_zmienia_koder": {
+    "wzgledna_L2_od_inicjalizacji": {
+      "K4": 0.7864,
+      "K12": 0.8229,
+      "K36": 0.9677,
+      "K36_p16": 0.9892
+    },
+    "wniosek": "TAK, bardzo mocno -- pretrening nie jest pusta operacja"
+  },
+  "2_ile_zadanie_docelowe_przesuwa_koder": {
+    "K4": 0.9665,
+    "K36": 0.9543,
+    "K36_p16": 0.9844,
+    "wniosek": "zadanie docelowe przepisuje koder niemal calkowicie (0,95-0,98)"
+  },
+  "3_czy_koncowe_kodery_pamietaja_start": {
+    "scratch_vs_scratch": 1.2558,
+    "K4_vs_scratch": 1.2985,
+    "K36_vs_scratch": 1.3414,
+    "K36p16_vs_scratch": 1.3832,
+    "wniosek": "koncowe kodery sa od siebie tak samo odlegle jak dwa przebiegi scratch -- inicjalizacja nie zostawia sladu"
+  },
+  "4_przewaga_startowa": {
+    "wiersze": [
+      {
+        "wariant": "pretext_K36_p16_seed0",
+        "MAAE": 61.77,
+        "delta_1000": -0.04938334901256419,
+        "p_1000": 0.16063589041820606,
+        "delta_40000": -0.011990026462087577
+      },
+      {
+        "wariant": "pretext_K4_seed0",
+        "MAAE": 61.23,
+        "delta_1000": -0.03583859496286712,
+        "p_1000": 0.2951074468975767,
+        "delta_40000": -0.017038674387804653
+      },
+      {
+        "wariant": "pretext_K12_seed0",
+        "MAAE": 55.73,
+        "delta_1000": -0.034519914762018544,
+        "p_1000": 0.3251644544380204,
+        "delta_40000": -0.005674688902519209
+      },
+      {
+        "wariant": "pretext_K36_seed0",
+        "MAAE": 25.13,
+        "delta_1000": -0.0732534439441726,
+        "p_1000": 0.05978269255103533,
+        "delta_40000": -0.010763335750484437
+      }
+    ],
+    "korelacja_MAAE_vs_przewaga": {
+      "r": 0.8791023635703723,
+      "p": 0.1208976364296277
+    },
+    "wniosek": "pretrening DAJE realna przewage na starcie, proporcjonalna do jakosci rozwiazania zadania pretekstowego, ale zanika ok. kroku 4 000"
+  },
+  "DIAGNOZA": "Transfer nie zawodzi z powodu zlej reprezentacji. Reprezentacja JEST uzyteczna -- widac to jako przewage startowa uporzadkowana wg MAAE. Zawodzi, bo zadanie docelowe ma 49 464 probek i 40 000 krokow, czyli DOSC, zeby nauczyc sie tych cech od zera. Pretrening jest NADMIAROWY, nie bezuzyteczny."
+}

@@ -166,10 +166,10 @@ patrz `diagnostics_report.json → gpu_memory_scale`.
 > | `N_MAX = 64` | pełny census 1 740 lokalizacji: żadna nie jest obcinana przy planowaniu | §3.2 |
 > | zakres decyzji | raz na lokalizację (1 740 decyzji), to samo `N` dla wszystkich 36 orientacji | §3.3 |
 > | kontrola jakości | po fakcie: próbki z `snr_final` < 3.5 są dorenderowywane (~40 % próbek, z konstrukcji reguły) | §3.4 |
-> | zysk | **2,14×** taniej niż stałe `N` o tej samej gwarancji | §3.1 |
+> | zysk | **2,14×** taniej niż stałe `N` — szacunek z 12 pozycji **sprzed census**; z pełnego census: stałe `N` dla 100 % lokalizacji = 54 (≈ 4,5× średniego `N` = 12,08) | §3.1 |
 >
 > Godziny z tabeli w §3.1 (44,6 h / 95,2 h) są sprzed zmiany z §4.3 i **nie są** budżetem zbioru;
-> aktualny budżet jest w §4. Ważny pozostaje stosunek 2,14×.
+> aktualny budżet jest w §4. Stosunek 2,14× jest wartością z 12 pozycji; pełny census daje inny obraz — §3.1.
 
 ### 3.1 Dlaczego nie stałe N
 
@@ -203,6 +203,28 @@ z 12 z 1740 lokalizacji — samo dostosuje się do pozycji, których nie zmierzy
 > Bezwzględne godziny w tej tabeli pochodzą sprzed zmiany z §4.3 (0.2606 s/render, stara ścieżka z podwójną
 > symulacją) i **nie są aktualnym budżetem** — ten jest w §4. Stosunek 2.14× pozostaje ważny, bo obie kolumny
 > skalują się tym samym czynnikiem; to on jest treścią tego porównania.
+
+#### Weryfikacja na pełnym census (dopisane 2026-11-12)
+
+Stosunek 2,14× pochodzi z **12 pozycji sprzed census** — na nich najgorsza lokalizacja
+potrzebowała `N_raw` = 21, więc stałe N = 21 dawało pełne pokrycie. Pełny census sondy
+(`outputs/probe_census/_all_scenes.csv`, 1 740 lokalizacji, ta sama reguła `N_raw =
+ceil((3.5·sigma_1/0.0644)²)`, odtworzona z kolumny `sigma_1` bez rozbieżności) pokazuje, że
+ogon rozkładu jest dłuższy:
+
+| stałe N | pokrycie lokalizacji (`N_raw` ≤ N) | N / średnie N adaptacyjne (12,08) |
+|---|---|---|
+| 21 | **91,21 %** (1 587 z 1 740) | 1,74× |
+| 25 | 95 % | 2,07× |
+| 35 | 99 % | 2,90× |
+| **54** | **100 %** | **≈ 4,5×** |
+
+Średnie N adaptacyjne 12,08 to średnia `n_planned` z census (po obcięciu do [6, 64]; mediana
+`N_raw` = 11). **Obie wartości są poprawne, ale dotyczą różnych podstaw:** 2,14× to porównanie
+z 12 pozycji i z pokryciem 12/12; na całym zbiorze stałe N o tej samej gwarancji SNR dla
+wszystkich lokalizacji kosztowałoby ≈ 4,5× więcej renderów niż reguła adaptacyjna, a N = 21
+pokrywa tylko 91,21 % lokalizacji. Liczby: `LICZBY_DO_PRACY.md`, grupa „Charakterystyka silnika
+akustycznego".
 
 ### 3.2 Kryterium
 
@@ -247,7 +269,8 @@ wynik. Koszt jest kwadratowy (`N ~ SNR^2`) — zmierzone na gotowym zbiorze śre
 | 5.0 | 23.40 | 1.93× |
 
 **Jak wyszło w praktyce** (`snr_final` po dorenderowaniu, oba warianty): mediana 3.72 / 3.66, a **79 % / 94 %
-próbek leży w przedziale 3.5–4.0** i **0.0 % powyżej 6**. Reguła celuje dokładnie w próg i go nie
+próbek leży w przedziale 3.5–4.0** i **0.0 % powyżej 6** (dokładnie: w `main` 6 próbek z 62 640, tj. 0.01 % — `apartment_2` 4 i `frl_apartment_3` 2, maks. 6.21;
+w `patched` żadna; po jednej próbce poniżej 3.5 w każdym wariancie: 3.43 w `main`/`apartment_0`, 3.12 w `patched`/`frl_apartment_2`). Reguła celuje dokładnie w próg i go nie
 przekracza — to zamierzone (§4), ale znaczy też, że zbiór **nie ma zapasu**: obniżenie progu wymagałoby
 regeneracji, a nie odrzucenia części renderów.
 

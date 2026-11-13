@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Eksport KAZDEJ zmierzonej liczby do pisania pracy. Zero GPU.
 
-    python my-operations/ml/thesis_numbers.py
+    python my-operations/ml/analysis/thesis_numbers.py
 
 Produkuje dwa pliki:
     outputs/ml/thesis_numbers.json      -- zrodlo maszynowe
@@ -18,15 +18,20 @@ wiedzial, gdzie w tekscie zostawic luke, zamiast odkrywac brak przy skladaniu ta
 
 from __future__ import annotations
 
+import csv
 import json
 import sys
 from pathlib import Path
+
+import numpy as np
+from scipy import stats
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     __package__ = "ml.analysis"
 
 from .. import paths  # noqa: E402
+from .final_results import _finished, _welch  # noqa: E402
 
 R10 = "RAPORT_SESJI_2026-08-10.md"
 R11 = "RAPORT_SESJI_2026-08-11.md"
@@ -44,6 +49,7 @@ GRUPY = [
     ("wyniki_echo", "5. Wyniki grupy `echo`"),
     ("budzet", "6. Budżet obliczeniowy i dyskowy"),
     ("literatura", "7. Odniesienia z literatury — NIE nasze pomiary"),
+    ("kontrole_2026_11", "8. Dodatkowe kontrole 2026-11-13 (nocny zestaw, niedeterminizm GPU, tabele §5.3–5.5)"),
 ]
 
 
@@ -52,6 +58,62 @@ def _load(p: Path):
         return json.loads(p.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
+
+
+def _eval_json(run_id: str) -> dict | None:
+    """`eval.json` przebiegu, ktory DOSZEDL DO KONCA (ten sam straznik co `final_results`)."""
+    if not _finished(paths.RUNS_DIR / run_id):
+        return None
+    return _load(paths.ML_OUTPUTS / "eval" / run_id / "eval.json")
+
+
+def _per_seed(cond: str, test_set: str, key: str = "RMSE", scene: str | None = None,
+              seeds=(0, 1, 2)) -> list[float] | None:
+    """Metryka `all` (bez masek) per ziarno; None, gdy brakuje ktoregokolwiek przebiegu --
+    srednia z niepelnego kompletu ziaren nie moze wejsc do zestawienia jako 3-ziarnowa."""
+    out = []
+    for s in seeds:
+        d = _eval_json(f"{cond}_seed{s}")
+        try:
+            t = d["test_sets"][test_set]
+            blok = t["overall"] if scene is None else t["per_scene"][scene]
+            out.append(float(blok["all"][key]))
+        except (KeyError, TypeError):
+            return None
+    return out
+
+
+def _ms(v, sign: bool = False) -> str:
+    return f"{np.mean(v):{'+' if sign else ''}.5f} ± {np.std(v, ddof=1):.5f}"
+
+
+def _p(p: float) -> str:
+    return f"p={p:.4f}" if p >= 1e-4 else f"p={p:.1e}"
+
+
+def _lista(v) -> str:
+    return " · ".join(f"{x:+.5f}" if min(v) < 0 else f"{x:.5f}" for x in v)
+
+
+def _paired(x, y) -> dict:
+    """x − y per ziarno + test t na roznicach (sparowany po ziarnie, jak `sekcja_32_glowne`)."""
+    d = np.asarray(x) - np.asarray(y)
+    t = stats.ttest_1samp(d, 0.0)
+    return {"d": d.tolist(), "p": float(t.pvalue), "t": float(t.statistic)}
+
+
+GLEBIA_14 = ("A", "B", "D", "EA", "EB", "ED", "EK6", "EK9", "EK12", "EK18", "EPA", "EPB", "EPD", "ESE")
+
+
+def _ci_ba_uwaga() -> str:
+    """Ostrzezenie o dwoch zrodlach CI dla B−A w sieci tylko-echo (ten sam kontrast, rozne n_boot)."""
+    nb = []
+    for sd_ in (0, 1, 2):
+        d = _load(paths.ML_OUTPUTS / "eval" / f"compare_EA_seed{sd_}_vs_EB_seed{sd_}.json")
+        nb.append(str(d.get("n_boot")) if d else "?")
+    return ("; UWAGA — dwa różne źródła CI dla tego kontrastu: `echo_3seeds.json` NIE zapisuje liczby losowań, "
+            f"a `eval/compare_EA_seed{{0,1,2}}_vs_EB_seed{{0,1,2}}.json` mają n_boot = {' / '.join(nb)}; "
+            "obowiązują przedziały z n_boot = 2000 (`overnight_2026-11/bootstrap_EA_vs_EB_seed*_nboot2000.json`, §8)")
 
 
 def collect() -> tuple[list[dict], list[dict]]:
@@ -105,8 +167,16 @@ def collect() -> tuple[list[dict], list[dict]]:
     add("silnik", "Sygnał przy 10° (SIGNAL_10DEG)", 0.0644, "RMSE spektrogramu", "[Z]",
         "atrybuty HDF5", f"{GP} §3")
     add("silnik", "Docelowy SNR", 3.5, "—", "[Z]", "atrybuty HDF5", f"{GP} §3")
-    add("silnik", "Szum render-do-renderu (ten sam kąt)", "0,03–0,16", "RMSE spektrogramu", "[Z]",
-        "diagnose_rlr_noise_out/", "CLAUDE.md", "zależny od pozycji")
+    cen_p = paths.OUTPUTS / "probe_census" / "_all_scenes.csv"
+    if cen_p.exists():
+        with cen_p.open(encoding="utf-8", newline="") as fh:
+            sg = np.array([float(r["sigma_1"]) for r in csv.DictReader(fh)])
+        add("silnik", "Szum pojedynczego renderu `sigma_1` (ten sam kąt)",
+            f"{sg.min():.4f}–{sg.max():.4f}".replace(".", ","), "RMSE spektrogramu", "[Z]",
+            "outputs/probe_census/_all_scenes.csv", f"{GP} §3.2",
+            f"census {sg.size} lokalizacji, mediana {np.median(sg):.4f}; maksimum ≈ {sg.max() / 0.0644:.1f}× sygnału 10° "
+            "(Δ = 0,0644). Wcześniejsze „0,03–0,16\" to RMSE DWÓCH renderów (≈ √2·`sigma_1`) z wczesnej diagnostyki, "
+            "nie `sigma_1` — nie cytować")
     add("silnik", "RMSE między renderami 90° od siebie", "0,30–0,35", "RMSE spektrogramu", "[Z]",
         "diagnose_rlr_noise_out/", "CLAUDE.md", "potwierdzone niezależnie w geometry_check: 0,3029–0,3159")
     add("silnik", "N adaptacyjne: min / max / próbne", "6 / 64 / 8", "renderów", "[Z]",
@@ -215,7 +285,8 @@ def collect() -> tuple[list[dict], list[dict]]:
                 f"sd po ZIARNACH; istotne we wszystkich 3: {v['wszystkie_istotne']}; "
                 f"CI po lokalizacjach (ziarno 0) {ci}"
                 + ("; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica "
-                   "odwrotna) — KONWENCJE.md §2" if zn < 0 else ""))
+                   "odwrotna) — KONWENCJE.md §2" if zn < 0 else "")
+                + (_ci_ba_uwaga() if lab == "laczny B-A" else ""))
         ug = s3.get("udzial_gestosci_pct", {})
         add("wyniki_echo", "Udział gęstości kątowej w efekcie łącznym",
             f"{ug.get('mean'):.1f} ± {ug.get('sd'):.1f}", "%", "[Z]",
@@ -501,6 +572,16 @@ def collect() -> tuple[list[dict], list[dict]]:
                 "pretext/summary.json", f"{R13} §4",
                 "poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; "
                 f"n_ziaren={v['n_seeds']}, sd=— przy n=1")
+    if pm.get("pretext"):
+        for var in ("K4", "K12", "K36", "K36@16par"):
+            rs = sorted((r for r in pm["pretext"] if r.get("variant") == var), key=lambda r: r["seed"])
+            if len(rs) > 1 and all(r.get("top1") is not None for r in rs):
+                t1 = [100 * r["top1"] for r in rs]
+                add("wyniki_echo", f"Model 2: trafność top-1 zadania pretekstowego — {var}",
+                    f"{np.mean(t1):.2f} % ({' / '.join(f'{x:.2f}' for x in t1)})".replace(".", ","), "%", "[Z]",
+                    "pretext/pretext_*/best.json", f"{R13} §4",
+                    f"średnia z {len(rs)} ziaren (per ziarno w nawiasie); poziom losowy "
+                    f"{100 * rs[0]['top1_chance']:.1f} % — NIE porównywalny między K, dlatego główną miarą jest MAAE")
     if pm.get("transfer_by_fraction"):
         for flab, v in sorted(pm["transfer_by_fraction"].items(),
                               key=lambda x: (-float(x[0].rsplit("|", 1)[1].rstrip("%")),
@@ -524,11 +605,259 @@ def collect() -> tuple[list[dict], list[dict]]:
                     f"{R13} §5", "wartość ujemna = poprawa; to jest rozkład RMSE ZADANIA "
                                  "DOCELOWEGO, NIE rozkład MAAE pretekstu (§4, w stopniach)")
 
+    # ---- 5d. Pozycje dopisane 2026-11-12.
+    #
+    # Liczone WPROST z surowych `eval/<przebieg>/eval.json` i z census sondy, a nie
+    # z plikow posrednich w `echo_ablation/` -- te ostatnie powstaly czesciowo ad hoc
+    # (bez skryptu w repo), wiec nowe pozycje sie na nich nie opieraja. Wszystko
+    # w warstwie `all`, czyli BEZ masek krawedz/gladkie i bez maski przeciecia.
+    NOWE = "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md"
+
+    # (1) RMSE usrednione po obrazach -- miara Paridy (`util.compute_errors` per obraz,
+    #     potem srednia), a nie RMSE po wszystkich pikselach, ktore jest metryka pracy.
+    for c in ("A", "D", "B"):
+        v = _per_seed(c, "test@36", "RMSE_per_sample")
+        if v:
+            add("wyniki_echo", f"PEŁNY MODEL: RMSE uśrednione po obrazach, test@36 — {c}", _ms(v),
+                "RMSE", "[Z]", f"eval/{c}_seed*/eval.json", f"{NOWE} §2",
+                "RMSE uśrednione po obrazach, miara jak w kodzie Paridy, tylko do porównań "
+                "z literaturą; klucz `RMSE_per_sample`, średnia ± sd po 3 ziarnach; "
+                f"per ziarno: {_lista(v)}. NIE mylić z RMSE po pikselach (metryka pracy)")
+
+    # (2) test@4 (4 katy kardynalne, 732 probki) i luka test@36 − test@4, pelny model.
+    t4 = {c: _per_seed(c, "test@4") for c in ("A", "D", "B")}
+    t36 = {c: _per_seed(c, "test@36") for c in ("A", "D", "B")}
+    for c in ("A", "D", "B"):
+        if not (t4[c] and t36[c]):
+            continue
+        add("wyniki_echo", f"PEŁNY MODEL: RMSE test@4 — {c}", _ms(t4[c]), "RMSE", "[Z]",
+            f"eval/{c}_seed*/eval.json", f"{NOWE} §2",
+            f"4 kąty kardynalne × 183 lokalizacje = 732 próbki; 3 ziarna; per ziarno: {_lista(t4[c])}")
+        luka = (np.asarray(t36[c]) - np.asarray(t4[c])).tolist()
+        add("wyniki_echo", f"PEŁNY MODEL: luka test@36 − test@4 — {c}", _ms(luka, sign=True),
+            "RMSE", "[Z]", f"eval/{c}_seed*/eval.json", f"{NOWE} §2",
+            f"różnica per ziarno, potem średnia ± sd; per ziarno: {_lista(luka)}. Wartość dodatnia "
+            "= gorzej na pełnych 36 kątach niż na 4 kardynalnych; dodatnią lukę ma tylko warunek "
+            "uczony na samych kątach kardynalnych")
+
+    # (3) Kontrasty na test@4 -- test t na roznicach po ziarnach (sparowany, df = 2).
+    for x in ("D", "B"):
+        if t4[x] and t4["A"]:
+            r = _paired(t4[x], t4["A"])
+            add("wyniki_echo", f"PEŁNY MODEL: {x} − A na test@4", f"{_ms(r['d'], sign=True)} ({_p(r['p'])})",
+                "RMSE", "[Z]", f"eval/{{{x},A}}_seed*/eval.json", f"{NOWE} §2",
+                f"test t na różnicach po ziarnach (sparowany, df = 2), t = {r['t']:.2f}; "
+                f"per ziarno: {_lista(r['d'])}. Kąty kardynalne są dla `A` kątami TRENINGOWYMI")
+
+    # (4) Krzywa stalego budzetu: kazdy punkt posredni wobec K=36 (warunek `ED`), Welch.
+    k36 = _per_seed("ED", "test@36")
+    for k in (6, 9, 12, 18):
+        v = _per_seed(f"EK{k}", "test@36")
+        if v and k36:
+            w = _welch(v, k36)
+            add("wyniki_echo", f"Krzywa stałego budżetu: K={k} − K=36", f"{w['delta']:+.5f} ({_p(w['p'])})",
+                "RMSE", "[Z]", f"eval/{{EK{k},ED}}_seed*/eval.json", f"{NOWE} §1",
+                f"test Welcha po 3 ziarnach, t = {w['t']:.2f}, df = {w['df']:.2f}; K=36 to warunek "
+                f"`ED`; RMSE test@36; wartość dodatnia = K={k} gorsze niż K=36")
+
+    # (5) Efekt gestosci D − A osobno w kazdej scenie testowej.
+    a0 = _eval_json("A_seed0") or {}
+    sceny = list(a0.get("test_sets", {}).get("test@36", {}).get("per_scene", {}))
+    for a, d_, model in (("EA", "ED", "echo2depth"), ("A", "D", "pełny model")):
+        for sc in sceny:
+            va, vd = _per_seed(a, "test@36", scene=sc), _per_seed(d_, "test@36", scene=sc)
+            if va and vd:
+                r = _paired(vd, va)
+                add("wyniki_echo", f"Gęstość kątowa {d_} − {a} w scenie `{sc}` ({model})",
+                    f"{_ms(r['d'], sign=True)} ({_p(r['p'])})", "RMSE", "[Z]",
+                    f"eval/{{{d_},{a}}}_seed*/eval.json", f"{NOWE} §{1 if a == 'EA' else 2}",
+                    f"RMSE test@36 w obrębie sceny: {a} {np.mean(va):.5f} → {d_} {np.mean(vd):.5f}; "
+                    f"test t na różnicach po ziarnach (df = 2); per ziarno: {_lista(r['d'])}")
+
+    # (6) Lokalizacje testowe na scene.
+    ps = a0.get("test_sets", {}).get("test@36", {}).get("per_scene", {})
+    if ps:
+        if any(v["n_samples"] % 36 for v in ps.values()):
+            raise ValueError("n_samples sceny testowej nie dzieli sie przez 36")
+        nloc = {sc: v["n_samples"] // 36 for sc, v in ps.items()}
+        add("dataset", "Lokalizacji testowych na scenę", nloc, "lokalizacji", "[Z]",
+            "eval/A_seed0/eval.json", f"{NOWE} §6",
+            "n_samples / 36 na test@36 (" + ", ".join(f"{v['n_samples']}/36" for v in ps.values())
+            + f"); suma {sum(nloc.values())} = cały zbiór testowy. Zbiór testowy jest wspólny dla "
+            "wszystkich warunków, więc liczby nie zależą od przebiegu")
+
+    # (7) Stale N o tej samej gwarancji SNR co regula adaptacyjna -- z pelnego census.
+    cen_p = paths.OUTPUTS / "probe_census" / "_all_scenes.csv"
+    if cen_p.exists():
+        with cen_p.open(encoding="utf-8", newline="") as fh:
+            cen = list(csv.DictReader(fh))
+        gam, dlt = 3.5, 0.0644                      # TARGET_SNR, SIGNAL_10DEG (echo_core/params.py)
+        sig = np.array([float(r["sigma_1"]) for r in cen])
+        n_raw = np.ceil((gam * sig / dlt) ** 2).astype(int)
+        if not np.array_equal(n_raw, np.array([int(r["n_raw"]) for r in cen])):
+            raise ValueError("n_raw z census nie odtwarza sie z sigma_1 przy gamma=3,5, Delta=0,0644")
+        srt, L = np.sort(n_raw), n_raw.size
+        need = {q: int(srt[int(np.ceil(q * L)) - 1]) for q in (1.0, 0.99, 0.95)}
+        n_ad = np.array([int(r["n_planned"]) for r in cen])
+        add("silnik", "Stałe N o gwarancji SNR ≥ 3,5 dla 100 % / 99 % / 95 % lokalizacji",
+            f"{need[1.0]} / {need[0.99]} / {need[0.95]}", "renderów", "[Z]",
+            "outputs/probe_census/_all_scenes.csv", f"{GP} §3.2",
+            f"najmniejsze stałe N, przy którym co najmniej dany odsetek z {L} lokalizacji ma "
+            "N_raw = ceil((γ·σ₁/Δ)²) ≤ N, γ = 3,5, Δ = 0,0644; faktyczne pokrycie: "
+            + " / ".join(f"{100 * np.mean(n_raw <= need[q]):.2f} %" for q in (1.0, 0.99, 0.95))
+            + f". Dla porównania reguła adaptacyjna zużywa średnio {n_ad.mean():.2f} renderu na "
+            f"lokalizację (mediana N_raw {int(np.median(n_raw))}); σ₁ pochodzi z sondy 8 renderów")
+        add("silnik", "Udział lokalizacji pokrytych przez stałe N = 21",
+            round(100 * float(np.mean(n_raw <= 21)), 2), "%", "[Z]",
+            "outputs/probe_census/_all_scenes.csv", f"{GP} §3.2",
+            f"{int(np.sum(n_raw <= 21))} z {L} lokalizacji ma N_raw ≤ 21, czyli SNR ≥ 3,5 przy "
+            f"N = 21; pozostałe {int(np.sum(n_raw > 21))} byłyby poniżej docelowego SNR")
+
+
+
+    # ---- 5e. Dodatkowe kontrole 2026-11-13 (grupa `kontrole_2026_11`).
+    # Wszystko CZYTANE z plikow wynikowych (nocny zestaw, tabele 5.3-5.5, pomiar niedeterminizmu GPU);
+    # brak pliku = brak pozycji (bez wyjatku). Sciezki dowodowe wzgledem outputs/ml/.
+    G = "kontrole_2026_11"
+    ON = O / "overnight_2026-11"
+    S11 = "STAN_WYNIKOW.md"
+
+    def f4(x):
+        return f"{x:.4g}".replace(".", ",")
+
+    hf = _load(ON / "holm_families.json") or {}
+    for key, fam in (hf.get("rodziny") or {}).items():
+        add(G, f"Holm, rodzina ({key}): {fam['opis']}",
+            "; ".join(f"{t['test']}: {f4(t['p_raw'])} → {f4(t['p_holm_rodzina'])}" for t in fam["testy"]), "p surowe → p Holm",
+            "[Z]", "overnight_2026-11/holm_families.json", f"{S11} §11.1",
+            f"korekta Holma w obrębie rodziny (m = {fam['m']}); metoda p surowych: {fam['testy'][0]['metoda']}")
+    wsz = (hf.get("wszystkie") or {}).get("testy") or []
+    wyb = [t for t in wsz if (t["rodzina"], t["test"].split(" ")[0]) in (("c", "D−A"), ("d", "EPB−EB"))]
+    if wyb:
+        add(G, "Holm po wszystkich 17 testach: D−A model pełny / EPB−EB",
+            " / ".join(f4(t["p_holm_wszystkie"]) for t in wyb), "p Holm", "[Z]", "overnight_2026-11/holm_families.json",
+            f"{S11} §11.1", "korekta konserwatywna (testy z różnych pytań); oba wyniki tracą istotność")
+
+    for sd_ in (0, 1, 2):
+        b = _load(ON / f"bootstrap_EA_vs_EB_seed{sd_}_nboot2000.json")
+        if b:
+            add(G, f"Bootstrap EA−EB (n_boot = {b['n_boot']}), ziarno {sd_}",
+                f"{b['delta_point']:+.5f} [{b['ci_low']:+.5f}; {b['ci_high']:+.5f}]", "RMSE test@36", "[Z]",
+                f"overnight_2026-11/bootstrap_EA_vs_EB_seed{sd_}_nboot2000.json", f"{S11} §11.2",
+                f"bootstrap sparowany po {b['n_locations']} lokalizacjach, boot_seed = {b['seed']}, boot_sd = {b['boot_sd']:.5f}; "
+                "zastępuje CI z `compare_*.json` o mniejszym n_boot")
+    nbs = [(_load(paths.ML_OUTPUTS / "eval" / f"compare_EA_seed{x}_vs_EB_seed{x}.json") or {}).get("n_boot") for x in (0, 1, 2)]
+    if all(nbs):
+        add(G, "n_boot w `compare_EA_seedN_vs_EB_seedN.json` (ziarna 0 / 1 / 2)", " / ".join(map(str, nbs)), "losowań", "[Z]",
+            "eval/compare_EA_seed*_vs_EB_seed*.json", f"{S11} §11.2", "domyślne `--n-boot` w `evaluate.py` to 2000; ziarno bootstrapu 0 we wszystkich plikach")
+
+    dr = _load(ON / "depth_range_stats.json") or {}
+    if dr:
+        t36 = dr["test@36"]["ogolem"]
+        a10 = t36["progi"]["10.29"]
+        add(G, "Piksele z głębią > 10,29 m, test@36", f"{a10['odsetek_pct']:.3f} % ({a10['licznik']} z {a10['mianownik']})".replace(".", ","),
+            "% ważnych pikseli", "[Z]", "overnight_2026-11/depth_range_stats.json", f"{S11} §11.3",
+            "per scena: " + ", ".join(f"{k} {v['progi']['10.29']['odsetek_pct']:.3f} %".replace(".", ",")
+                                      for k, v in dr["test@36"]["per_scena"].items()))
+        tr = dr["train"]
+        add(G, "Piksele z głębią > 10,29 m, trening B / A / ED",
+            " / ".join(f"{tr[k]['progi']['10.29']['odsetek_pct']:.3f} %".replace(".", ",")
+                       for k in ("B_all_36", "A_cardinal", "ED_random_4_angle_seed0")), "% ważnych pikseli", "[Z]",
+            "overnight_2026-11/depth_range_stats.json", f"{S11} §11.3", "B = 36 orientacji; A = cardinal; ED = random_4, angle_seed 0")
+        add(G, "Piksele z głębią > 8 m / > 12 m, test@36",
+            f"{t36['progi']['8']['odsetek_pct']:.3f} % / {t36['progi']['12']['odsetek_pct']:.3f} %".replace(".", ","),
+            "% ważnych pikseli", "[Z]", "overnight_2026-11/depth_range_stats.json", f"{S11} §11.3", "")
+        add(G, "Piksele z głębią powyżej `max_depth` (14,104 m)",
+            f"test@36: {dr['test@36'].get('n_pikseli_powyzej_max_depth')}; trening: {tr.get('n_pikseli_powyzej_max_depth')}",
+            "pikseli", "[Z]", "overnight_2026-11/depth_range_stats.json", f"{S11} §11.3", "")
+
+    def br(cond, var, f):
+        v = []
+        for sd_ in (0, 1, 2):
+            d = _load(ON / f"branch_diag_{cond}_seed{sd_}.json")
+            if not d:
+                return None
+            v.append(f(d["variants"][var]))
+        return float(np.mean(v))
+
+    wyn = (("baseline", "RMSE baseline (depth_predicted)", lambda x: x["RMSE_all"], "zgodne z eval.json"),
+           ("branch_audio_depth", "sama gałąź audio_depth", lambda x: x["RMSE_all"],
+            "gałęzie uczone tylko jako mieszanina — to nie jest wkład audio/obrazu"),
+           ("branch_img_depth", "sama gałąź img_depth", lambda x: x["RMSE_all"], ""),
+           ("baseline", "średnia α (piksele ważne)", lambda x: x["alpha"]["alpha_mean_valid_px"], ""),
+           ("alpha_const_mean", "α := średnia α", lambda x: x["RMSE_all"], "średnia α z test@36 tego samego modelu"),
+           ("alpha_const_0.5", "α := 0,5", lambda x: x["RMSE_all"], ""),
+           ("material_zeros", "cechy materiału := 0", lambda x: x["RMSE_all"], "zaburzenie poza rozkładem"),
+           ("material_shuffle", "cechy materiału przetasowane w batchu", lambda x: x["RMSE_all"],
+            "ziarno 12345, batch 32; wynik zależy od rozmiaru batcha"))
+    for var, opis, fn, uw in wyn:
+        vals = [br(c, var, fn) for c in ("A", "D", "B")]
+        if all(x is not None for x in vals):
+            add(G, f"Diagnostyka gałęzi: {opis} (A / D / B)", " / ".join(f"{x:.4f}".replace(".", ",") for x in vals),
+                "—" if "α (piksele" in opis else "RMSE", "[Z]" if not uw.startswith(("średnia", "zaburz", "ziarno")) else "[Z-]",
+                "overnight_2026-11/branch_diag_*.json", f"{S11} §11.4", ("średnia z 3 ziaren; " + uw).rstrip("; "))
+
+    nf = _load(paths.ML_OUTPUTS / "determinism" / "noise_floor_ED_40k.json") or {}
+    if nf.get("n_przebiegow"):
+        add(G, "Niedeterminizm GPU, ED ziarno 0, powtórzenia 40 000 kroków: średnia ± sd",
+            f"{nf['srednia']:.5f} ± {nf['sd']:.5f}", "RMSE test@36", "[Z]", "determinism/noise_floor_ED_40k.json", f"{S11} §11.5",
+            f"{nf['n_przebiegow']} powtórzeń; rozstęp {nf['rozstep']:.5f}; oryginalny `ED_seed0` = {nf['oryginal']['RMSE_test36']:.5f} "
+            f"({nf['oryginal']['z_wzgledem_sd']:+.1f} sd, poza zakresem: {not nf['oryginal']['w_zakresie_powtorzen']})")
+    nf2 = _load(paths.ML_OUTPUTS / "determinism" / "noise_floor_ED_seeds12_40k.json") or {}
+    if nf2.get("per_ziarno"):
+        rw = []
+        for z, blok in nf2["per_ziarno"].items():
+            if blok.get("przebiegi"):
+                rw.append((z, blok["przebiegi"][0]["RMSE_test36"], blok["oryginal"]["RMSE_test36"]))
+        if rw:
+            add(G, "Niedeterminizm GPU, ziarna 1 / 2: powtórzenie − oryginał",
+                " / ".join(f"{a - b:+.5f}" for _, a, b in rw), "RMSE test@36", "[Z]", "determinism/noise_floor_ED_seeds12_40k.json",
+                f"{S11} §11.5", "powtórzenia " + " / ".join(f"{a:.5f}" for _, a, _b in rw) + "; oryginały " + " / ".join(f"{b:.5f}" for _, _a, b in rw))
+    dif = []
+    for sd_ in (0, 1, 2):
+        a = _load(paths.ML_OUTPUTS / "eval" / f"ED_seed{sd_}" / "eval.json")
+        b = _load(paths.ML_OUTPUTS / "eval" / f"ED_seed{sd_}_reeval" / "eval.json")
+        if a and b:
+            dif.append(abs(a["test_sets"]["test@36"]["overall"]["all"]["RMSE"] - b["test_sets"]["test@36"]["overall"]["all"]["RMSE"]))
+    if len(dif) == 3:
+        add(G, "Ponowna ewaluacja oryginalnych wag ED_seed0/1/2: max |Δ RMSE|", f"{max(dif):.1e}", "RMSE test@36", "[Z]",
+            "eval/ED_seed{0,1,2}_reeval/eval.json", f"{S11} §11.5", "obecny kod i sterownik; ewaluacja deterministyczna, rozbieżność powstaje w treningu")
+
+    tt = (_load(paths.ML_OUTPUTS / "tables_5_3_5_5" / "tables.json") or {}).get("tabele") or {}
+    if tt:
+        w = [r for r in tt["5.4"]["wiersze"] if r.get("krok_od_poprzedniego_K")]
+        add(G, "Krzywa K: krok między sąsiednimi K w krotnościach rozstępu GPU (4→6 / 6→9 / 9→12 / 12→18 / 18→36)",
+            " / ".join(f"{r['krok_od_poprzedniego_K']['krotnosc_rozstepu']:.1f}×".replace(".", ",") for r in w), "×", "[Z]",
+            "tables_5_3_5_5/tables.json", f"{S11} §11.6", f"rozstęp {tt['5.4']['rozstep_podlogi_szumu_GPU']:.5f} z noise_floor_ED_40k.json; kroki > K = 12 mieszczą się w zakresie niedeterminizmu")
+        add(G, "Krzywa K: udział zysku 4→36 dla K = 6 / 9 / 12 / 18",
+            " / ".join(f"{r['udzial_zysku_4_36_pct']:.1f}".replace(".", ",") for r in tt["5.4"]["wiersze"] if r["K"] in (6, 9, 12, 18)),
+            "%", "[Z]", "tables_5_3_5_5/tables.json", f"{S11} §11.6", "")
+        lk = [(c, tt["5.5"]["krzywe"][c]["_luka"]) for c in ("EK6", "EK9", "EK12", "EK18")]
+        add(G, "Luka kątowa 0°→max wg K (K = 6 / 9 / 12 / 18)", " / ".join(f"{g['mean']:+.3f}".replace(".", ",") for _, g in lk), "RMSE", "[Z]",
+            "tables_5_3_5_5/tables.json", f"{S11} §11.6",
+            "odległość od najbliższej orientacji SIATKI K (maks. " + " / ".join(f"{g['od_0_do']}°" for _, g in lk) + "); K=18 nieistotna")
+
+    # Hiperparametry i AMP z config.json (43 przebiegi sieci glebi, jawne nazwy)
+    runy = [f"{c}_seed{s_}" for c in GLEBIA_14 for s_ in (0, 1, 2)] + ["SE_seed0"]
+    cfgs = [(_load(paths.RUNS_DIR / r / "config.json") or {}).get("spec") for r in runy]
+    if all(cfgs):
+        ust = {(c["total_steps"], c["batch_size"], c["lr"], c["weight_decay"], c["beta1"], c["optimizer"]) for c in cfgs}
+        amp = sum(1 for c in cfgs if c["amp"])
+        if len(ust) == 1:
+            ts, bs, lr, wd, b1, opt = next(iter(ust))
+            add(G, f"Hiperparametry treningu sieci głębi (identyczne w {len(cfgs)}/{len(cfgs)} przebiegach)",
+                f"{ts} kroków, batch {bs}, lr {lr:g}, wd {wd:g}, {opt} (β₁ = {b1:g}), AMP w {amp}/{len(cfgs)}".replace(".", ","),
+                "—", "[Z]", "runs/*/config.json", f"{S11} §6",
+                "strata `LogDepthLoss` na pikselach gt ≠ 0, `max_depth` 14,104 m (`train_condition.py`, `experiments.py`)")
+
     # ---- 6. budzet
     b = exp.get("budzet", {})
     if b:
-        add("budzet", "Przebiegów w macierzy", b.get("razem", {}).get("przebiegow"), "przebiegów", "[W]",
-            "experiments.json", f"{R10} §5.5", "22 warunki × 3 ziarna")
+        add("budzet", "Przebiegów w macierzy (PLAN)", b.get("razem", {}).get("przebiegow"), "przebiegów", "[W]",
+            "experiments.json", f"{R10} §5.5",
+            "22 warunki × 3 ziarna; to PLAN z `experiments.json`, nie liczba wykonanych przebiegów (część grup skreślono, "
+            "w `outputs/ml/runs/` leży 43 przebiegi sieci głębi). Liczba „84 przebiegów GPU\" ze STAN_WYNIKOW obejmuje całą "
+            "fazę ML (także pretekst, transfer i sondy), nie jest tą samą wielkością")
         add("budzet", "Czas całej macierzy (--fast-bilinear)", b.get("razem", {}).get("godzin"), "h", "[W]",
             "experiments.json", f"{R10} §5.5", "dolne oszacowanie — bez narzutu walidacji")
         add("budzet", "Dysk: cała macierz", b.get("razem", {}).get("GB_z_adamem"), "GB", "[W]",
@@ -577,10 +906,6 @@ def collect() -> tuple[list[dict], list[dict]]:
          "da_to": "grupa `krzywa`, 12 przebiegów, 10,4 h — SKREŚLONA świadomie",
          "po_co": "rośnie po gęstości I rozmiarze zbioru naraz; `krzywa_staly` odpowiada na to "
                   "samo pytanie ostrzej i JEST policzona — luki w tekście NIE zostawiać"},
-        {"czego": "Rozrzut po ziarnach dla MAAE zadania pretekstowego (§4)",
-         "da_to": "pretext_K{4,12,36} × ziarna 1–2, ~1,6 h",
-         "po_co": "MAAE 61,23 / 55,73 / 25,13 mają n=1 — podane BEZ oszacowania rozrzutu; "
-                  "pominięte świadomie (niski zwrot), ale w tekście musi to być napisane"},
         {"czego": "Wariant `patched` na PEŁNYM modelu (PA/PB/PD)",
          "da_to": "grupa `geometria` — SKREŚLONA świadomie",
          "po_co": "wada geometrii jest akustyczna, więc `geometria_echo` bada ją ostrzej i ~20× taniej"},
@@ -616,7 +941,7 @@ def _duplikaty_nazw(N: list[dict]) -> list[dict]:
 def render_md(N: list[dict], BRAK: list[dict], DUP: list[dict] | None = None) -> str:
     L = ["# Liczby do pracy — zestawienie zmierzonych wartości",
          "",
-         "Wygenerowane automatycznie przez `my-operations/ml/thesis_numbers.py`. Nie edytować ręcznie —",
+         "Wygenerowane automatycznie przez `my-operations/ml/analysis/thesis_numbers.py`. Nie edytować ręcznie —",
          "zmiany przepadną przy następnym uruchomieniu. Źródło maszynowe: `outputs/ml/thesis_numbers.json`.",
          "",
          "| status | znaczenie |", "|---|---|",

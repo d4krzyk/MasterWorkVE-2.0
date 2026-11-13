@@ -1,0 +1,496 @@
+{
+  "opis": "odsetek waznych pikseli glebi (depth > 0) z glebia > prog; wariant main",
+  "prog_glowny_m": 10.29,
+  "prog_glowny_uzasadnienie": "promien dwustronny okna echa 60 ms: 343 m/s * 0,060 s / 2",
+  "progi_m": [
+    8.0,
+    10.29,
+    12.0
+  ],
+  "max_depth_replica": 14.104,
+  "wariant": "main",
+  "split_fingerprint": "e0bf7547668d9e0a",
+  "dry_run": false,
+  "test@36": {
+    "ogolem": {
+      "n_samples": 6588,
+      "n_valid_pixels": 96853180,
+      "progi": {
+        "8": {
+          "licznik": 138293,
+          "mianownik": 96853180,
+          "odsetek_pct": 0.14278622550132067
+        },
+        "10.29": {
+          "licznik": 13456,
+          "mianownik": 96853180,
+          "odsetek_pct": 0.013893193801174108
+        },
+        "12": {
+          "licznik": 1255,
+          "mianownik": 96853180,
+          "odsetek_pct": 0.0012957757298211582
+        }
+      }
+    },
+    "per_scena": {
+      "apartment_2": {
+        "n_samples": 2556,
+        "n_valid_pixels": 37090393,
+        "progi": {
+          "8": {
+            "licznik": 11473,
+            "mianownik": 37090393,
+            "odsetek_pct": 0.03093253824514612
+          },
+          "10.29": {
+            "licznik": 35,
+            "mianownik": 37090393,
+            "odsetek_pct": 9.436405809989665e-05
+          },
+          "12": {
+            "licznik": 0,
+            "mianownik": 37090393,
+            "odsetek_pct": 0.0
+          }
+        }
+      },
+      "frl_apartment_5": {
+        "n_samples": 2664,
+        "n_valid_pixels": 37349731,
+        "progi": {
+          "8": {
+            "licznik": 126820,
+            "mianownik": 37349731,
+            "odsetek_pct": 0.33954729151864577
+          },
+          "10.29": {
+            "licznik": 13421,
+            "mianownik": 37349731,
+            "odsetek_pct": 0.03593332439261745
+          },
+          "12": {
+            "licznik": 1255,
+            "mianownik": 37349731,
+            "odsetek_pct": 0.0033601312951892478
+          }
+        }
+      },
+      "office_4": {
+        "n_samples": 1368,
+        "n_valid_pixels": 22413056,
+        "progi": {
+          "8": {
+            "licznik": 0,
+            "mianownik": 22413056,
+            "odsetek_pct": 0.0
+          },
+          "10.29": {
+            "licznik": 0,
+            "mianownik": 22413056,
+            "odsetek_pct": 0.0
+          },
+          "12": {
+            "licznik": 0,
+            "mianownik": 22413056,
+            "odsetek_pct": 0.0
+          }
+        }
+      }
+    },
+    "sceny": [
+      "apartment_2",
+      "frl_apartment_5",
+      "office_4"
+    ],
+    "sceny_zgodne_z_held_out": true,
+    "n_samples_oczekiwane_pelny_przebieg": 6588,
+    "n_samples_zgodne_6588": true,
+    "n_pikseli_powyzej_max_depth": 0
+  },
+  "train": {
+    "B_all_36": {
+      "n_samples": 49464,
+      "n_valid_pixels": 745360080,
+      "progi": {
+        "8": {
+          "licznik": 1458335,
+          "mianownik": 745360080,
+          "odsetek_pct": 0.19565509867391878
+        },
+        "10.29": {
+          "licznik": 131684,
+          "mianownik": 745360080,
+          "odsetek_pct": 0.017667165646971596
+        },
+        "12": {
+          "licznik": 7461,
+          "mianownik": 745360080,
+          "odsetek_pct": 0.0010009927014068153
+        }
+      }
+    },
+    "A_cardinal": {
+      "n_samples": 5496,
+      "n_valid_pixels": 82899002,
+      "progi": {
+        "8": {
+          "licznik": 175403,
+          "mianownik": 82899002,
+          "odsetek_pct": 0.21158638315090936
+        },
+        "10.29": {
+          "licznik": 18467,
+          "mianownik": 82899002,
+          "odsetek_pct": 0.02227650460737754
+        },
+        "12": {
+          "licznik": 985,
+          "mianownik": 82899002,
+          "odsetek_pct": 0.0011881928325265002
+        }
+      }
+    },
+    "ED_random_4_angle_seed0": {
+      "n_samples": 5496,
+      "n_valid_pixels": 82795377,
+      "progi": {
+        "8": {
+          "licznik": 162875,
+          "mianownik": 82795377,
+          "odsetek_pct": 0.1967199207269749
+        },
+        "10.29": {
+          "licznik": 13489,
+          "mianownik": 82795377,
+          "odsetek_pct": 0.0162919724370601
+        },
+        "12": {
+          "licznik": 743,
+          "mianownik": 82795377,
+          "odsetek_pct": 0.0008973930996171441
+        }
+      }
+    },
+    "B_all_36_per_scena": {
+      "apartment_0": {
+        "n_samples": 7596,
+        "n_valid_pixels": 124452027,
+        "progi": {
+          "8": {
+            "licznik": 357182,
+            "mianownik": 124452027,
+            "odsetek_pct": 0.28700376250199605
+          },
+          "10.29": {
+            "licznik": 29661,
+            "mianownik": 124452027,
+            "odsetek_pct": 0.02383327995131811
+          },
+          "12": {
+            "licznik": 3248,
+            "mianownik": 124452027,
+            "odsetek_pct": 0.002609840979126841
+          }
+        }
+      },
+      "apartment_1": {
+        "n_samples": 6336,
+        "n_valid_pixels": 97531413,
+        "progi": {
+          "8": {
+            "licznik": 3694,
+            "mianownik": 97531413,
+            "odsetek_pct": 0.0037874976752361824
+          },
+          "10.29": {
+            "licznik": 0,
+            "mianownik": 97531413,
+            "odsetek_pct": 0.0
+          },
+          "12": {
+            "licznik": 0,
+            "mianownik": 97531413,
+            "odsetek_pct": 0.0
+          }
+        }
+      },
+      "frl_apartment_0": {
+        "n_samples": 4680,
+        "n_valid_pixels": 65082396,
+        "progi": {
+          "8": {
+            "licznik": 183493,
+            "mianownik": 65082396,
+            "odsetek_pct": 0.28193952785634996
+          },
+          "10.29": {
+            "licznik": 15468,
+            "mianownik": 65082396,
+            "odsetek_pct": 0.023766795555590792
+          },
+          "12": {
+            "licznik": 202,
+            "mianownik": 65082396,
+            "odsetek_pct": 0.0003103757888692358
+          }
+        }
+      },
+      "frl_apartment_1": {
+        "n_samples": 4680,
+        "n_valid_pixels": 65044640,
+        "progi": {
+          "8": {
+            "licznik": 243265,
+            "mianownik": 65044640,
+            "odsetek_pct": 0.3739969965242332
+          },
+          "10.29": {
+            "licznik": 25303,
+            "mianownik": 65044640,
+            "odsetek_pct": 0.03890097631411289
+          },
+          "12": {
+            "licznik": 801,
+            "mianownik": 65044640,
+            "odsetek_pct": 0.0012314619621232434
+          }
+        }
+      },
+      "frl_apartment_2": {
+        "n_samples": 4500,
+        "n_valid_pixels": 63693817,
+        "progi": {
+          "8": {
+            "licznik": 219414,
+            "mianownik": 63693817,
+            "odsetek_pct": 0.3444824165585806
+          },
+          "10.29": {
+            "licznik": 21433,
+            "mianownik": 63693817,
+            "odsetek_pct": 0.03365004801015458
+          },
+          "12": {
+            "licznik": 1244,
+            "mianownik": 63693817,
+            "odsetek_pct": 0.0019530938144278589
+          }
+        }
+      },
+      "frl_apartment_3": {
+        "n_samples": 5292,
+        "n_valid_pixels": 73844432,
+        "progi": {
+          "8": {
+            "licznik": 231327,
+            "mianownik": 73844432,
+            "odsetek_pct": 0.31326261674001366
+          },
+          "10.29": {
+            "licznik": 18501,
+            "mianownik": 73844432,
+            "odsetek_pct": 0.025054021676272086
+          },
+          "12": {
+            "licznik": 879,
+            "mianownik": 73844432,
+            "odsetek_pct": 0.0011903402547669404
+          }
+        }
+      },
+      "frl_apartment_4": {
+        "n_samples": 4572,
+        "n_valid_pixels": 64004384,
+        "progi": {
+          "8": {
+            "licznik": 215936,
+            "mianownik": 64004384,
+            "odsetek_pct": 0.33737688968305674
+          },
+          "10.29": {
+            "licznik": 21318,
+            "mianownik": 64004384,
+            "odsetek_pct": 0.03330709346409771
+          },
+          "12": {
+            "licznik": 1087,
+            "mianownik": 64004384,
+            "odsetek_pct": 0.0016983211650001976
+          }
+        }
+      },
+      "hotel_0": {
+        "n_samples": 1728,
+        "n_valid_pixels": 28311128,
+        "progi": {
+          "8": {
+            "licznik": 700,
+            "mianownik": 28311128,
+            "odsetek_pct": 0.00247252599755121
+          },
+          "10.29": {
+            "licznik": 0,
+            "mianownik": 28311128,
+            "odsetek_pct": 0.0
+          },
+          "12": {
+            "licznik": 0,
+            "mianownik": 28311128,
+            "odsetek_pct": 0.0
+          }
+        }
+      },
+      "office_0": {
+        "n_samples": 936,
+        "n_valid_pixels": 15329668,
+        "progi": {
+          "8": {
+            "licznik": 0,
+            "mianownik": 15329668,
+            "odsetek_pct": 0.0
+          },
+          "10.29": {
+            "licznik": 0,
+            "mianownik": 15329668,
+            "odsetek_pct": 0.0
+          },
+          "12": {
+            "licznik": 0,
+            "mianownik": 15329668,
+            "odsetek_pct": 0.0
+          }
+        }
+      },
+      "office_1": {
+        "n_samples": 576,
+        "n_valid_pixels": 9437045,
+        "progi": {
+          "8": {
+            "licznik": 0,
+            "mianownik": 9437045,
+            "odsetek_pct": 0.0
+          },
+          "10.29": {
+            "licznik": 0,
+            "mianownik": 9437045,
+            "odsetek_pct": 0.0
+          },
+          "12": {
+            "licznik": 0,
+            "mianownik": 9437045,
+            "odsetek_pct": 0.0
+          }
+        }
+      },
+      "office_2": {
+        "n_samples": 1332,
+        "n_valid_pixels": 20457227,
+        "progi": {
+          "8": {
+            "licznik": 0,
+            "mianownik": 20457227,
+            "odsetek_pct": 0.0
+          },
+          "10.29": {
+            "licznik": 0,
+            "mianownik": 20457227,
+            "odsetek_pct": 0.0
+          },
+          "12": {
+            "licznik": 0,
+            "mianownik": 20457227,
+            "odsetek_pct": 0.0
+          }
+        }
+      },
+      "office_3": {
+        "n_samples": 2232,
+        "n_valid_pixels": 36187946,
+        "progi": {
+          "8": {
+            "licznik": 3226,
+            "mianownik": 36187946,
+            "odsetek_pct": 0.008914570614203967
+          },
+          "10.29": {
+            "licznik": 0,
+            "mianownik": 36187946,
+            "odsetek_pct": 0.0
+          },
+          "12": {
+            "licznik": 0,
+            "mianownik": 36187946,
+            "odsetek_pct": 0.0
+          }
+        }
+      },
+      "room_0": {
+        "n_samples": 2052,
+        "n_valid_pixels": 33619629,
+        "progi": {
+          "8": {
+            "licznik": 98,
+            "mianownik": 33619629,
+            "odsetek_pct": 0.00029149637552514335
+          },
+          "10.29": {
+            "licznik": 0,
+            "mianownik": 33619629,
+            "odsetek_pct": 0.0
+          },
+          "12": {
+            "licznik": 0,
+            "mianownik": 33619629,
+            "odsetek_pct": 0.0
+          }
+        }
+      },
+      "room_1": {
+        "n_samples": 1260,
+        "n_valid_pixels": 20643748,
+        "progi": {
+          "8": {
+            "licznik": 0,
+            "mianownik": 20643748,
+            "odsetek_pct": 0.0
+          },
+          "10.29": {
+            "licznik": 0,
+            "mianownik": 20643748,
+            "odsetek_pct": 0.0
+          },
+          "12": {
+            "licznik": 0,
+            "mianownik": 20643748,
+            "odsetek_pct": 0.0
+          }
+        }
+      },
+      "room_2": {
+        "n_samples": 1692,
+        "n_valid_pixels": 27720580,
+        "progi": {
+          "8": {
+            "licznik": 0,
+            "mianownik": 27720580,
+            "odsetek_pct": 0.0
+          },
+          "10.29": {
+            "licznik": 0,
+            "mianownik": 27720580,
+            "odsetek_pct": 0.0
+          },
+          "12": {
+            "licznik": 0,
+            "mianownik": 27720580,
+            "odsetek_pct": 0.0
+          }
+        }
+      }
+    },
+    "n_pikseli_powyzej_max_depth": 131,
+    "uwaga": "A i ED to podzbiory wierszy B wybrane przez angles.select_angles (cardinal; random_4 z angle_seed=0, jak warunek ED/D)"
+  },
+  "czas_s": 27.3
+}

@@ -94,14 +94,20 @@ odrzucić.** Po policzeniu regułą podłańcuchową i po powierzchni:
 
 | | kategorii | % powierzchni |
 |---|---|---|
-| jednoznacznie dopasowane | 43 | 88.6 % |
+| jednoznacznie dopasowane | 43 | 89.1 % |
 | niejednoznaczne (remis, wynik nieokreślony) | 1 (`wall-cabinet`) | 1.9 % |
-| materiał domyślny | 43 | 9.0 % |
+| materiał domyślny | 41 nazwanych + 2 pseudo-kategorie (`class_id = −1`, obiekty spoza `info_semantic`) | 9.0 % |
+
+*Korekta 2026-11-13 (przeliczone z `mesh_semantic.ply`, `info_semantic.json` i reguły podłańcuchowej dla `mp3d_material_config.json`):
+dopasowane 89,08 %, remis `wall-cabinet` 1,88 %, domyślne 9,04 % (41 kategorii nazwanych 6,90 % + `class_id = −1` 2,09 % +
+obiekty spoza `info_semantic` 0,06 %); suma 100 %. Wcześniej podawane 88,6 % dawało sumę 99,5 %. Pod configiem Repliki
+wszystkie 85 kategorii nazwanych jest dopasowanych (97,86 % powierzchni); przypisanie zmieniło się dla 51 kategorii
+(41 z domyślnego na konkretny materiał, 10 z innego materiału lub remisu).*
 
 Nazwy kategorii Repliki w dużej mierze **pokrywają się** ze słownikiem etykiet mp3d (`wall`,
 `floor`, `ceiling`, `door`, `chair`, `table`, `rug`, `window`, `sofa`, `bed`, …), więc pokrycie
 było dobre. Wrażenie „materiały są fikcyjne" brało się z liczby **linii ostrzeżeń** w logu, a te
-liczą kategorie, nie powierzchnię — 43 nietrafione kategorie to 43 komunikaty, ale tylko 9 %
+liczą kategorie, nie powierzchnię — 41 nietrafionych kategorii nazwanych to 41 komunikatów, ale tylko 9 %
 sceny.
 
 **Prawdziwy problem leży gdzie indziej: w samych przypisaniach.** Dwa z nich są rażąco błędne dla

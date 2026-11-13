@@ -1,6 +1,6 @@
 # Liczby do pracy — zestawienie zmierzonych wartości
 
-Wygenerowane automatycznie przez `my-operations/ml/thesis_numbers.py`. Nie edytować ręcznie —
+Wygenerowane automatycznie przez `my-operations/ml/analysis/thesis_numbers.py`. Nie edytować ręcznie —
 zmiany przepadną przy następnym uruchomieniu. Źródło maszynowe: `outputs/ml/thesis_numbers.json`.
 
 | status | znaczenie |
@@ -36,6 +36,7 @@ spektrogramu" to odległość RMS dwóch spektrogramów, nie metryka modelu (`KO
 | Udział pikseli depth == 0, main | **8.48034** | % | [Z] | `verify_loader/main/verify_loader.json` | RAPORT_SESJI_2026-08-10.md §1.1 |
 | Udział pikseli depth == 0, patched | **0.21207** | % | [Z] | `verify_loader/patched/verify_loader.json` | RAPORT_SESJI_2026-08-10.md §1.1 |
 | Udział pikseli krawędziowych (próg 0,10 m/px) | **11.3** | % | [Z] | `eval/*/eval.json` | RAPORT_SESJI_2026-08-05.md §3.12 |
+| Lokalizacji testowych na scenę | **apartment_2: 71, frl_apartment_5: 74, office_4: 38** | lokalizacji | [Z] | `eval/A_seed0/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §6 |
 
 Uwagi:
 - **Scen treningowych / held-out** — held-out: apartment_2, frl_apartment_5, office_4
@@ -44,6 +45,7 @@ Uwagi:
 - **Kształt spektrogramu** — bit-zgodny z generate_spectrogram() Paridy
 - **Pikseli powyżej max_depth** — wszystkie w apartment_0 (scena treningowa)
 - **Udział pikseli krawędziowych (próg 0,10 m/px)** — 0,05 m/px → 21,54 %; 0,20 m/px → 5,86 %
+- **Lokalizacji testowych na scenę** — n_samples / 36 na test@36 (2556/36, 2664/36, 1368/36); suma 183 = cały zbiór testowy. Zbiór testowy jest wspólny dla wszystkich warunków, więc liczby nie zależą od przebiegu
 
 ## 2. Charakterystyka silnika akustycznego
 
@@ -53,16 +55,20 @@ Uwagi:
 | threadCount | **1** | wątek | [Z] | `atrybuty HDF5` | docs/GENERATOR_PARAMS.md §1 |
 | Sygnał przy 10° (SIGNAL_10DEG) | **0.0644** | RMSE spektrogramu | [Z] | `atrybuty HDF5` | docs/GENERATOR_PARAMS.md §3 |
 | Docelowy SNR | **3.5** | — | [Z] | `atrybuty HDF5` | docs/GENERATOR_PARAMS.md §3 |
-| Szum render-do-renderu (ten sam kąt) | **0,03–0,16** | RMSE spektrogramu | [Z] | `diagnose_rlr_noise_out/` | CLAUDE.md |
+| Szum pojedynczego renderu `sigma_1` (ten sam kąt) | **0,0253–0,1345** | RMSE spektrogramu | [Z] | `outputs/probe_census/_all_scenes.csv` | docs/GENERATOR_PARAMS.md §3.2 |
 | RMSE między renderami 90° od siebie | **0,30–0,35** | RMSE spektrogramu | [Z] | `diagnose_rlr_noise_out/` | CLAUDE.md |
 | N adaptacyjne: min / max / próbne | **6 / 64 / 8** | renderów | [Z] | `atrybuty HDF5` | docs/GENERATOR_PARAMS.md §3 |
 | Czas renderu (materiały włączone) | **0,111–0,148** | s/render | [Z] | `atrybuty HDF5` | docs/GENERATOR_PARAMS.md §4.3 |
 | Przepustowość dataloadera (8 workerów) | **2645.1** | próbek/s | [Z] | `bench/bench_main.json` | RAPORT_SESJI_2026-08-05.md §3.7 |
+| Stałe N o gwarancji SNR ≥ 3,5 dla 100 % / 99 % / 95 % lokalizacji | **54 / 35 / 25** | renderów | [Z] | `outputs/probe_census/_all_scenes.csv` | docs/GENERATOR_PARAMS.md §3.2 |
+| Udział lokalizacji pokrytych przez stałe N = 21 | **91.21** | % | [Z] | `outputs/probe_census/_all_scenes.csv` | docs/GENERATOR_PARAMS.md §3.2 |
 
 Uwagi:
 - **threadCount** — wątki dzielą budżet promieni
-- **Szum render-do-renderu (ten sam kąt)** — zależny od pozycji
+- **Szum pojedynczego renderu `sigma_1` (ten sam kąt)** — census 1740 lokalizacji, mediana 0.0583; maksimum ≈ 2.1× sygnału 10° (Δ = 0,0644). Wcześniejsze „0,03–0,16" to RMSE DWÓCH renderów (≈ √2·`sigma_1`) z wczesnej diagnostyki, nie `sigma_1` — nie cytować
 - **RMSE między renderami 90° od siebie** — potwierdzone niezależnie w geometry_check: 0,3029–0,3159
+- **Stałe N o gwarancji SNR ≥ 3,5 dla 100 % / 99 % / 95 % lokalizacji** — najmniejsze stałe N, przy którym co najmniej dany odsetek z 1740 lokalizacji ma N_raw = ceil((γ·σ₁/Δ)²) ≤ N, γ = 3,5, Δ = 0,0644; faktyczne pokrycie: 100.00 % / 99.08 % / 95.11 %. Dla porównania reguła adaptacyjna zużywa średnio 12.08 renderu na lokalizację (mediana N_raw 11); σ₁ pochodzi z sondy 8 renderów
+- **Udział lokalizacji pokrytych przez stałe N = 21** — 1587 z 1740 lokalizacji ma N_raw ≤ 21, czyli SNR ≥ 3,5 przy N = 21; pozostałe 153 byłyby poniżej docelowego SNR
 
 ## 3. Geometria `main` vs `patched`
 
@@ -195,6 +201,10 @@ Uwagi:
 | Model 2: MAAE pretekstu wg wariantu — K12 | **58.73 ± 2.61** | stopnie | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §4 |
 | Model 2: MAAE pretekstu wg wariantu — K36 | **25.65 ± 0.74** | stopnie | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §4 |
 | Model 2: MAAE pretekstu wg wariantu — K36@16par | **58.70 ± 7.40** | stopnie | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: trafność top-1 zadania pretekstowego — K4 | **49,58 % (47,92 / 52,08 / 48,74)** | % | [Z] | `pretext/pretext_*/best.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: trafność top-1 zadania pretekstowego — K12 | **26,21 % (27,08 / 24,69 / 26,84)** | % | [Z] | `pretext/pretext_*/best.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: trafność top-1 zadania pretekstowego — K36 | **17,82 % (18,31 / 16,53 / 18,61)** | % | [Z] | `pretext/pretext_*/best.json` | RAPORT_SESJI_2026-08-13.md §4 |
+| Model 2: trafność top-1 zadania pretekstowego — K36@16par | **6,06 % (5,43 / 5,36 / 7,38)** | % | [Z] | `pretext/pretext_*/best.json` | RAPORT_SESJI_2026-08-13.md §4 |
 | Model 2: RGB2Depth po pretreningu — pretext_K4_seed0 @ 100% zbioru | **0.28699 ± 0.00433** | RMSE | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §5 |
 | Model 2: RGB2Depth po pretreningu — pretext_K36_p16_seed0 @ 100% zbioru | **0.28927 ± 0.00340** | RMSE | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §5 |
 | Model 2: RGB2Depth po pretreningu — scratch @ 100% zbioru | **0.28986 ± 0.00204** | RMSE | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §5 |
@@ -209,6 +219,27 @@ Uwagi:
 | Model 2: RMSE docelowego — SAMA rozdzielczość kątowa | **0.00228** | RMSE | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §5 |
 | Model 2: RMSE docelowego — SAMA liczba par | **0.00512** | RMSE | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §5 |
 | Model 2: RMSE docelowego — efekt łączny K36 − K4 | **0.0074** | RMSE | [Z] | `pretext/summary.json` | RAPORT_SESJI_2026-08-13.md §5 |
+| PEŁNY MODEL: RMSE uśrednione po obrazach, test@36 — A | **0.25480 ± 0.00372** | RMSE | [Z] | `eval/A_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| PEŁNY MODEL: RMSE uśrednione po obrazach, test@36 — D | **0.23598 ± 0.00214** | RMSE | [Z] | `eval/D_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| PEŁNY MODEL: RMSE uśrednione po obrazach, test@36 — B | **0.21361 ± 0.00152** | RMSE | [Z] | `eval/B_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| PEŁNY MODEL: RMSE test@4 — A | **0.28422 ± 0.00403** | RMSE | [Z] | `eval/A_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| PEŁNY MODEL: luka test@36 − test@4 — A | **+0.00826 ± 0.00206** | RMSE | [Z] | `eval/A_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| PEŁNY MODEL: RMSE test@4 — D | **0.27657 ± 0.00204** | RMSE | [Z] | `eval/D_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| PEŁNY MODEL: luka test@36 − test@4 — D | **-0.00457 ± 0.00086** | RMSE | [Z] | `eval/D_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| PEŁNY MODEL: RMSE test@4 — B | **0.24739 ± 0.00043** | RMSE | [Z] | `eval/B_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| PEŁNY MODEL: luka test@36 − test@4 — B | **-0.00373 ± 0.00099** | RMSE | [Z] | `eval/B_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| PEŁNY MODEL: D − A na test@4 | **-0.00765 ± 0.00262 (p=0.0368)** | RMSE | [Z] | `eval/{D,A}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| PEŁNY MODEL: B − A na test@4 | **-0.03682 ± 0.00361 (p=0.0032)** | RMSE | [Z] | `eval/{B,A}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| Krzywa stałego budżetu: K=6 − K=36 | **+0.06191 (p=6.0e-06)** | RMSE | [Z] | `eval/{EK6,ED}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1 |
+| Krzywa stałego budżetu: K=9 − K=36 | **+0.01910 (p=0.0032)** | RMSE | [Z] | `eval/{EK9,ED}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1 |
+| Krzywa stałego budżetu: K=12 − K=36 | **+0.00899 (p=0.0675)** | RMSE | [Z] | `eval/{EK12,ED}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1 |
+| Krzywa stałego budżetu: K=18 − K=36 | **+0.00372 (p=0.6846)** | RMSE | [Z] | `eval/{EK18,ED}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1 |
+| Gęstość kątowa ED − EA w scenie `apartment_2` (echo2depth) | **-0.06332 ± 0.01671 (p=0.0224)** | RMSE | [Z] | `eval/{ED,EA}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1 |
+| Gęstość kątowa ED − EA w scenie `frl_apartment_5` (echo2depth) | **-0.26265 ± 0.01557 (p=0.0012)** | RMSE | [Z] | `eval/{ED,EA}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1 |
+| Gęstość kątowa ED − EA w scenie `office_4` (echo2depth) | **-0.07417 ± 0.00517 (p=0.0016)** | RMSE | [Z] | `eval/{ED,EA}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1 |
+| Gęstość kątowa D − A w scenie `apartment_2` (pełny model) | **-0.02465 ± 0.00449 (p=0.0109)** | RMSE | [Z] | `eval/{D,A}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| Gęstość kątowa D − A w scenie `frl_apartment_5` (pełny model) | **-0.01775 ± 0.00515 (p=0.0269)** | RMSE | [Z] | `eval/{D,A}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
+| Gęstość kątowa D − A w scenie `office_4` (pełny model) | **-0.01630 ± 0.02188 (p=0.3259)** | RMSE | [Z] | `eval/{D,A}_seed*/eval.json` | dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2 |
 
 Uwagi:
 - **RMSE test@36: EA** — średnia ± sd po 3 ziarnach
@@ -217,7 +248,7 @@ Uwagi:
 - **RMSE test@36: ESE** — średnia ± sd po 3 ziarnach
 - **Kontrast: gęstość kątowa D − A** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.15178, -0.11231]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2
 - **Kontrast: ilość danych B − D** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.07881, -0.05124]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2
-- **Kontrast: łączny B − A** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.22545, -0.16971]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2
+- **Kontrast: łączny B − A** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.22545, -0.16971]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2; UWAGA — dwa różne źródła CI dla tego kontrastu: `echo_3seeds.json` NIE zapisuje liczby losowań, a `eval/compare_EA_seed{0,1,2}_vs_EB_seed{0,1,2}.json` mają n_boot = 200 / 1000 / 1000; obowiązują przedziały z n_boot = 2000 (`overnight_2026-11/bootstrap_EA_vs_EB_seed*_nboot2000.json`, §8)
 - **Kontrast: wkład echa ESE − EB** — sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [0.54044, 0.62404]
 - **Udział gęstości kątowej w efekcie łącznym** — gęstość 2,36× większa niż ilość danych
 - **Luka generalizacji kątowej EA (0° → 40°)** — 52.84 %, monotoniczna w 3/3 ziarnach; stary protokół dawał +0,35540 — zawyżał o 0.04063
@@ -271,6 +302,10 @@ Uwagi:
 - **Model 2: MAAE pretekstu wg wariantu — K12** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=3, sd=— przy n=1
 - **Model 2: MAAE pretekstu wg wariantu — K36** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=3, sd=— przy n=1
 - **Model 2: MAAE pretekstu wg wariantu — K36@16par** — poziom losowy 90° NIEZALEŻNIE od K — dlatego MAAE, a nie top-1; n_ziaren=3, sd=— przy n=1
+- **Model 2: trafność top-1 zadania pretekstowego — K4** — średnia z 3 ziaren (per ziarno w nawiasie); poziom losowy 25.0 % — NIE porównywalny między K, dlatego główną miarą jest MAAE
+- **Model 2: trafność top-1 zadania pretekstowego — K12** — średnia z 3 ziaren (per ziarno w nawiasie); poziom losowy 8.3 % — NIE porównywalny między K, dlatego główną miarą jest MAAE
+- **Model 2: trafność top-1 zadania pretekstowego — K36** — średnia z 3 ziaren (per ziarno w nawiasie); poziom losowy 2.8 % — NIE porównywalny między K, dlatego główną miarą jest MAAE
+- **Model 2: trafność top-1 zadania pretekstowego — K36@16par** — średnia z 3 ziaren (per ziarno w nawiasie); poziom losowy 2.8 % — NIE porównywalny między K, dlatego główną miarą jest MAAE
 - **Model 2: RGB2Depth po pretreningu — pretext_K4_seed0 @ 100% zbioru** — n_ziaren=5; zadanie docelowe BEZ audio w czasie testu; 100% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)
 - **Model 2: RGB2Depth po pretreningu — pretext_K36_p16_seed0 @ 100% zbioru** — n_ziaren=5; zadanie docelowe BEZ audio w czasie testu; 100% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)
 - **Model 2: RGB2Depth po pretreningu — scratch @ 100% zbioru** — n_ziaren=5; zadanie docelowe BEZ audio w czasie testu; 100% zbioru TRENINGOWEGO (walidacja i test zawsze pełne)
@@ -285,12 +320,33 @@ Uwagi:
 - **Model 2: RMSE docelowego — SAMA rozdzielczość kątowa** — wartość ujemna = poprawa; to jest rozkład RMSE ZADANIA DOCELOWEGO, NIE rozkład MAAE pretekstu (§4, w stopniach)
 - **Model 2: RMSE docelowego — SAMA liczba par** — wartość ujemna = poprawa; to jest rozkład RMSE ZADANIA DOCELOWEGO, NIE rozkład MAAE pretekstu (§4, w stopniach)
 - **Model 2: RMSE docelowego — efekt łączny K36 − K4** — wartość ujemna = poprawa; to jest rozkład RMSE ZADANIA DOCELOWEGO, NIE rozkład MAAE pretekstu (§4, w stopniach)
+- **PEŁNY MODEL: RMSE uśrednione po obrazach, test@36 — A** — RMSE uśrednione po obrazach, miara jak w kodzie Paridy, tylko do porównań z literaturą; klucz `RMSE_per_sample`, średnia ± sd po 3 ziarnach; per ziarno: 0.25077 · 0.25808 · 0.25556. NIE mylić z RMSE po pikselach (metryka pracy)
+- **PEŁNY MODEL: RMSE uśrednione po obrazach, test@36 — D** — RMSE uśrednione po obrazach, miara jak w kodzie Paridy, tylko do porównań z literaturą; klucz `RMSE_per_sample`, średnia ± sd po 3 ziarnach; per ziarno: 0.23357 · 0.23673 · 0.23764. NIE mylić z RMSE po pikselach (metryka pracy)
+- **PEŁNY MODEL: RMSE uśrednione po obrazach, test@36 — B** — RMSE uśrednione po obrazach, miara jak w kodzie Paridy, tylko do porównań z literaturą; klucz `RMSE_per_sample`, średnia ± sd po 3 ziarnach; per ziarno: 0.21193 · 0.21489 · 0.21402. NIE mylić z RMSE po pikselach (metryka pracy)
+- **PEŁNY MODEL: RMSE test@4 — A** — 4 kąty kardynalne × 183 lokalizacje = 732 próbki; 3 ziarna; per ziarno: 0.27956 · 0.28662 · 0.28647
+- **PEŁNY MODEL: luka test@36 − test@4 — A** — różnica per ziarno, potem średnia ± sd; per ziarno: 0.00783 · 0.01050 · 0.00645. Wartość dodatnia = gorzej na pełnych 36 kątach niż na 4 kardynalnych; dodatnią lukę ma tylko warunek uczony na samych kątach kardynalnych
+- **PEŁNY MODEL: RMSE test@4 — D** — 4 kąty kardynalne × 183 lokalizacje = 732 próbki; 3 ziarna; per ziarno: 0.27459 · 0.27643 · 0.27867
+- **PEŁNY MODEL: luka test@36 − test@4 — D** — różnica per ziarno, potem średnia ± sd; per ziarno: -0.00551 · -0.00383 · -0.00438. Wartość dodatnia = gorzej na pełnych 36 kątach niż na 4 kardynalnych; dodatnią lukę ma tylko warunek uczony na samych kątach kardynalnych
+- **PEŁNY MODEL: RMSE test@4 — B** — 4 kąty kardynalne × 183 lokalizacje = 732 próbki; 3 ziarna; per ziarno: 0.24690 · 0.24766 · 0.24761
+- **PEŁNY MODEL: luka test@36 − test@4 — B** — różnica per ziarno, potem średnia ± sd; per ziarno: -0.00485 · -0.00297 · -0.00336. Wartość dodatnia = gorzej na pełnych 36 kątach niż na 4 kardynalnych; dodatnią lukę ma tylko warunek uczony na samych kątach kardynalnych
+- **PEŁNY MODEL: D − A na test@4** — test t na różnicach po ziarnach (sparowany, df = 2), t = -5.07; per ziarno: -0.00497 · -0.01019 · -0.00780. Kąty kardynalne są dla `A` kątami TRENINGOWYMI
+- **PEŁNY MODEL: B − A na test@4** — test t na różnicach po ziarnach (sparowany, df = 2), t = -17.68; per ziarno: -0.03266 · -0.03896 · -0.03885. Kąty kardynalne są dla `A` kątami TRENINGOWYMI
+- **Krzywa stałego budżetu: K=6 − K=36** — test Welcha po 3 ziarnach, t = 35.12, df = 3.83; K=36 to warunek `ED`; RMSE test@36; wartość dodatnia = K=6 gorsze niż K=36
+- **Krzywa stałego budżetu: K=9 − K=36** — test Welcha po 3 ziarnach, t = 7.49, df = 3.40; K=36 to warunek `ED`; RMSE test@36; wartość dodatnia = K=9 gorsze niż K=36
+- **Krzywa stałego budżetu: K=12 − K=36** — test Welcha po 3 ziarnach, t = 2.86, df = 2.89; K=36 to warunek `ED`; RMSE test@36; wartość dodatnia = K=12 gorsze niż K=36
+- **Krzywa stałego budżetu: K=18 − K=36** — test Welcha po 3 ziarnach, t = 0.47, df = 2.12; K=36 to warunek `ED`; RMSE test@36; wartość dodatnia = K=18 gorsze niż K=36
+- **Gęstość kątowa ED − EA w scenie `apartment_2` (echo2depth)** — RMSE test@36 w obrębie sceny: EA 0.78951 → ED 0.72619; test t na różnicach po ziarnach (df = 2); per ziarno: -0.04427 · -0.07022 · -0.07547
+- **Gęstość kątowa ED − EA w scenie `frl_apartment_5` (echo2depth)** — RMSE test@36 w obrębie sceny: EA 0.89923 → ED 0.63658; test t na różnicach po ziarnach (df = 2); per ziarno: -0.24680 · -0.27792 · -0.26324
+- **Gęstość kątowa ED − EA w scenie `office_4` (echo2depth)** — RMSE test@36 w obrębie sceny: EA 0.57003 → ED 0.49586; test t na różnicach po ziarnach (df = 2); per ziarno: -0.07275 · -0.07990 · -0.06986
+- **Gęstość kątowa D − A w scenie `apartment_2` (pełny model)** — RMSE test@36 w obrębie sceny: A 0.33514 → D 0.31050; test t na różnicach po ziarnach (df = 2); per ziarno: -0.02853 · -0.02568 · -0.01973
+- **Gęstość kątowa D − A w scenie `frl_apartment_5` (pełny model)** — RMSE test@36 w obrębie sceny: A 0.26908 → D 0.25132; test t na różnicach po ziarnach (df = 2); per ziarno: -0.01611 · -0.01363 · -0.02352
+- **Gęstość kątowa D − A w scenie `office_4` (pełny model)** — RMSE test@36 w obrębie sceny: A 0.25056 → D 0.23426; test t na różnicach po ziarnach (df = 2); per ziarno: +0.00013 · -0.04113 · -0.00790
 
 ## 6. Budżet obliczeniowy i dyskowy
 
 | wielkość | wartość | jedn. | status | dowód | sekcja |
 |---|---|---|---|---|---|
-| Przebiegów w macierzy | **66** | przebiegów | [W] | `experiments.json` | RAPORT_SESJI_2026-08-10.md §5.5 |
+| Przebiegów w macierzy (PLAN) | **66** | przebiegów | [W] | `experiments.json` | RAPORT_SESJI_2026-08-10.md §5.5 |
 | Czas całej macierzy (--fast-bilinear) | **32.8** | h | [W] | `experiments.json` | RAPORT_SESJI_2026-08-10.md §5.5 |
 | Dysk: cała macierz | **200.2** | GB | [W] | `experiments.json` | RAPORT_SESJI_2026-08-11.md §1.1 |
 | Dysk na przebieg: full | **5.903** | GB | [W] | `experiments.json` | RAPORT_SESJI_2026-08-11.md §1.1 |
@@ -300,7 +356,7 @@ Uwagi:
 | Czas przebiegu: pełny model / echo2depth | **0,86 / 0,13** | h | [Z-] | `bench/bench_main.json` | RAPORT_SESJI_2026-08-10.md §5.5 |
 
 Uwagi:
-- **Przebiegów w macierzy** — 22 warunki × 3 ziarna
+- **Przebiegów w macierzy (PLAN)** — 22 warunki × 3 ziarna; to PLAN z `experiments.json`, nie liczba wykonanych przebiegów (część grup skreślono, w `outputs/ml/runs/` leży 43 przebiegi sieci głębi). Liczba „84 przebiegów GPU" ze STAN_WYNIKOW obejmuje całą fazę ML (także pretekst, transfer i sondy), nie jest tą samą wielkością
 - **Czas całej macierzy (--fast-bilinear)** — dolne oszacowanie — bez narzutu walidacji
 - **Dysk: cała macierz** — po dodaniu drugiego checkpointu val@4 (+10,6 GB na glowne)
 - **Dysk na przebieg: full** — 2× wagi + checkpoint z Adamem (3× parametry)
@@ -333,6 +389,68 @@ Uwagi:
 - **Gao 2020, trafność zadania pretekstowego K=4** — poziom losowy 25 %
 - **Parida 2021, marginalny wkład echa** — dlatego trzeba go było zmierzyć samodzielnie
 
+## 8. Dodatkowe kontrole 2026-11-13 (nocny zestaw, niedeterminizm GPU, tabele §5.3–5.5)
+
+| wielkość | wartość | jedn. | status | dowód | sekcja |
+|---|---|---|---|---|---|
+| Holm, rodzina (a): siec tylko-echo (echo2depth): kontrasty D−A, B−D, B−A, test@36, 3 ziarna | **D−A (ED−EA): 0,002619 → 0,00327; B−D (EB−ED): 0,001635 → 0,00327; B−A (EB−EA): 0,0009785 → 0,002935** | p surowe → p Holm | [Z] | `overnight_2026-11/holm_families.json` | STAN_WYNIKOW.md §11.1 |
+| Holm, rodzina (b): krzywa stalego budzetu (echo2depth): K − K36, Welch 3 vs 3 | **K=6 − K=36 (EK6−ED): 6,043e-06 → 2,417e-05; K=9 − K=36 (EK9−ED): 0,003155 → 0,009466; K=12 − K=36 (EK12−ED): 0,06752 → 0,135; K=18 − K=36 (EK18−ED): 0,6846 → 0,6846** | p surowe → p Holm | [Z] | `overnight_2026-11/holm_families.json` | STAN_WYNIKOW.md §11.1 |
+| Holm, rodzina (c): model pelny (RGB+echo+material+uwaga): D−A, B−D, B−A, 3 ziarna | **D−A: 0,009581 → 0,009581; B−D: 0,0009881 → 0,002964; B−A: 0,001754 → 0,003508** | p surowe → p Holm | [Z] | `overnight_2026-11/holm_families.json` | STAN_WYNIKOW.md §11.1 |
+| Holm, rodzina (d): geometria: patched − main, Welch, maska pelna, 3 ziarna | **EPA−EA: 0,8698 → 0,8698; EPD−ED: 0,0905 → 0,181; EPB−EB: 0,01263 → 0,03788** | p surowe → p Holm | [Z] | `overnight_2026-11/holm_families.json` | STAN_WYNIKOW.md §11.1 |
+| Holm, rodzina (e): transfer pretrening vs scratch, 5 ziaren, RMSE best.json | **pretext_K4_seed0 − scratch: 0,231 → 0,6218; pretext_K36_p16_seed0 − scratch: 0,7506 → 0,7506; pretext_K36_seed0 − scratch: 0,2073 → 0,6218; pretext_K12_seed0 − scratch: 0,07421 → 0,2969** | p surowe → p Holm | [Z] | `overnight_2026-11/holm_families.json` | STAN_WYNIKOW.md §11.1 |
+| Holm po wszystkich 17 testach: D−A model pełny / EPB−EB | **0,09581 / 0,1136** | p Holm | [Z] | `overnight_2026-11/holm_families.json` | STAN_WYNIKOW.md §11.1 |
+| Bootstrap EA−EB (n_boot = 2000), ziarno 0 | **+0.19584 [+0.16936; +0.22596]** | RMSE test@36 | [Z] | `overnight_2026-11/bootstrap_EA_vs_EB_seed0_nboot2000.json` | STAN_WYNIKOW.md §11.2 |
+| Bootstrap EA−EB (n_boot = 2000), ziarno 1 | **+0.21392 [+0.18549; +0.24552]** | RMSE test@36 | [Z] | `overnight_2026-11/bootstrap_EA_vs_EB_seed1_nboot2000.json` | STAN_WYNIKOW.md §11.2 |
+| Bootstrap EA−EB (n_boot = 2000), ziarno 2 | **+0.21669 [+0.19016; +0.24446]** | RMSE test@36 | [Z] | `overnight_2026-11/bootstrap_EA_vs_EB_seed2_nboot2000.json` | STAN_WYNIKOW.md §11.2 |
+| n_boot w `compare_EA_seedN_vs_EB_seedN.json` (ziarna 0 / 1 / 2) | **200 / 1000 / 1000** | losowań | [Z] | `eval/compare_EA_seed*_vs_EB_seed*.json` | STAN_WYNIKOW.md §11.2 |
+| Piksele z głębią > 10,29 m, test@36 | **0,014 % (13456 z 96853180)** | % ważnych pikseli | [Z] | `overnight_2026-11/depth_range_stats.json` | STAN_WYNIKOW.md §11.3 |
+| Piksele z głębią > 10,29 m, trening B / A / ED | **0,018 % / 0,022 % / 0,016 %** | % ważnych pikseli | [Z] | `overnight_2026-11/depth_range_stats.json` | STAN_WYNIKOW.md §11.3 |
+| Piksele z głębią > 8 m / > 12 m, test@36 | **0,143 % / 0,001 %** | % ważnych pikseli | [Z] | `overnight_2026-11/depth_range_stats.json` | STAN_WYNIKOW.md §11.3 |
+| Piksele z głębią powyżej `max_depth` (14,104 m) | **test@36: 0; trening: 131** | pikseli | [Z] | `overnight_2026-11/depth_range_stats.json` | STAN_WYNIKOW.md §11.3 |
+| Diagnostyka gałęzi: RMSE baseline (depth_predicted) (A / D / B) | **0,2925 / 0,2720 / 0,2437** | RMSE | [Z] | `overnight_2026-11/branch_diag_*.json` | STAN_WYNIKOW.md §11.4 |
+| Diagnostyka gałęzi: sama gałąź audio_depth (A / D / B) | **4,5386 / 4,2935 / 4,6247** | RMSE | [Z] | `overnight_2026-11/branch_diag_*.json` | STAN_WYNIKOW.md §11.4 |
+| Diagnostyka gałęzi: sama gałąź img_depth (A / D / B) | **1,4916 / 1,4079 / 1,4019** | RMSE | [Z] | `overnight_2026-11/branch_diag_*.json` | STAN_WYNIKOW.md §11.4 |
+| Diagnostyka gałęzi: średnia α (piksele ważne) (A / D / B) | **0,2324 / 0,2383 / 0,2230** | — | [Z] | `overnight_2026-11/branch_diag_*.json` | STAN_WYNIKOW.md §11.4 |
+| Diagnostyka gałęzi: α := średnia α (A / D / B) | **0,7400 / 0,6787 / 0,6637** | RMSE | [Z-] | `overnight_2026-11/branch_diag_*.json` | STAN_WYNIKOW.md §11.4 |
+| Diagnostyka gałęzi: α := 0,5 (A / D / B) | **1,7542 / 1,6473 / 1,7967** | RMSE | [Z] | `overnight_2026-11/branch_diag_*.json` | STAN_WYNIKOW.md §11.4 |
+| Diagnostyka gałęzi: cechy materiału := 0 (A / D / B) | **0,7649 / 0,7509 / 0,7033** | RMSE | [Z-] | `overnight_2026-11/branch_diag_*.json` | STAN_WYNIKOW.md §11.4 |
+| Diagnostyka gałęzi: cechy materiału przetasowane w batchu (A / D / B) | **0,8225 / 0,7581 / 0,7334** | RMSE | [Z-] | `overnight_2026-11/branch_diag_*.json` | STAN_WYNIKOW.md §11.4 |
+| Niedeterminizm GPU, ED ziarno 0, powtórzenia 40 000 kroków: średnia ± sd | **0.65245 ± 0.00188** | RMSE test@36 | [Z] | `determinism/noise_floor_ED_40k.json` | STAN_WYNIKOW.md §11.5 |
+| Niedeterminizm GPU, ziarna 1 / 2: powtórzenie − oryginał | **-0.00069 / +0.00494** | RMSE test@36 | [Z] | `determinism/noise_floor_ED_seeds12_40k.json` | STAN_WYNIKOW.md §11.5 |
+| Ponowna ewaluacja oryginalnych wag ED_seed0/1/2: max |Δ RMSE| | **1.1e-07** | RMSE test@36 | [Z] | `eval/ED_seed{0,1,2}_reeval/eval.json` | STAN_WYNIKOW.md §11.5 |
+| Krzywa K: krok między sąsiednimi K w krotnościach rozstępu GPU (4→6 / 6→9 / 9→12 / 12→18 / 18→36) | **17,3× / 8,7× / 2,1× / 1,1× / 0,8×** | × | [Z] | `tables_5_3_5_5/tables.json` | STAN_WYNIKOW.md §11.6 |
+| Krzywa K: udział zysku 4→36 dla K = 6 / 9 / 12 / 18 | **57,8 / 87,0 / 93,9 / 97,5** | % | [Z] | `tables_5_3_5_5/tables.json` | STAN_WYNIKOW.md §11.6 |
+| Luka kątowa 0°→max wg K (K = 6 / 9 / 12 / 18) | **+0,184 / +0,079 / +0,036 / +0,001** | RMSE | [Z] | `tables_5_3_5_5/tables.json` | STAN_WYNIKOW.md §11.6 |
+| Hiperparametry treningu sieci głębi (identyczne w 43/43 przebiegach) | **40000 kroków, batch 32, lr 0,0001, wd 0,0005, adam (β₁ = 0,9), AMP w 43/43** | — | [Z] | `runs/*/config.json` | STAN_WYNIKOW.md §6 |
+
+Uwagi:
+- **Holm, rodzina (a): siec tylko-echo (echo2depth): kontrasty D−A, B−D, B−A, test@36, 3 ziarna** — korekta Holma w obrębie rodziny (m = 3); metoda p surowych: ttest_1samp na roznicach per ziarno (df=2)
+- **Holm, rodzina (b): krzywa stalego budzetu (echo2depth): K − K36, Welch 3 vs 3** — korekta Holma w obrębie rodziny (m = 4); metoda p surowych: Welch 3 vs 3 (df=3.83)
+- **Holm, rodzina (c): model pelny (RGB+echo+material+uwaga): D−A, B−D, B−A, 3 ziarna** — korekta Holma w obrębie rodziny (m = 3); metoda p surowych: ttest_1samp na roznicach per ziarno (df=n−1)
+- **Holm, rodzina (d): geometria: patched − main, Welch, maska pelna, 3 ziarna** — korekta Holma w obrębie rodziny (m = 3); metoda p surowych: Welch na RMSE test@36, maska pelna (df=2.92)
+- **Holm, rodzina (e): transfer pretrening vs scratch, 5 ziaren, RMSE best.json** — korekta Holma w obrębie rodziny (m = 4); metoda p surowych: Welch na RMSE best.json['all'] (pelna walidacja) (df=5.70)
+- **Holm po wszystkich 17 testach: D−A model pełny / EPB−EB** — korekta konserwatywna (testy z różnych pytań); oba wyniki tracą istotność
+- **Bootstrap EA−EB (n_boot = 2000), ziarno 0** — bootstrap sparowany po 183 lokalizacjach, boot_seed = 0, boot_sd = 0.01436; zastępuje CI z `compare_*.json` o mniejszym n_boot
+- **Bootstrap EA−EB (n_boot = 2000), ziarno 1** — bootstrap sparowany po 183 lokalizacjach, boot_seed = 0, boot_sd = 0.01527; zastępuje CI z `compare_*.json` o mniejszym n_boot
+- **Bootstrap EA−EB (n_boot = 2000), ziarno 2** — bootstrap sparowany po 183 lokalizacjach, boot_seed = 0, boot_sd = 0.01364; zastępuje CI z `compare_*.json` o mniejszym n_boot
+- **n_boot w `compare_EA_seedN_vs_EB_seedN.json` (ziarna 0 / 1 / 2)** — domyślne `--n-boot` w `evaluate.py` to 2000; ziarno bootstrapu 0 we wszystkich plikach
+- **Piksele z głębią > 10,29 m, test@36** — per scena: apartment_2 0,000 %, frl_apartment_5 0,036 %, office_4 0,000 %
+- **Piksele z głębią > 10,29 m, trening B / A / ED** — B = 36 orientacji; A = cardinal; ED = random_4, angle_seed 0
+- **Diagnostyka gałęzi: RMSE baseline (depth_predicted) (A / D / B)** — średnia z 3 ziaren; zgodne z eval.json
+- **Diagnostyka gałęzi: sama gałąź audio_depth (A / D / B)** — średnia z 3 ziaren; gałęzie uczone tylko jako mieszanina — to nie jest wkład audio/obrazu
+- **Diagnostyka gałęzi: sama gałąź img_depth (A / D / B)** — średnia z 3 ziaren
+- **Diagnostyka gałęzi: średnia α (piksele ważne) (A / D / B)** — średnia z 3 ziaren
+- **Diagnostyka gałęzi: α := średnia α (A / D / B)** — średnia z 3 ziaren; średnia α z test@36 tego samego modelu
+- **Diagnostyka gałęzi: α := 0,5 (A / D / B)** — średnia z 3 ziaren
+- **Diagnostyka gałęzi: cechy materiału := 0 (A / D / B)** — średnia z 3 ziaren; zaburzenie poza rozkładem
+- **Diagnostyka gałęzi: cechy materiału przetasowane w batchu (A / D / B)** — średnia z 3 ziaren; ziarno 12345, batch 32; wynik zależy od rozmiaru batcha
+- **Niedeterminizm GPU, ED ziarno 0, powtórzenia 40 000 kroków: średnia ± sd** — 5 powtórzeń; rozstęp 0.00491; oryginalny `ED_seed0` = 0.64695 (-2.9 sd, poza zakresem: True)
+- **Niedeterminizm GPU, ziarna 1 / 2: powtórzenie − oryginał** — powtórzenia 0.64163 / 0.64863; oryginały 0.64232 / 0.64369
+- **Ponowna ewaluacja oryginalnych wag ED_seed0/1/2: max |Δ RMSE|** — obecny kod i sterownik; ewaluacja deterministyczna, rozbieżność powstaje w treningu
+- **Krzywa K: krok między sąsiednimi K w krotnościach rozstępu GPU (4→6 / 6→9 / 9→12 / 12→18 / 18→36)** — rozstęp 0.00491 z noise_floor_ED_40k.json; kroki > K = 12 mieszczą się w zakresie niedeterminizmu
+- **Luka kątowa 0°→max wg K (K = 6 / 9 / 12 / 18)** — odległość od najbliższej orientacji SIATKI K (maks. 30° / 20° / 10° / 10°); K=18 nieistotna
+- **Hiperparametry treningu sieci głębi (identyczne w 43/43 przebiegach)** — strata `LogDepthLoss` na pikselach gt ≠ 0, `max_depth` 14,104 m (`train_condition.py`, `experiments.py`)
+
 ---
 
 ## Liczby, których jeszcze NIE MA
@@ -342,7 +460,6 @@ Zostaw w tekście lukę i wróć, gdy odpowiedni warunek się policzy.
 | czego brakuje | da to | po co |
 |---|---|---|
 | Krzywa nasycenia na NATURALNEJ liczności (C6/C9/C12/C18) | grupa `krzywa`, 12 przebiegów, 10,4 h — SKREŚLONA świadomie | rośnie po gęstości I rozmiarze zbioru naraz; `krzywa_staly` odpowiada na to samo pytanie ostrzej i JEST policzona — luki w tekście NIE zostawiać |
-| Rozrzut po ziarnach dla MAAE zadania pretekstowego (§4) | pretext_K{4,12,36} × ziarna 1–2, ~1,6 h | MAAE 61,23 / 55,73 / 25,13 mają n=1 — podane BEZ oszacowania rozrzutu; pominięte świadomie (niski zwrot), ale w tekście musi to być napisane |
 | Wariant `patched` na PEŁNYM modelu (PA/PB/PD) | grupa `geometria` — SKREŚLONA świadomie | wada geometrii jest akustyczna, więc `geometria_echo` bada ją ostrzej i ~20× taniej |
 | Warunek `ESA` (echo2depth + permutacja kątów w obrębie lokalizacji) | niezaimplementowany — decyzja świadoma | rozdzieliłby 'echo niesie pozycję' od 'echo niesie orientację'; warunek `ESE` odpowiada na słabszą wersję tego pytania i jest policzony |
 | Transfer geometrii na office_4 | dowolny warunek `patched` + `main` | sonda przy danych testowych trzymanych dosłownie stałych |

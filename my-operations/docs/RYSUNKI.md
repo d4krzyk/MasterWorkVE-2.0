@@ -170,3 +170,21 @@ echo".
 
 **RMSE na tych sześciu próbkach — do podpisu rysunku, nie do tabeli wyników:** obraz + echo 36:
 0,4392 · obraz + echo 4: 0,5054 · sam obraz: 0,5186 · samo echo 36: 0,8602 · samo echo 4: 1,0901.
+
+---
+
+## Wersje do pracy (v2) i rysunek 2b — 2026-11-13
+
+Zmiana wyłącznie wyglądu; dane, wąsy (sd po ziarnach), skale osi i kolory bez zmian. Stare PNG nie zostały nadpisane.
+Wersje v2: bez tytułu i podtytułu (treść idzie do podpisu w pracy), 15,5 cm szerokości, 300 dpi, czcionka ≥ 9 pt.
+
+| plik | zmiana względem wersji podstawowej | do podpisu |
+|---|---|---|
+| `rys_1_krzywa_nasycenia_v2.png` | bez tytułu i podtytułu; etykieta „0,663" pod-lewo od punktu | sieć głębi (tylko echo), test na 36 orientacjach, 4 próbki na lokalizację (5 496) w każdym punkcie; 3 ziarna, wąsy = sd; liczby przy strzałkach to zmiana RMSE, ujemna = poprawa |
+| `rys_2_generalizacja_katowa_v2.png` | bez tytułu; „ED — 4 orientacje losowane z 36"; oś X „odległość orientacji testowej od najbliższej orientacji treningowej [°]" | sieć głębi (tylko echo), 3 ziarna, wąsy = sd; ED i EB są liniami odniesienia (pokrywają całą siatkę, nie mają tej osi) |
+| `rys_3_rozklad_efektu_v2.png` | bez tytułu; „liczba próbek (D → B)" zamiast „ilość danych"; dwuwierszowe tytuły paneli; notka „inna skala osi Y: efekt 7,2× mniejszy" w prawym panelu (7,2× liczone z danych) | 3 ziarna, wąsy = sd; panele mają różne skale osi Y |
+| `rys_2b_krzywe_K.png` (nowy) | RMSE wg odległości od siatki dla K = 4 (EA), 6, 9, 12, 18; średnia ± sd po 3 ziarnach z `by_angular_distance`; bez ED i EB | punkty różnych serii przesunięte poziomo o ≤ 0,6° tylko dla czytelności (podziałka osi bez zmian); odległość od najbliższej orientacji **siatki** K, nie od wylosowanych orientacji lokalizacji |
+
+Uwagi: paleta ma trzy zwalidowane kolory, w 2b dodano fiolet `#7b52c9` (K = 12) i szary (K = 18); serie rozróżnia też kształt markera i etykieta przy końcu krzywej.
+Przy 10° cztery serie mają prawie tę samą wartość (0,662–0,665), więc ich markery częściowo się nakrywają — to cecha danych.
+

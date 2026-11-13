@@ -1,0 +1,70 @@
+{
+  "opis": "Powtorzenia przy kilku ziarnach treningu; blok per ziarno ma ten sam format co plik jednego ziarna.",
+  "warunek": "ED",
+  "ziarna": [
+    1,
+    2
+  ],
+  "per_ziarno": {
+    "1": {
+      "opis": "Podloga szumu niedeterminizmu GPU na pelnym budzecie: ten sam warunek i ziarno treningu, identyczna konfiguracja co oryginal (AMP, bez use_deterministic_algorithms), tylko niedeterminizm GPU rozni przebiegi.",
+      "warunek": "ED",
+      "ziarno": 1,
+      "kroki": 40000,
+      "metryka": "RMSE test@36 (all)",
+      "n_przebiegow": 1,
+      "przebiegi": [
+        {
+          "run_id": "ED_seed1_nf0",
+          "RMSE_test36": 0.6416302722238144,
+          "best_step": 9000,
+          "best_val36_rmse": 0.6266330756440847
+        }
+      ],
+      "srednia": 0.6416302722238144,
+      "sd": null,
+      "rozstep": 0.0,
+      "min": 0.6416302722238144,
+      "max": 0.6416302722238144,
+      "oryginal": {
+        "run_id": "ED_seed1",
+        "RMSE_test36": 0.6423228601500534,
+        "best_step": 12000,
+        "best_val36_rmse": 0.6291660095467594,
+        "roznica_od_sredniej_powtorzen": 0.0006925879262389412,
+        "w_zakresie_powtorzen": false,
+        "z_wzgledem_sd": null
+      }
+    },
+    "2": {
+      "opis": "Podloga szumu niedeterminizmu GPU na pelnym budzecie: ten sam warunek i ziarno treningu, identyczna konfiguracja co oryginal (AMP, bez use_deterministic_algorithms), tylko niedeterminizm GPU rozni przebiegi.",
+      "warunek": "ED",
+      "ziarno": 2,
+      "kroki": 40000,
+      "metryka": "RMSE test@36 (all)",
+      "n_przebiegow": 1,
+      "przebiegi": [
+        {
+          "run_id": "ED_seed2_nf0",
+          "RMSE_test36": 0.648628640327403,
+          "best_step": 15000,
+          "best_val36_rmse": 0.6228114997269522
+        }
+      ],
+      "srednia": 0.648628640327403,
+      "sd": null,
+      "rozstep": 0.0,
+      "min": 0.648628640327403,
+      "max": 0.648628640327403,
+      "oryginal": {
+        "run_id": "ED_seed2",
+        "RMSE_test36": 0.643689412306835,
+        "best_step": 7000,
+        "best_val36_rmse": 0.6211220159160031,
+        "roznica_od_sredniej_powtorzen": -0.0049392280205680095,
+        "w_zakresie_powtorzen": false,
+        "z_wzgledem_sd": null
+      }
+    }
+  }
+}

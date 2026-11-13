@@ -125,15 +125,19 @@ def _load(p: Path):
 # ------------------------------------------------------------------ rysunek 1
 
 
-def rysunek_1_krzywa_nasycenia() -> Path:
+def rysunek_1_krzywa_nasycenia(v2: bool = False) -> Path:
+    """v2=True: bez tytulu i podtytulu (tresc idzie do podpisu), 15,5 cm, 300 dpi, plik *_v2.png.
+    Dane, wasy, skale i kolory takie same jak w wersji podstawowej."""
     d = _load(paths.ML_OUTPUTS / "echo_ablation" / "final_results_2026-08-13.json")
     pts = d["krzywa_stalego_budzetu"]["punkty"]
     ks = sorted(pts, key=int)
     x = np.array([int(k) for k in ks], dtype=float)
     y = np.array([pts[k]["mean"] for k in ks])
     e = np.array([pts[k]["sd"] or 0.0 for k in ks])
+    if v2:
+        print("rys_1 dane (K: srednia ± sd):", {int(k): f"{m:.5f} ± {sd:.5f}" for k, m, sd in zip(x, y, e)})
 
-    fig, ax = plt.subplots(figsize=(6.4, 4.0))
+    fig, ax = plt.subplots(figsize=(15.5 / 2.54, 3.9) if v2 else (6.4, 4.0))
     _clean(ax)
 
     # Obszar nasycenia -- to jest WNIOSEK rysunku, wiec musi byc widoczny
@@ -151,7 +155,7 @@ def rysunek_1_krzywa_nasycenia() -> Path:
     # Konce krzywej w lewo/prawo od punktu, srodkowy w gore -- inaczej etykieta
     # K=4 siada na przerywanej linii zysku, a K=36 wychodzi poza obszar osi.
     for xi, yi, dx, dy, ha in ((x[0], y[0], 10, 9, "left"),
-                               (x[2], y[2], 0, 14, "center"),
+                               ((x[2], y[2], -9, -17, "right") if v2 else (x[2], y[2], 0, 14, "center")),
                                (x[-1], y[-1], 6, 5, "left")):
         ax.annotate(_pl(yi), xy=(xi, yi), xytext=(dx, dy),
                     textcoords="offset points", ha=ha, fontsize=9,
@@ -164,10 +168,11 @@ def rysunek_1_krzywa_nasycenia() -> Path:
     ax.set_xlabel("liczba orientacji w siatce K, z której losowane są kąty")
     ax.set_ylabel(OS_RMSE)
     _przecinki(ax, "y", 3)
-    _naglowek(ax, "Nasycenie efektu gęstości kątowej przy stałym budżecie próbek",
-              "sieć głębi (tylko echo) · test na 36 orientacjach · 4 próbki na lokalizację "
-              "(5 496) w każdym punkcie",
-              "3 ziarna, wąsy = sd · liczby przy strzałkach to zmiana RMSE, ujemna = poprawa")
+    if not v2:
+        _naglowek(ax, "Nasycenie efektu gęstości kątowej przy stałym budżecie próbek",
+                  "sieć głębi (tylko echo) · test na 36 orientacjach · 4 próbki na lokalizację "
+                  "(5 496) w każdym punkcie",
+                  "3 ziarna, wąsy = sd · liczby przy strzałkach to zmiana RMSE, ujemna = poprawa")
 
     # Strzalki zysku: cala wartosc rysunku to porownanie tych dwoch odcinkow.
     ax.annotate("", xy=(9, y[2]), xytext=(4, y[0]),
@@ -184,8 +189,14 @@ def rysunek_1_krzywa_nasycenia() -> Path:
     ax.set_ylim(y.min() - e[-1] - 0.014, y.max() + e[0] + 0.018)
 
     OUT.mkdir(parents=True, exist_ok=True)
-    p = OUT / "rys_1_krzywa_nasycenia.png"
-    fig.savefig(p)
+    if v2:
+        p = OUT / "rys_1_krzywa_nasycenia_v2.png"
+        fig.tight_layout()
+        with plt.rc_context({"savefig.bbox": "standard", "savefig.pad_inches": 0.0}):
+            fig.savefig(p, dpi=300)
+    else:
+        p = OUT / "rys_1_krzywa_nasycenia.png"
+        fig.savefig(p)
     plt.close(fig)
     return p
 
@@ -193,7 +204,9 @@ def rysunek_1_krzywa_nasycenia() -> Path:
 # ------------------------------------------------------------------ rysunek 2
 
 
-def rysunek_2_generalizacja_katowa() -> Path:
+def rysunek_2_generalizacja_katowa(v2: bool = False) -> Path:
+    """v2=True: bez tytulu i podtytulu, etykiety ED i osi X po nowemu, 15,5 cm, 300 dpi, plik *_v2.png.
+    Dane, wasy, linie ED/EB, adnotacja luki i skale bez zmian."""
     d = _load(paths.ML_OUTPUTS / "echo_ablation" / "echo_3seeds.json")
     kr = d["krzywa_katowa_EA"]
     x = np.array(sorted(float(k) for k in kr))
@@ -201,7 +214,10 @@ def rysunek_2_generalizacja_katowa() -> Path:
     e = np.array([kr[str(int(k))]["sd"] for k in x])
     r = d["RMSE_test36"]
 
-    fig, ax = plt.subplots(figsize=(6.4, 4.0))
+    if v2:
+        print("rys_2 dane (odleglosc: srednia ± sd):", {int(k): f"{m:.5f} ± {e_:.5f}" for k, m, e_ in zip(x, y, e)},
+              "| ED", f"{r['ED']['mean']:.5f}", "| EB", f"{r['EB']['mean']:.5f}")
+    fig, ax = plt.subplots(figsize=(15.5 / 2.54, 3.9) if v2 else (6.4, 4.0))
     _clean(ax)
 
     # Warunki `ED` i `EB` NIE MAJA tej krzywej i to nie jest brak danych:
@@ -209,7 +225,8 @@ def rysunek_2_generalizacja_katowa() -> Path:
     # odleglosci 0 od ich siatki treningowej. Dlatego sa liniami odniesienia,
     # a nie seriami -- narysowanie ich jako krzywych sugerowaloby, ze zmierzono
     # cos, czego zmierzyc sie nie da.
-    for val, col, name in ((r["ED"]["mean"], C_ALT, "ED — 4 kąty losowe z 36"),
+    for val, col, name in ((r["ED"]["mean"], C_ALT,
+                            "ED — 4 orientacje losowane z 36" if v2 else "ED — 4 kąty losowe z 36"),
                            (r["EB"]["mean"], C_THIRD, "EB — wszystkie 36")):
         ax.axhline(val, color=col, linewidth=2, ls=(0, (5, 3)), zorder=2)
         ax.annotate(f"{name}   {_pl(val)}", xy=(x[-1], val), xytext=(-2, 6),
@@ -237,16 +254,68 @@ def rysunek_2_generalizacja_katowa() -> Path:
     ax.set_ylim(min(r["EB"]["mean"], y.min()) - 0.020, y.max() + e[-1] + 0.026)
 
     ax.set_xticks(x)
-    ax.set_xlabel("odległość testowanego kąta od najbliższego kąta treningowego [°]")
+    ax.set_xlabel("odległość orientacji testowej od najbliższej orientacji treningowej [°]" if v2
+                  else "odległość testowanego kąta od najbliższego kąta treningowego [°]")
     ax.set_ylabel(OS_RMSE)
     _przecinki(ax, "y", 2)
-    _naglowek(ax, "Baseline 4-kierunkowy nie pokrywa przestrzeni orientacji",
-              "sieć głębi (tylko echo) · 3 ziarna, wąsy = sd",
-              "ED i EB są liniami odniesienia: pokrywają całą siatkę, więc nie mają tej osi")
+    if not v2:
+        _naglowek(ax, "Baseline 4-kierunkowy nie pokrywa przestrzeni orientacji",
+                  "sieć głębi (tylko echo) · 3 ziarna, wąsy = sd",
+                  "ED i EB są liniami odniesienia: pokrywają całą siatkę, więc nie mają tej osi")
 
     OUT.mkdir(parents=True, exist_ok=True)
-    p = OUT / "rys_2_generalizacja_katowa.png"
-    fig.savefig(p)
+    if v2:
+        p = OUT / "rys_2_generalizacja_katowa_v2.png"
+        fig.tight_layout()
+        with plt.rc_context({"savefig.bbox": "standard", "savefig.pad_inches": 0.0}):
+            fig.savefig(p, dpi=300)
+    else:
+        p = OUT / "rys_2_generalizacja_katowa.png"
+        fig.savefig(p)
+    plt.close(fig)
+    return p
+
+
+def rysunek_2b_krzywe_K() -> Path:
+    """RMSE wg odleglosci od siatki treningowej dla EA (K=4) i EK6/9/12/18, test@36, 3 ziarna.
+
+    Dane prosto z `eval/<warunek>_seed{0,1,2}/eval.json` (pole by_angular_distance), wasy = sd po
+    ziarnach. ED i EB sa pominiete (nie maja osi odleglosci). Odleglosc = od najblizszego kata
+    SIATKI K, nie od faktycznie wylosowanych katow lokalizacji. Punkty roznych serii sa
+    przesuniete poziomo o <= 0,6 stopnia WYLACZNIE dla czytelnosci (przy 10 stopniach cztery serie
+    maja prawie ta sama wartosc); podzialka osi X nie jest zmieniana. Bez tytulu (podpis w pracy).
+    """
+    serie = (("EA", "K = 4", C_MAIN, "o"), ("EK6", "K = 6", C_THIRD, "s"), ("EK9", "K = 9", C_ALT, "^"),
+             ("EK12", "K = 12", "#7b52c9", "D"), ("EK18", "K = 18", INK_2, "v"))
+    fig, ax = plt.subplots(figsize=(15.5 / 2.54, 3.9))
+    _clean(ax)
+    dodge = np.linspace(-0.6, 0.6, len(serie))
+    for (c, lab, col, mk), dx in zip(serie, dodge):
+        per = []
+        for sd_ in (0, 1, 2):
+            ev = _load(paths.ML_OUTPUTS / "eval" / f"{c}_seed{sd_}" / "eval.json")
+            per.append(ev["test_sets"]["test@36"]["by_angular_distance"])
+        dist = sorted(int(k) for k in per[0])
+        m = np.array([np.mean([b[str(d)]["all"]["RMSE"] for b in per]) for d in dist])
+        sd = np.array([np.std([b[str(d)]["all"]["RMSE"] for b in per], ddof=1) for d in dist])
+        print(f"rys_2b {c}:", {d: f"{a:.5f} ± {b:.5f}" for d, a, b in zip(dist, m, sd)})
+        ax.errorbar(np.array(dist) + dx, m, yerr=sd, color=col, linewidth=1.8, marker=mk, markersize=5.5,
+                    markerfacecolor="white", markeredgewidth=1.6, capsize=3, elinewidth=1.2, zorder=3)
+        off = {"EK12": (0, 17), "EK18": (13, -8)}.get(c, (9, 0))   # rozsuniecie etykiet przy 10 stopniach
+        ax.annotate(f"{lab} ({c})" if c == "EA" else lab, xy=(dist[-1] + dx, m[-1]), xytext=off,
+                    textcoords="offset points", ha="center" if c == "EK12" else "left", va="center",
+                    fontsize=9, color=col,
+                    fontweight="bold")
+    ax.set_xticks([0, 10, 20, 30, 40])
+    ax.set_xlim(-2.5, 49)
+    ax.set_xlabel("odległość orientacji testowej od najbliższej orientacji siatki treningowej [°]")
+    ax.set_ylabel(OS_RMSE)
+    _przecinki(ax, "y", 2)
+    OUT.mkdir(parents=True, exist_ok=True)
+    p = OUT / "rys_2b_krzywe_K.png"
+    fig.tight_layout()
+    with plt.rc_context({"savefig.bbox": "standard", "savefig.pad_inches": 0.0}):
+        fig.savefig(p, dpi=300)
     plt.close(fig)
     return p
 
@@ -254,7 +323,10 @@ def rysunek_2_generalizacja_katowa() -> Path:
 # ------------------------------------------------------------------ rysunek 3
 
 
-def rysunek_3_rozklad_efektu() -> Path:
+def rysunek_3_rozklad_efektu(v2: bool = False) -> Path:
+    """v2=True: bez tytulu/podtytulu, etykieta \"liczba probek\" zamiast \"ilosc danych\", notka o skali
+    jako maly opis przy prawym panelu, 15,5 cm, 300 dpi, plik *_v2.png. Dane i skale bez zmian."""
+    dane = "liczba próbek" if v2 else "ilość danych"
     e3 = _load(paths.ML_OUTPUTS / "echo_ablation" / "echo_3seeds.json")["kontrasty"]
     gl = _load(paths.ML_OUTPUTS / "echo_ablation" / "final_results_2026-08-15.json")
     sk = gl["glowne_3ziarna"]["skladowe"]
@@ -268,18 +340,22 @@ def rysunek_3_rozklad_efektu() -> Path:
         ("sieć głębi (tylko echo)",
          [("gęstość kątowa\n(A → D)", abs(e3["gestosc katowa D-A"]["mean"]),
            e3["gestosc katowa D-A"]["sd_seeds"]),
-          ("ilość danych\n(D → B)", abs(e3["ilosc danych B-D"]["mean"]),
+          (f"{dane}\n(D → B)", abs(e3["ilosc danych B-D"]["mean"]),
            e3["ilosc danych B-D"]["sd_seeds"])],
          70.2),
         ("sieć głębi (pełna: obraz + echo)",
          [("gęstość kątowa\n(A → D)", abs(sk["gestosc_D_minus_A"]["mean"]),
            sk["gestosc_D_minus_A"]["sd"]),
-          ("ilość danych\n(D → B)", abs(sk["ilosc_danych_B_minus_D"]["mean"]),
+          (f"{dane}\n(D → B)", abs(sk["ilosc_danych_B_minus_D"]["mean"]),
            sk["ilosc_danych_B_minus_D"]["sd"])],
          42.0),
     )
 
-    fig, axes = plt.subplots(1, 2, figsize=(8.4, 4.0))
+    if v2:
+        for tyt, slupki, _ in panele:
+            print("rys_3 dane", tyt, {s_[0].replace("\n", " "): f"{s_[1]:.5f} ± {s_[2]:.5f}" for s_ in slupki})
+        krotnosc = panele[0][1][0][1] / panele[1][1][0][1]
+    fig, axes = plt.subplots(1, 2, figsize=(15.5 / 2.54, 3.7) if v2 else (8.4, 4.0))
     for ax, (tytul, slupki, udzial) in zip(axes, panele):
         _clean(ax)
         xs = np.arange(len(slupki))
@@ -299,9 +375,23 @@ def rysunek_3_rozklad_efektu() -> Path:
         # rozne skale, a wspolny podpis tylko po lewej sugerowalby wspolna os.
         ax.set_ylabel(f"spadek: {OS_RMSE}", fontsize=9)
         _przecinki(ax, "y", 3)
-        ax.set_title(tytul, loc="left", fontsize=10, fontweight="bold", pad=22)
+        if v2:   # dwuwierszowy tytul panelu: w jednym wierszu prawy tytul wychodzi poza figure
+            tytul = tytul.replace(" (", "\n(", 1)
+        ax.set_title(tytul, loc="left", fontsize=10, fontweight="bold", pad=26 if v2 else 22)
         ax.text(0.0, 1.02, f"udział gęstości: {_pl(udzial, 1)} %",
                 transform=ax.transAxes, fontsize=9, color=INK_2, va="bottom")
+    if v2:
+        axes[1].text(0.03, 0.98, f"inna skala osi Y:\nefekt {_pl(krotnosc, 1)}× mniejszy",
+                     transform=axes[1].transAxes, fontsize=9, color=INK_2, ha="left", va="top")
+
+    if v2:
+        fig.tight_layout(w_pad=1.5)
+        p = OUT / "rys_3_rozklad_efektu_v2.png"
+        OUT.mkdir(parents=True, exist_ok=True)
+        with plt.rc_context({"savefig.bbox": "standard", "savefig.pad_inches": 0.0}):
+            fig.savefig(p, dpi=300)
+        plt.close(fig)
+        return p
 
     fig.suptitle("Prior wizualny przykrywa strukturę kątową echa",
                  x=0.008, y=0.995, ha="left", va="top", fontweight="bold", fontsize=11.5)
