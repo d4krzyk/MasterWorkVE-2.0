@@ -172,13 +172,13 @@
     },
     {
       "grupa": "silnik",
-      "nazwa": "Szum render-do-renderu (ten sam kąt)",
-      "wartosc": "0,03–0,16",
+      "nazwa": "Szum pojedynczego renderu `sigma_1` (ten sam kąt)",
+      "wartosc": "0,0253–0,1345",
       "jednostka": "RMSE spektrogramu",
       "status": "[Z]",
-      "dowod": "diagnose_rlr_noise_out/",
-      "sekcja": "CLAUDE.md",
-      "uwaga": "zależny od pozycji"
+      "dowod": "outputs/probe_census/_all_scenes.csv",
+      "sekcja": "docs/GENERATOR_PARAMS.md §3.2",
+      "uwaga": "census 1740 lokalizacji, mediana 0.0583; maksimum ≈ 2.1× sygnału 10° (Δ = 0,0644). Wcześniejsze „0,03–0,16\" to RMSE DWÓCH renderów (≈ √2·`sigma_1`) z wczesnej diagnostyki, nie `sigma_1` — nie cytować"
     },
     {
       "grupa": "silnik",
@@ -498,7 +498,7 @@
       "status": "[Z]",
       "dowod": "echo_ablation/echo_3seeds.json",
       "sekcja": "RAPORT_SESJI_2026-08-11.md §3",
-      "uwaga": "sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.22545, -0.16971]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2"
+      "uwaga": "sd po ZIARNACH; istotne we wszystkich 3: True; CI po lokalizacjach (ziarno 0) [-0.22545, -0.16971]; znak odwrócony względem pliku źródłowego (tam zapisane jako różnica odwrotna) — KONWENCJE.md §2; UWAGA — dwa różne źródła CI dla tego kontrastu: `echo_3seeds.json` NIE zapisuje liczby losowań, a `eval/compare_EA_seed{0,1,2}_vs_EB_seed{0,1,2}.json` mają n_boot = 200 / 1000 / 1000; obowiązują przedziały z n_boot = 2000 (`overnight_2026-11/bootstrap_EA_vs_EB_seed*_nboot2000.json`, §8)"
     },
     {
       "grupa": "wyniki_echo",
@@ -1234,6 +1234,46 @@
     },
     {
       "grupa": "wyniki_echo",
+      "nazwa": "Model 2: trafność top-1 zadania pretekstowego — K4",
+      "wartosc": "49,58 % (47,92 / 52,08 / 48,74)",
+      "jednostka": "%",
+      "status": "[Z]",
+      "dowod": "pretext/pretext_*/best.json",
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
+      "uwaga": "średnia z 3 ziaren (per ziarno w nawiasie); poziom losowy 25.0 % — NIE porównywalny między K, dlatego główną miarą jest MAAE"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: trafność top-1 zadania pretekstowego — K12",
+      "wartosc": "26,21 % (27,08 / 24,69 / 26,84)",
+      "jednostka": "%",
+      "status": "[Z]",
+      "dowod": "pretext/pretext_*/best.json",
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
+      "uwaga": "średnia z 3 ziaren (per ziarno w nawiasie); poziom losowy 8.3 % — NIE porównywalny między K, dlatego główną miarą jest MAAE"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: trafność top-1 zadania pretekstowego — K36",
+      "wartosc": "17,82 % (18,31 / 16,53 / 18,61)",
+      "jednostka": "%",
+      "status": "[Z]",
+      "dowod": "pretext/pretext_*/best.json",
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
+      "uwaga": "średnia z 3 ziaren (per ziarno w nawiasie); poziom losowy 2.8 % — NIE porównywalny między K, dlatego główną miarą jest MAAE"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Model 2: trafność top-1 zadania pretekstowego — K36@16par",
+      "wartosc": "6,06 % (5,43 / 5,36 / 7,38)",
+      "jednostka": "%",
+      "status": "[Z]",
+      "dowod": "pretext/pretext_*/best.json",
+      "sekcja": "RAPORT_SESJI_2026-08-13.md §4",
+      "uwaga": "średnia z 3 ziaren (per ziarno w nawiasie); poziom losowy 2.8 % — NIE porównywalny między K, dlatego główną miarą jest MAAE"
+    },
+    {
+      "grupa": "wyniki_echo",
       "nazwa": "Model 2: RGB2Depth po pretreningu — pretext_K4_seed0 @ 100% zbioru",
       "wartosc": "0.28699 ± 0.00433",
       "jednostka": "RMSE",
@@ -1373,14 +1413,548 @@
       "uwaga": "wartość ujemna = poprawa; to jest rozkład RMSE ZADANIA DOCELOWEGO, NIE rozkład MAAE pretekstu (§4, w stopniach)"
     },
     {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: RMSE uśrednione po obrazach, test@36 — A",
+      "wartosc": "0.25480 ± 0.00372",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/A_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "RMSE uśrednione po obrazach, miara jak w kodzie Paridy, tylko do porównań z literaturą; klucz `RMSE_per_sample`, średnia ± sd po 3 ziarnach; per ziarno: 0.25077 · 0.25808 · 0.25556. NIE mylić z RMSE po pikselach (metryka pracy)"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: RMSE uśrednione po obrazach, test@36 — D",
+      "wartosc": "0.23598 ± 0.00214",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/D_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "RMSE uśrednione po obrazach, miara jak w kodzie Paridy, tylko do porównań z literaturą; klucz `RMSE_per_sample`, średnia ± sd po 3 ziarnach; per ziarno: 0.23357 · 0.23673 · 0.23764. NIE mylić z RMSE po pikselach (metryka pracy)"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: RMSE uśrednione po obrazach, test@36 — B",
+      "wartosc": "0.21361 ± 0.00152",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/B_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "RMSE uśrednione po obrazach, miara jak w kodzie Paridy, tylko do porównań z literaturą; klucz `RMSE_per_sample`, średnia ± sd po 3 ziarnach; per ziarno: 0.21193 · 0.21489 · 0.21402. NIE mylić z RMSE po pikselach (metryka pracy)"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: RMSE test@4 — A",
+      "wartosc": "0.28422 ± 0.00403",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/A_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "4 kąty kardynalne × 183 lokalizacje = 732 próbki; 3 ziarna; per ziarno: 0.27956 · 0.28662 · 0.28647"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: luka test@36 − test@4 — A",
+      "wartosc": "+0.00826 ± 0.00206",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/A_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "różnica per ziarno, potem średnia ± sd; per ziarno: 0.00783 · 0.01050 · 0.00645. Wartość dodatnia = gorzej na pełnych 36 kątach niż na 4 kardynalnych; dodatnią lukę ma tylko warunek uczony na samych kątach kardynalnych"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: RMSE test@4 — D",
+      "wartosc": "0.27657 ± 0.00204",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/D_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "4 kąty kardynalne × 183 lokalizacje = 732 próbki; 3 ziarna; per ziarno: 0.27459 · 0.27643 · 0.27867"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: luka test@36 − test@4 — D",
+      "wartosc": "-0.00457 ± 0.00086",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/D_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "różnica per ziarno, potem średnia ± sd; per ziarno: -0.00551 · -0.00383 · -0.00438. Wartość dodatnia = gorzej na pełnych 36 kątach niż na 4 kardynalnych; dodatnią lukę ma tylko warunek uczony na samych kątach kardynalnych"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: RMSE test@4 — B",
+      "wartosc": "0.24739 ± 0.00043",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/B_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "4 kąty kardynalne × 183 lokalizacje = 732 próbki; 3 ziarna; per ziarno: 0.24690 · 0.24766 · 0.24761"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: luka test@36 − test@4 — B",
+      "wartosc": "-0.00373 ± 0.00099",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/B_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "różnica per ziarno, potem średnia ± sd; per ziarno: -0.00485 · -0.00297 · -0.00336. Wartość dodatnia = gorzej na pełnych 36 kątach niż na 4 kardynalnych; dodatnią lukę ma tylko warunek uczony na samych kątach kardynalnych"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: D − A na test@4",
+      "wartosc": "-0.00765 ± 0.00262 (p=0.0368)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{D,A}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "test t na różnicach po ziarnach (sparowany, df = 2), t = -5.07; per ziarno: -0.00497 · -0.01019 · -0.00780. Kąty kardynalne są dla `A` kątami TRENINGOWYMI"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "PEŁNY MODEL: B − A na test@4",
+      "wartosc": "-0.03682 ± 0.00361 (p=0.0032)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{B,A}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "test t na różnicach po ziarnach (sparowany, df = 2), t = -17.68; per ziarno: -0.03266 · -0.03896 · -0.03885. Kąty kardynalne są dla `A` kątami TRENINGOWYMI"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Krzywa stałego budżetu: K=6 − K=36",
+      "wartosc": "+0.06191 (p=6.0e-06)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{EK6,ED}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1",
+      "uwaga": "test Welcha po 3 ziarnach, t = 35.12, df = 3.83; K=36 to warunek `ED`; RMSE test@36; wartość dodatnia = K=6 gorsze niż K=36"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Krzywa stałego budżetu: K=9 − K=36",
+      "wartosc": "+0.01910 (p=0.0032)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{EK9,ED}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1",
+      "uwaga": "test Welcha po 3 ziarnach, t = 7.49, df = 3.40; K=36 to warunek `ED`; RMSE test@36; wartość dodatnia = K=9 gorsze niż K=36"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Krzywa stałego budżetu: K=12 − K=36",
+      "wartosc": "+0.00899 (p=0.0675)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{EK12,ED}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1",
+      "uwaga": "test Welcha po 3 ziarnach, t = 2.86, df = 2.89; K=36 to warunek `ED`; RMSE test@36; wartość dodatnia = K=12 gorsze niż K=36"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Krzywa stałego budżetu: K=18 − K=36",
+      "wartosc": "+0.00372 (p=0.6846)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{EK18,ED}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1",
+      "uwaga": "test Welcha po 3 ziarnach, t = 0.47, df = 2.12; K=36 to warunek `ED`; RMSE test@36; wartość dodatnia = K=18 gorsze niż K=36"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Gęstość kątowa ED − EA w scenie `apartment_2` (echo2depth)",
+      "wartosc": "-0.06332 ± 0.01671 (p=0.0224)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{ED,EA}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1",
+      "uwaga": "RMSE test@36 w obrębie sceny: EA 0.78951 → ED 0.72619; test t na różnicach po ziarnach (df = 2); per ziarno: -0.04427 · -0.07022 · -0.07547"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Gęstość kątowa ED − EA w scenie `frl_apartment_5` (echo2depth)",
+      "wartosc": "-0.26265 ± 0.01557 (p=0.0012)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{ED,EA}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1",
+      "uwaga": "RMSE test@36 w obrębie sceny: EA 0.89923 → ED 0.63658; test t na różnicach po ziarnach (df = 2); per ziarno: -0.24680 · -0.27792 · -0.26324"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Gęstość kątowa ED − EA w scenie `office_4` (echo2depth)",
+      "wartosc": "-0.07417 ± 0.00517 (p=0.0016)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{ED,EA}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §1",
+      "uwaga": "RMSE test@36 w obrębie sceny: EA 0.57003 → ED 0.49586; test t na różnicach po ziarnach (df = 2); per ziarno: -0.07275 · -0.07990 · -0.06986"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Gęstość kątowa D − A w scenie `apartment_2` (pełny model)",
+      "wartosc": "-0.02465 ± 0.00449 (p=0.0109)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{D,A}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "RMSE test@36 w obrębie sceny: A 0.33514 → D 0.31050; test t na różnicach po ziarnach (df = 2); per ziarno: -0.02853 · -0.02568 · -0.01973"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Gęstość kątowa D − A w scenie `frl_apartment_5` (pełny model)",
+      "wartosc": "-0.01775 ± 0.00515 (p=0.0269)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{D,A}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "RMSE test@36 w obrębie sceny: A 0.26908 → D 0.25132; test t na różnicach po ziarnach (df = 2); per ziarno: -0.01611 · -0.01363 · -0.02352"
+    },
+    {
+      "grupa": "wyniki_echo",
+      "nazwa": "Gęstość kątowa D − A w scenie `office_4` (pełny model)",
+      "wartosc": "-0.01630 ± 0.02188 (p=0.3259)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "eval/{D,A}_seed*/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §2",
+      "uwaga": "RMSE test@36 w obrębie sceny: A 0.25056 → D 0.23426; test t na różnicach po ziarnach (df = 2); per ziarno: +0.00013 · -0.04113 · -0.00790"
+    },
+    {
+      "grupa": "dataset",
+      "nazwa": "Lokalizacji testowych na scenę",
+      "wartosc": {
+        "apartment_2": 71,
+        "frl_apartment_5": 74,
+        "office_4": 38
+      },
+      "jednostka": "lokalizacji",
+      "status": "[Z]",
+      "dowod": "eval/A_seed0/eval.json",
+      "sekcja": "dopisane 2026-11-12; kontekst: STAN_WYNIKOW.md §6",
+      "uwaga": "n_samples / 36 na test@36 (2556/36, 2664/36, 1368/36); suma 183 = cały zbiór testowy. Zbiór testowy jest wspólny dla wszystkich warunków, więc liczby nie zależą od przebiegu"
+    },
+    {
+      "grupa": "silnik",
+      "nazwa": "Stałe N o gwarancji SNR ≥ 3,5 dla 100 % / 99 % / 95 % lokalizacji",
+      "wartosc": "54 / 35 / 25",
+      "jednostka": "renderów",
+      "status": "[Z]",
+      "dowod": "outputs/probe_census/_all_scenes.csv",
+      "sekcja": "docs/GENERATOR_PARAMS.md §3.2",
+      "uwaga": "najmniejsze stałe N, przy którym co najmniej dany odsetek z 1740 lokalizacji ma N_raw = ceil((γ·σ₁/Δ)²) ≤ N, γ = 3,5, Δ = 0,0644; faktyczne pokrycie: 100.00 % / 99.08 % / 95.11 %. Dla porównania reguła adaptacyjna zużywa średnio 12.08 renderu na lokalizację (mediana N_raw 11); σ₁ pochodzi z sondy 8 renderów"
+    },
+    {
+      "grupa": "silnik",
+      "nazwa": "Udział lokalizacji pokrytych przez stałe N = 21",
+      "wartosc": 91.21,
+      "jednostka": "%",
+      "status": "[Z]",
+      "dowod": "outputs/probe_census/_all_scenes.csv",
+      "sekcja": "docs/GENERATOR_PARAMS.md §3.2",
+      "uwaga": "1587 z 1740 lokalizacji ma N_raw ≤ 21, czyli SNR ≥ 3,5 przy N = 21; pozostałe 153 byłyby poniżej docelowego SNR"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Holm, rodzina (a): siec tylko-echo (echo2depth): kontrasty D−A, B−D, B−A, test@36, 3 ziarna",
+      "wartosc": "D−A (ED−EA): 0,002619 → 0,00327; B−D (EB−ED): 0,001635 → 0,00327; B−A (EB−EA): 0,0009785 → 0,002935",
+      "jednostka": "p surowe → p Holm",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/holm_families.json",
+      "sekcja": "STAN_WYNIKOW.md §11.1",
+      "uwaga": "korekta Holma w obrębie rodziny (m = 3); metoda p surowych: ttest_1samp na roznicach per ziarno (df=2)"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Holm, rodzina (b): krzywa stalego budzetu (echo2depth): K − K36, Welch 3 vs 3",
+      "wartosc": "K=6 − K=36 (EK6−ED): 6,043e-06 → 2,417e-05; K=9 − K=36 (EK9−ED): 0,003155 → 0,009466; K=12 − K=36 (EK12−ED): 0,06752 → 0,135; K=18 − K=36 (EK18−ED): 0,6846 → 0,6846",
+      "jednostka": "p surowe → p Holm",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/holm_families.json",
+      "sekcja": "STAN_WYNIKOW.md §11.1",
+      "uwaga": "korekta Holma w obrębie rodziny (m = 4); metoda p surowych: Welch 3 vs 3 (df=3.83)"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Holm, rodzina (c): model pelny (RGB+echo+material+uwaga): D−A, B−D, B−A, 3 ziarna",
+      "wartosc": "D−A: 0,009581 → 0,009581; B−D: 0,0009881 → 0,002964; B−A: 0,001754 → 0,003508",
+      "jednostka": "p surowe → p Holm",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/holm_families.json",
+      "sekcja": "STAN_WYNIKOW.md §11.1",
+      "uwaga": "korekta Holma w obrębie rodziny (m = 3); metoda p surowych: ttest_1samp na roznicach per ziarno (df=n−1)"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Holm, rodzina (d): geometria: patched − main, Welch, maska pelna, 3 ziarna",
+      "wartosc": "EPA−EA: 0,8698 → 0,8698; EPD−ED: 0,0905 → 0,181; EPB−EB: 0,01263 → 0,03788",
+      "jednostka": "p surowe → p Holm",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/holm_families.json",
+      "sekcja": "STAN_WYNIKOW.md §11.1",
+      "uwaga": "korekta Holma w obrębie rodziny (m = 3); metoda p surowych: Welch na RMSE test@36, maska pelna (df=2.92)"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Holm, rodzina (e): transfer pretrening vs scratch, 5 ziaren, RMSE best.json",
+      "wartosc": "pretext_K4_seed0 − scratch: 0,231 → 0,6218; pretext_K36_p16_seed0 − scratch: 0,7506 → 0,7506; pretext_K36_seed0 − scratch: 0,2073 → 0,6218; pretext_K12_seed0 − scratch: 0,07421 → 0,2969",
+      "jednostka": "p surowe → p Holm",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/holm_families.json",
+      "sekcja": "STAN_WYNIKOW.md §11.1",
+      "uwaga": "korekta Holma w obrębie rodziny (m = 4); metoda p surowych: Welch na RMSE best.json['all'] (pelna walidacja) (df=5.70)"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Holm po wszystkich 17 testach: D−A model pełny / EPB−EB",
+      "wartosc": "0,09581 / 0,1136",
+      "jednostka": "p Holm",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/holm_families.json",
+      "sekcja": "STAN_WYNIKOW.md §11.1",
+      "uwaga": "korekta konserwatywna (testy z różnych pytań); oba wyniki tracą istotność"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Bootstrap EA−EB (n_boot = 2000), ziarno 0",
+      "wartosc": "+0.19584 [+0.16936; +0.22596]",
+      "jednostka": "RMSE test@36",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/bootstrap_EA_vs_EB_seed0_nboot2000.json",
+      "sekcja": "STAN_WYNIKOW.md §11.2",
+      "uwaga": "bootstrap sparowany po 183 lokalizacjach, boot_seed = 0, boot_sd = 0.01436; zastępuje CI z `compare_*.json` o mniejszym n_boot"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Bootstrap EA−EB (n_boot = 2000), ziarno 1",
+      "wartosc": "+0.21392 [+0.18549; +0.24552]",
+      "jednostka": "RMSE test@36",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/bootstrap_EA_vs_EB_seed1_nboot2000.json",
+      "sekcja": "STAN_WYNIKOW.md §11.2",
+      "uwaga": "bootstrap sparowany po 183 lokalizacjach, boot_seed = 0, boot_sd = 0.01527; zastępuje CI z `compare_*.json` o mniejszym n_boot"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Bootstrap EA−EB (n_boot = 2000), ziarno 2",
+      "wartosc": "+0.21669 [+0.19016; +0.24446]",
+      "jednostka": "RMSE test@36",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/bootstrap_EA_vs_EB_seed2_nboot2000.json",
+      "sekcja": "STAN_WYNIKOW.md §11.2",
+      "uwaga": "bootstrap sparowany po 183 lokalizacjach, boot_seed = 0, boot_sd = 0.01364; zastępuje CI z `compare_*.json` o mniejszym n_boot"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "n_boot w `compare_EA_seedN_vs_EB_seedN.json` (ziarna 0 / 1 / 2)",
+      "wartosc": "200 / 1000 / 1000",
+      "jednostka": "losowań",
+      "status": "[Z]",
+      "dowod": "eval/compare_EA_seed*_vs_EB_seed*.json",
+      "sekcja": "STAN_WYNIKOW.md §11.2",
+      "uwaga": "domyślne `--n-boot` w `evaluate.py` to 2000; ziarno bootstrapu 0 we wszystkich plikach"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Piksele z głębią > 10,29 m, test@36",
+      "wartosc": "0,014 % (13456 z 96853180)",
+      "jednostka": "% ważnych pikseli",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/depth_range_stats.json",
+      "sekcja": "STAN_WYNIKOW.md §11.3",
+      "uwaga": "per scena: apartment_2 0,000 %, frl_apartment_5 0,036 %, office_4 0,000 %"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Piksele z głębią > 10,29 m, trening B / A / ED",
+      "wartosc": "0,018 % / 0,022 % / 0,016 %",
+      "jednostka": "% ważnych pikseli",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/depth_range_stats.json",
+      "sekcja": "STAN_WYNIKOW.md §11.3",
+      "uwaga": "B = 36 orientacji; A = cardinal; ED = random_4, angle_seed 0"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Piksele z głębią > 8 m / > 12 m, test@36",
+      "wartosc": "0,143 % / 0,001 %",
+      "jednostka": "% ważnych pikseli",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/depth_range_stats.json",
+      "sekcja": "STAN_WYNIKOW.md §11.3",
+      "uwaga": ""
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Piksele z głębią powyżej `max_depth` (14,104 m)",
+      "wartosc": "test@36: 0; trening: 131",
+      "jednostka": "pikseli",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/depth_range_stats.json",
+      "sekcja": "STAN_WYNIKOW.md §11.3",
+      "uwaga": ""
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Diagnostyka gałęzi: RMSE baseline (depth_predicted) (A / D / B)",
+      "wartosc": "0,2925 / 0,2720 / 0,2437",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/branch_diag_*.json",
+      "sekcja": "STAN_WYNIKOW.md §11.4",
+      "uwaga": "średnia z 3 ziaren; zgodne z eval.json"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Diagnostyka gałęzi: sama gałąź audio_depth (A / D / B)",
+      "wartosc": "4,5386 / 4,2935 / 4,6247",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/branch_diag_*.json",
+      "sekcja": "STAN_WYNIKOW.md §11.4",
+      "uwaga": "średnia z 3 ziaren; gałęzie uczone tylko jako mieszanina — to nie jest wkład audio/obrazu"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Diagnostyka gałęzi: sama gałąź img_depth (A / D / B)",
+      "wartosc": "1,4916 / 1,4079 / 1,4019",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/branch_diag_*.json",
+      "sekcja": "STAN_WYNIKOW.md §11.4",
+      "uwaga": "średnia z 3 ziaren"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Diagnostyka gałęzi: średnia α (piksele ważne) (A / D / B)",
+      "wartosc": "0,2324 / 0,2383 / 0,2230",
+      "jednostka": "—",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/branch_diag_*.json",
+      "sekcja": "STAN_WYNIKOW.md §11.4",
+      "uwaga": "średnia z 3 ziaren"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Diagnostyka gałęzi: α := średnia α (A / D / B)",
+      "wartosc": "0,7400 / 0,6787 / 0,6637",
+      "jednostka": "RMSE",
+      "status": "[Z-]",
+      "dowod": "overnight_2026-11/branch_diag_*.json",
+      "sekcja": "STAN_WYNIKOW.md §11.4",
+      "uwaga": "średnia z 3 ziaren; średnia α z test@36 tego samego modelu"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Diagnostyka gałęzi: α := 0,5 (A / D / B)",
+      "wartosc": "1,7542 / 1,6473 / 1,7967",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/branch_diag_*.json",
+      "sekcja": "STAN_WYNIKOW.md §11.4",
+      "uwaga": "średnia z 3 ziaren"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Diagnostyka gałęzi: cechy materiału := 0 (A / D / B)",
+      "wartosc": "0,7649 / 0,7509 / 0,7033",
+      "jednostka": "RMSE",
+      "status": "[Z-]",
+      "dowod": "overnight_2026-11/branch_diag_*.json",
+      "sekcja": "STAN_WYNIKOW.md §11.4",
+      "uwaga": "średnia z 3 ziaren; zaburzenie poza rozkładem"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Diagnostyka gałęzi: cechy materiału przetasowane w batchu (A / D / B)",
+      "wartosc": "0,8225 / 0,7581 / 0,7334",
+      "jednostka": "RMSE",
+      "status": "[Z-]",
+      "dowod": "overnight_2026-11/branch_diag_*.json",
+      "sekcja": "STAN_WYNIKOW.md §11.4",
+      "uwaga": "średnia z 3 ziaren; ziarno 12345, batch 32; wynik zależy od rozmiaru batcha"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Niedeterminizm GPU, ED ziarno 0, powtórzenia 40 000 kroków: średnia ± sd",
+      "wartosc": "0.65245 ± 0.00188",
+      "jednostka": "RMSE test@36",
+      "status": "[Z]",
+      "dowod": "determinism/noise_floor_ED_40k.json",
+      "sekcja": "STAN_WYNIKOW.md §11.5",
+      "uwaga": "5 powtórzeń; rozstęp 0.00491; oryginalny `ED_seed0` = 0.64695 (-2.9 sd, poza zakresem: True)"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Niedeterminizm GPU, ziarna 1 / 2: powtórzenie − oryginał",
+      "wartosc": "-0.00069 / +0.00494",
+      "jednostka": "RMSE test@36",
+      "status": "[Z]",
+      "dowod": "determinism/noise_floor_ED_seeds12_40k.json",
+      "sekcja": "STAN_WYNIKOW.md §11.5",
+      "uwaga": "powtórzenia 0.64163 / 0.64863; oryginały 0.64232 / 0.64369"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Ponowna ewaluacja oryginalnych wag ED_seed0/1/2: max |Δ RMSE|",
+      "wartosc": "1.1e-07",
+      "jednostka": "RMSE test@36",
+      "status": "[Z]",
+      "dowod": "eval/ED_seed{0,1,2}_reeval/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.5",
+      "uwaga": "obecny kod i sterownik; ewaluacja deterministyczna, rozbieżność powstaje w treningu"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Krzywa K: krok między sąsiednimi K w krotnościach rozstępu GPU (4→6 / 6→9 / 9→12 / 12→18 / 18→36)",
+      "wartosc": "17,3× / 8,7× / 2,1× / 1,1× / 0,8×",
+      "jednostka": "×",
+      "status": "[Z]",
+      "dowod": "tables_5_3_5_5/tables.json",
+      "sekcja": "STAN_WYNIKOW.md §11.6",
+      "uwaga": "rozstęp 0.00491 z noise_floor_ED_40k.json; kroki > K = 12 mieszczą się w zakresie niedeterminizmu"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Krzywa K: udział zysku 4→36 dla K = 6 / 9 / 12 / 18",
+      "wartosc": "57,8 / 87,0 / 93,9 / 97,5",
+      "jednostka": "%",
+      "status": "[Z]",
+      "dowod": "tables_5_3_5_5/tables.json",
+      "sekcja": "STAN_WYNIKOW.md §11.6",
+      "uwaga": ""
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Luka kątowa 0°→max wg K (K = 6 / 9 / 12 / 18)",
+      "wartosc": "+0,184 / +0,079 / +0,036 / +0,001",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "tables_5_3_5_5/tables.json",
+      "sekcja": "STAN_WYNIKOW.md §11.6",
+      "uwaga": "odległość od najbliższej orientacji SIATKI K (maks. 30° / 20° / 10° / 10°); K=18 nieistotna"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Hiperparametry treningu sieci głębi (identyczne w 43/43 przebiegach)",
+      "wartosc": "40000 kroków, batch 32, lr 0,0001, wd 0,0005, adam (β₁ = 0,9), AMP w 43/43",
+      "jednostka": "—",
+      "status": "[Z]",
+      "dowod": "runs/*/config.json",
+      "sekcja": "STAN_WYNIKOW.md §6",
+      "uwaga": "strata `LogDepthLoss` na pikselach gt ≠ 0, `max_depth` 14,104 m (`train_condition.py`, `experiments.py`)"
+    },
+    {
       "grupa": "budzet",
-      "nazwa": "Przebiegów w macierzy",
+      "nazwa": "Przebiegów w macierzy (PLAN)",
       "wartosc": 66,
       "jednostka": "przebiegów",
       "status": "[W]",
       "dowod": "experiments.json",
       "sekcja": "RAPORT_SESJI_2026-08-10.md §5.5",
-      "uwaga": "22 warunki × 3 ziarna"
+      "uwaga": "22 warunki × 3 ziarna; to PLAN z `experiments.json`, nie liczba wykonanych przebiegów (część grup skreślono, w `outputs/ml/runs/` leży 43 przebiegi sieci głębi). Liczba „84 przebiegów GPU\" ze STAN_WYNIKOW obejmuje całą fazę ML (także pretekst, transfer i sondy), nie jest tą samą wielkością"
     },
     {
       "grupa": "budzet",
@@ -1528,11 +2102,6 @@
       "czego": "Krzywa nasycenia na NATURALNEJ liczności (C6/C9/C12/C18)",
       "da_to": "grupa `krzywa`, 12 przebiegów, 10,4 h — SKREŚLONA świadomie",
       "po_co": "rośnie po gęstości I rozmiarze zbioru naraz; `krzywa_staly` odpowiada na to samo pytanie ostrzej i JEST policzona — luki w tekście NIE zostawiać"
-    },
-    {
-      "czego": "Rozrzut po ziarnach dla MAAE zadania pretekstowego (§4)",
-      "da_to": "pretext_K{4,12,36} × ziarna 1–2, ~1,6 h",
-      "po_co": "MAAE 61,23 / 55,73 / 25,13 mają n=1 — podane BEZ oszacowania rozrzutu; pominięte świadomie (niski zwrot), ale w tekście musi to być napisane"
     },
     {
       "czego": "Wariant `patched` na PEŁNYM modelu (PA/PB/PD)",
