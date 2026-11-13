@@ -137,32 +137,60 @@ print(f"  czas przy {SPR:.4f} s/render      : {renders*SPR/3600:.1f} h")
 print(f"  (narzut petli weryfikacyjnej {OV:.4f}x uwzgledniony, rozgrzewka 18x{WARMUP_DISCARD})")
 
 # --- wykres ---
-fig, axes = plt.subplots(1, 2, figsize=(14, 4.5))
+# Wyglad pod skad pracy: szerokosc 15,5 cm, 300 dpi, czcionka >= 10 pt, przecinek dziesietny.
+# Dane i obliczenia bez zmian wzgledem wersji z 2026-07-29. Arial nie jest zainstalowany;
+# Liberation Sans ma te same metryki (i glify sigma oraz indeksu dolnego).
+from matplotlib import font_manager
+from matplotlib.ticker import FuncFormatter
+
+_fonts = {f.name for f in font_manager.fontManager.ttflist}
+FONT = next(f for f in ("Arial", "Liberation Sans", "DejaVu Sans") if f in _fonts)
+plt.rcParams.update({"font.family": FONT, "font.size": 10, "axes.titlesize": 10,
+                     "axes.labelsize": 10, "xtick.labelsize": 10, "ytick.labelsize": 10,
+                     "legend.fontsize": 10})
+
+
+def _pl(x, _pos=None, nd=None):
+    """Liczba z przecinkiem dziesietnym (konwencja polska)."""
+    s = f"{x:.{nd}f}" if nd is not None else f"{x:g}"
+    return s.replace(".", ",")
+
+
+CM = 1 / 2.54
+fig, axes = plt.subplots(1, 2, figsize=(15.5 * CM, 9.0 * CM),
+                         gridspec_kw={"width_ratios": [1, 1.4]})
 ax = axes[0]
 ax.hist(n, bins=np.arange(0.5, max(n.max(), 45) + 1.5, 1), color="tab:blue", edgecolor="none")
-ax.axvline(N_MAX, color="tab:red", ls="--", lw=1.5, label=f"N_MAX = {N_MAX}")
-ax.axvline(24, color="tab:orange", ls=":", lw=1.2, label="porzucony prog 24")
-ax.set_xlabel("N_raw (przed clamp)")
+ax.axvline(N_MAX, color="tab:red", ls="--", lw=1.5)
+# Podpis przy linii zamiast legendy (jak w prawym panelu): przy tej szerokosci ramka
+# legendy zaslaniala slupki albo sama linie.
+ax.text(N_MAX - 1.0, 0.5, f"N_MAX = {N_MAX}", transform=ax.get_xaxis_transform(),
+        rotation=90, ha="right", va="center", color="tab:red")
+ax.set_xlabel("N (przed obcięciem)")
 ax.set_ylabel("lokalizacji")
-ax.set_title(f"Rozkład N_raw — wszystkie {len(df)} lokalizacji", fontsize=10)
-ax.legend(fontsize=8)
+ax.set_title(f"Rozkład N, wszystkie {len(df)} lokalizacji")
 ax.grid(alpha=0.3)
 
 ax = axes[1]
 order = [r[0] for r in sorted(rows, key=lambda x: -x[2])]
 data = [g.get_group(s).sigma_1.values for s in order]
 ax.boxplot(data, vert=False, labels=order, widths=0.6, showfliers=True,
-           flierprops=dict(marker=".", markersize=4))
-ax.axvline(SIGMA_NMAX, color="tab:red", ls="--", lw=1.5,
-           label=f"próg przy N_MAX: {SIGMA_NMAX:.4f}")
-ax.set_xlabel("sigma_1")
-ax.set_title("Podłoga szumu per scena (pełny census)", fontsize=10)
-ax.legend(fontsize=8)
-ax.tick_params(axis="y", labelsize=7)
+           flierprops=dict(marker=".", markersize=3))
+ax.axvline(SIGMA_NMAX, color="tab:red", ls="--", lw=1.5)
+# Podpis przy samej linii zamiast legendy: legenda w kazdym rogu zaslaniala pudelka
+# albo punkty odstajace.
+ax.text(SIGMA_NMAX - 0.002, 0.5, f"próg przy N_MAX: {_pl(SIGMA_NMAX, nd=4)}",
+        transform=ax.get_xaxis_transform(), rotation=90, ha="right", va="center",
+        color="tab:red")
+ax.set_xlabel("σ₁")
+ax.set_title("Szum σ₁ pojedynczego renderu, per scena", loc="right")
+ax.xaxis.set_major_formatter(FuncFormatter(_pl))
+ax.set_xticks([0.04, 0.08, 0.12])
 ax.grid(alpha=0.3, axis="x")
-fig.tight_layout()
+fig.tight_layout(w_pad=0.6)
 out = Path(__file__).resolve().parents[2] / "outputs/diagnose_rlr_noise_out/probe_census.png"
-fig.savefig(out, dpi=130)
+fig.savefig(out, dpi=300)
+print(f"  czcionka: {FONT}")
 print(f"\n  Wykres -> {out}")
 
 df.to_csv(Path(__file__).resolve().parents[2] / "outputs/probe_census/_all_scenes.csv", index=False)
