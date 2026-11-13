@@ -850,6 +850,82 @@ def collect() -> tuple[list[dict], list[dict]]:
                 "—", "[Z]", "runs/*/config.json", f"{S11} §6",
                 "strata `LogDepthLoss` na pikselach gt ≠ 0, `max_depth` 14,104 m (`train_condition.py`, `experiments.py`)")
 
+    # ---- Czesc B 2026-11-13: krok 6 (ED z angle_seed), krok 7 (RGB-only), plateau, probe_aux. Jawne nazwy katalogow, bez globow.
+    def _rgb_eval(c, s_, ts):
+        d = _load(ON / "rgbonly" / f"RGBONLY_{c}_seed{s_}" / "eval.json")
+        try:
+            return float(d["test_sets"][ts]["overall"]["all"]["RMSE"])
+        except (KeyError, TypeError):
+            return None
+
+    for ts in ("test@36", "test@4"):
+        R = {c: [_rgb_eval(c, s_, ts) for s_ in (0, 1, 2)] for c in "ADB"}
+        F = {c: _per_seed(c, ts) for c in "ADB"}
+        if not all(None not in R[c] for c in "ADB") or not all(F[c] for c in "ADB"):
+            continue
+        for c in "ADB":
+            add(G, f"RGB-only {c}: średnia ± sd ({ts})", _ms(R[c]), "RMSE", "[Z]", f"overnight_2026-11/rgbonly/RGBONLY_{c}_seed{{0,1,2}}/eval.json",
+                f"{S11} §11.8", "RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna")
+        for lab, (x, y) in {"D − A": ("D", "A"), "B − D": ("B", "D"), "B − A": ("B", "A")}.items():
+            pr, pf = _paired(R[x], R[y]), _paired(F[x], F[y])
+            add(G, f"{lab}: RGB-only vs model pełny ({ts})", f"{np.mean(pr['d']):+.5f} ({_p(pr['p'])}) vs {np.mean(pf['d']):+.5f} ({_p(pf['p'])})",
+                "RMSE", "[Z]", f"overnight_2026-11/rgbonly/RGBONLY_*_seed{{0,1,2}}/eval.json + eval/{{A,D,B}}_seed{{0,1,2}}/eval.json", f"{S11} §11.8",
+                "X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only")
+        shr = [(R["D"][i] - R["A"][i]) / (R["B"][i] - R["A"][i]) for i in range(3)]
+        shf = [(F["D"][i] - F["A"][i]) / (F["B"][i] - F["A"][i]) for i in range(3)]
+        add(G, f"Udział (D − A)/(B − A): RGB-only vs model pełny ({ts})", f"{np.mean(shr):.3f} vs {np.mean(shf):.3f}", "ułamek", "[Z]",
+            "overnight_2026-11/rgbonly/ + eval/", f"{S11} §11.8", "średnia z 3 ziaren; per ziarno RGB-only " + " / ".join(f"{x:.3f}" for x in shr)
+            + "; pełny " + " / ".join(f"{x:.3f}" for x in shf))
+        if ts == "test@36":
+            se = _eval_json("SE_seed0")
+            if se:
+                v = float(se["test_sets"]["test@36"]["overall"]["all"]["RMSE"])
+                add(G, "RGB-only B (średnia z 3 ziaren) vs SE_seed0 (test@36)", f"{np.mean(R['B']):.5f} vs {v:.5f}", "RMSE", "[Z]",
+                    "overnight_2026-11/rgbonly/RGBONLY_B_seed{0,1,2}/eval.json + eval/SE_seed0/eval.json", f"{S11} §11.8",
+                    f"różnica {v - np.mean(R['B']):+.5f}; SE n = 1")
+    asr = []
+    for a_ in (1, 2, 3):
+        d = _load(paths.ML_OUTPUTS / "eval" / f"ED_seed0_as{a_}" / "eval.json")
+        try:
+            asr.append(float(d["test_sets"]["test@36"]["overall"]["all"]["RMSE"]))
+        except (KeyError, TypeError):
+            asr = []
+            break
+    nf0 = (_load(paths.ML_OUTPUTS / "determinism" / "noise_floor_ED_40k.json") or {}).get("srednia")
+    if len(asr) == 3 and nf0:
+        add(G, "ED z angle_seed 1 / 2 / 3 (krok 6)", " / ".join(f"{x:.5f}" for x in asr), "RMSE test@36", "[Z]",
+            "eval/ED_seed0_as{1,2,3}/eval.json", f"{S11} §11.7", "trening ziarno 0; konfiguracja jak ED_seed0")
+        four = [nf0] + asr
+        add(G, "ED, 4 losowania angle_seed 0–3: średnia / sd / rozstęp", f"{np.mean(four):.4f} / {np.std(four, ddof=1):.4f} / {max(four) - min(four):.4f}",
+            "RMSE test@36", "[Z]", "determinism/noise_floor_ED_40k.json + eval/ED_seed0_as{1,2,3}/eval.json", f"{S11} §11.7",
+            "losowanie 0 = średnia 5 powtórzeń nf")
+    # plateau: ostatnie 40 wierszy metrics.jsonl 43 przebiegow sieci glebi (jawne nazwy), RMSE walidacyjne ('all')
+    pl = []
+    for r_ in runy:
+        try:
+            L_ = [json.loads(x) for x in (paths.RUNS_DIR / r_ / "metrics.jsonl").read_text(encoding="utf-8").splitlines()][-40:]
+            v_ = [x["all"]["RMSE"] for x in L_]
+            st_ = [x["step"] for x in L_]
+            if st_ != list(range(1000, 40001, 1000)):
+                raise ValueError(r_)
+            pl.append((r_, st_[int(np.argmin(v_))], v_[29] - min(v_[30:]), float(np.std(v_[30:], ddof=1))))
+        except (OSError, KeyError, ValueError, json.JSONDecodeError):
+            pl = []
+            break
+    if len(pl) == 43:
+        late = [r_ for r_, bs, _i, _s in pl if bs >= 31000]
+        add(G, "Plateau: przebiegi z najlepszym krokiem ≥ 31 000", f"{len(late)} z 43", "przebiegów", "[Z]",
+            "runs/<43 jawne nazwy>/metrics.jsonl (ostatnie 40 wierszy)", f"{S11} §11.9", "; ".join(late))
+        add(G, "Plateau: mediana poprawy po kroku 30 000 (RMSE@30000 − min RMSE kroków 31000–40000)", f"{np.median([i for _r, _b, i, _s in pl]):.4f}",
+            "RMSE val", "[Z]", "runs/<43 jawne nazwy>/metrics.jsonl", f"{S11} §11.9", "RMSE walidacyjne, nie test; plateau_recomputed.md")
+        add(G, "Plateau: mediana sd RMSE w ostatniej ćwiartce (n = 10, ddof = 1)", f"{np.median([s for _r, _b, _i, s in pl]):.4f}",
+            "RMSE val", "[Z]", "runs/<43 jawne nazwy>/metrics.jsonl", f"{S11} §11.9", "")
+    pa = _load(paths.ML_OUTPUTS / "probing" / "probe_aux_random_seed0" / "status.json") or {}
+    if pa.get("n_train") and pa.get("n_eval"):
+        add(G, "probe_aux: podział train / eval po lokalizacjach", f"{pa['n_train'] // 36} / {pa['n_eval'] // 36}", "lokalizacji", "[Z]",
+            "probing/probe_aux_random_seed0/status.json", f"{S11} §11.9",
+            f"n_train {pa['n_train']}, n_eval {pa['n_eval']} (÷ 36 orientacji); `probe.py::_aux_split` — podział po kluczu scena·100000+lokalizacja, 0 wspólnych lokalizacji")
+
     # ---- 6. budzet
     b = exp.get("budzet", {})
     if b:

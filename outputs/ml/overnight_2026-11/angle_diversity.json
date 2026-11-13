@@ -1,0 +1,104 @@
+{
+  "A": {
+    "angle_subset": "cardinal",
+    "angle_seed": 0,
+    "K_siatki": 4,
+    "lokalizacji": 1374,
+    "probek": 5496,
+    "katow_na_lokalizacje": [
+      4
+    ],
+    "rozne_orientacje_w_zbiorze": 4,
+    "ulamek_lokalizacji_z_orientacja": {
+      "srednia": 1.0,
+      "min": 1.0,
+      "max": 1.0,
+      "oczekiwane_4_przez_K": 1.0
+    }
+  },
+  "D": {
+    "angle_subset": "random_4",
+    "angle_seed": 0,
+    "K_siatki": 36,
+    "lokalizacji": 1374,
+    "probek": 5496,
+    "katow_na_lokalizacje": [
+      4
+    ],
+    "rozne_orientacje_w_zbiorze": 36,
+    "ulamek_lokalizacji_z_orientacja": {
+      "srednia": 0.1111111111111111,
+      "min": 0.09097525473071325,
+      "max": 0.1346433770014556,
+      "oczekiwane_4_przez_K": 0.1111111111111111
+    }
+  },
+  "EK6": {
+    "angle_subset": "random_4_of_6",
+    "angle_seed": 0,
+    "K_siatki": 6,
+    "lokalizacji": 1374,
+    "probek": 5496,
+    "katow_na_lokalizacje": [
+      4
+    ],
+    "rozne_orientacje_w_zbiorze": 6,
+    "ulamek_lokalizacji_z_orientacja": {
+      "srednia": 0.6666666666666666,
+      "min": 0.6433770014556041,
+      "max": 0.6841339155749636,
+      "oczekiwane_4_przez_K": 0.6666666666666666
+    }
+  },
+  "EK9": {
+    "angle_subset": "random_4_of_9",
+    "angle_seed": 0,
+    "K_siatki": 9,
+    "lokalizacji": 1374,
+    "probek": 5496,
+    "katow_na_lokalizacje": [
+      4
+    ],
+    "rozne_orientacje_w_zbiorze": 9,
+    "ulamek_lokalizacji_z_orientacja": {
+      "srednia": 0.4444444444444444,
+      "min": 0.42139737991266374,
+      "max": 0.46652110625909754,
+      "oczekiwane_4_przez_K": 0.4444444444444444
+    }
+  },
+  "EK12": {
+    "angle_subset": "random_4_of_12",
+    "angle_seed": 0,
+    "K_siatki": 12,
+    "lokalizacji": 1374,
+    "probek": 5496,
+    "katow_na_lokalizacje": [
+      4
+    ],
+    "rozne_orientacje_w_zbiorze": 12,
+    "ulamek_lokalizacji_z_orientacja": {
+      "srednia": 0.3333333333333333,
+      "min": 0.3078602620087336,
+      "max": 0.3551673944687045,
+      "oczekiwane_4_przez_K": 0.3333333333333333
+    }
+  },
+  "EK18": {
+    "angle_subset": "random_4_of_18",
+    "angle_seed": 0,
+    "K_siatki": 18,
+    "lokalizacji": 1374,
+    "probek": 5496,
+    "katow_na_lokalizacje": [
+      4
+    ],
+    "rozne_orientacje_w_zbiorze": 18,
+    "ulamek_lokalizacji_z_orientacja": {
+      "srednia": 0.2222222222222222,
+      "min": 0.20451237263464336,
+      "max": 0.24090247452692867,
+      "oczekiwane_4_przez_K": 0.2222222222222222
+    }
+  }
+}

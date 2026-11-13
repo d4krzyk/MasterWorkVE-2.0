@@ -422,6 +422,27 @@ Uwagi:
 | Krzywa K: udział zysku 4→36 dla K = 6 / 9 / 12 / 18 | **57,8 / 87,0 / 93,9 / 97,5** | % | [Z] | `tables_5_3_5_5/tables.json` | STAN_WYNIKOW.md §11.6 |
 | Luka kątowa 0°→max wg K (K = 6 / 9 / 12 / 18) | **+0,184 / +0,079 / +0,036 / +0,001** | RMSE | [Z] | `tables_5_3_5_5/tables.json` | STAN_WYNIKOW.md §11.6 |
 | Hiperparametry treningu sieci głębi (identyczne w 43/43 przebiegach) | **40000 kroków, batch 32, lr 0,0001, wd 0,0005, adam (β₁ = 0,9), AMP w 43/43** | — | [Z] | `runs/*/config.json` | STAN_WYNIKOW.md §6 |
+| RGB-only A: średnia ± sd (test@36) | **0.36365 ± 0.00359** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_A_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| RGB-only D: średnia ± sd (test@36) | **0.34549 ± 0.00243** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_D_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| RGB-only B: średnia ± sd (test@36) | **0.28710 ± 0.00345** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_B_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| D − A: RGB-only vs model pełny (test@36) | **-0.01817 (p=0.0267) vs -0.02048 (p=0.0096)** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| B − D: RGB-only vs model pełny (test@36) | **-0.05839 (p=0.0006) vs -0.02833 (p=0.0010)** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| B − A: RGB-only vs model pełny (test@36) | **-0.07655 (p=0.0028) vs -0.04881 (p=0.0018)** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| Udział (D − A)/(B − A): RGB-only vs model pełny (test@36) | **0.235 vs 0.418** | ułamek | [Z] | `overnight_2026-11/rgbonly/ + eval/` | STAN_WYNIKOW.md §11.8 |
+| RGB-only B (średnia z 3 ziaren) vs SE_seed0 (test@36) | **0.28710 vs 0.26433** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_B_seed{0,1,2}/eval.json + eval/SE_seed0/eval.json` | STAN_WYNIKOW.md §11.8 |
+| RGB-only A: średnia ± sd (test@4) | **0.35857 ± 0.00291** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_A_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| RGB-only D: średnia ± sd (test@4) | **0.35387 ± 0.00278** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_D_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| RGB-only B: średnia ± sd (test@4) | **0.29620 ± 0.00334** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_B_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| D − A: RGB-only vs model pełny (test@4) | **-0.00471 (p=0.2143) vs -0.00765 (p=0.0368)** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| B − D: RGB-only vs model pełny (test@4) | **-0.05767 (p=0.0032) vs -0.02917 (p=0.0012)** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| B − A: RGB-only vs model pełny (test@4) | **-0.06237 (p=0.0024) vs -0.03682 (p=0.0032)** | RMSE | [Z] | `overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json` | STAN_WYNIKOW.md §11.8 |
+| Udział (D − A)/(B − A): RGB-only vs model pełny (test@4) | **0.075 vs 0.205** | ułamek | [Z] | `overnight_2026-11/rgbonly/ + eval/` | STAN_WYNIKOW.md §11.8 |
+| ED z angle_seed 1 / 2 / 3 (krok 6) | **0.64461 / 0.66028 / 0.64627** | RMSE test@36 | [Z] | `eval/ED_seed0_as{1,2,3}/eval.json` | STAN_WYNIKOW.md §11.7 |
+| ED, 4 losowania angle_seed 0–3: średnia / sd / rozstęp | **0.6509 / 0.0071 / 0.0157** | RMSE test@36 | [Z] | `determinism/noise_floor_ED_40k.json + eval/ED_seed0_as{1,2,3}/eval.json` | STAN_WYNIKOW.md §11.7 |
+| Plateau: przebiegi z najlepszym krokiem ≥ 31 000 | **12 z 43** | przebiegów | [Z] | `runs/<43 jawne nazwy>/metrics.jsonl (ostatnie 40 wierszy)` | STAN_WYNIKOW.md §11.9 |
+| Plateau: mediana poprawy po kroku 30 000 (RMSE@30000 − min RMSE kroków 31000–40000) | **0.0066** | RMSE val | [Z] | `runs/<43 jawne nazwy>/metrics.jsonl` | STAN_WYNIKOW.md §11.9 |
+| Plateau: mediana sd RMSE w ostatniej ćwiartce (n = 10, ddof = 1) | **0.0052** | RMSE val | [Z] | `runs/<43 jawne nazwy>/metrics.jsonl` | STAN_WYNIKOW.md §11.9 |
+| probe_aux: podział train / eval po lokalizacjach | **1099 / 275** | lokalizacji | [Z] | `probing/probe_aux_random_seed0/status.json` | STAN_WYNIKOW.md §11.9 |
 
 Uwagi:
 - **Holm, rodzina (a): siec tylko-echo (echo2depth): kontrasty D−A, B−D, B−A, test@36, 3 ziarna** — korekta Holma w obrębie rodziny (m = 3); metoda p surowych: ttest_1samp na roznicach per ziarno (df=2)
@@ -450,6 +471,26 @@ Uwagi:
 - **Krzywa K: krok między sąsiednimi K w krotnościach rozstępu GPU (4→6 / 6→9 / 9→12 / 12→18 / 18→36)** — rozstęp 0.00491 z noise_floor_ED_40k.json; kroki > K = 12 mieszczą się w zakresie niedeterminizmu
 - **Luka kątowa 0°→max wg K (K = 6 / 9 / 12 / 18)** — odległość od najbliższej orientacji SIATKI K (maks. 30° / 20° / 10° / 10°); K=18 nieistotna
 - **Hiperparametry treningu sieci głębi (identyczne w 43/43 przebiegach)** — strata `LogDepthLoss` na pikselach gt ≠ 0, `max_depth` 14,104 m (`train_condition.py`, `experiments.py`)
+- **RGB-only A: średnia ± sd (test@36)** — RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna
+- **RGB-only D: średnia ± sd (test@36)** — RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna
+- **RGB-only B: średnia ± sd (test@36)** — RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna
+- **D − A: RGB-only vs model pełny (test@36)** — X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only
+- **B − D: RGB-only vs model pełny (test@36)** — X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only
+- **B − A: RGB-only vs model pełny (test@36)** — X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only
+- **Udział (D − A)/(B − A): RGB-only vs model pełny (test@36)** — średnia z 3 ziaren; per ziarno RGB-only 0.193 / 0.287 / 0.223; pełny 0.404 / 0.468 / 0.383
+- **RGB-only B (średnia z 3 ziaren) vs SE_seed0 (test@36)** — różnica -0.02276; SE n = 1
+- **RGB-only A: średnia ± sd (test@4)** — RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna
+- **RGB-only D: średnia ± sd (test@4)** — RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna
+- **RGB-only B: średnia ± sd (test@4)** — RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna
+- **D − A: RGB-only vs model pełny (test@4)** — X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only
+- **B − D: RGB-only vs model pełny (test@4)** — X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only
+- **B − A: RGB-only vs model pełny (test@4)** — X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only
+- **Udział (D − A)/(B − A): RGB-only vs model pełny (test@4)** — średnia z 3 ziaren; per ziarno RGB-only 0.101 / 0.127 / -0.004; pełny 0.152 / 0.262 / 0.201
+- **ED z angle_seed 1 / 2 / 3 (krok 6)** — trening ziarno 0; konfiguracja jak ED_seed0
+- **ED, 4 losowania angle_seed 0–3: średnia / sd / rozstęp** — losowanie 0 = średnia 5 powtórzeń nf
+- **Plateau: przebiegi z najlepszym krokiem ≥ 31 000** — A_seed0; A_seed1; A_seed2; B_seed0; B_seed1; B_seed2; D_seed0; D_seed1; D_seed2; EB_seed0; EB_seed2; SE_seed0
+- **Plateau: mediana poprawy po kroku 30 000 (RMSE@30000 − min RMSE kroków 31000–40000)** — RMSE walidacyjne, nie test; plateau_recomputed.md
+- **probe_aux: podział train / eval po lokalizacjach** — n_train 39564, n_eval 9900 (÷ 36 orientacji); `probe.py::_aux_split` — podział po kluczu scena·100000+lokalizacja, 0 wspólnych lokalizacji
 
 ---
 

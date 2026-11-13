@@ -538,3 +538,155 @@ zawiodła w sposób przewidywalny i wykrywalny**, a nie przez pecha.
 4. Czy walidacja wobec rzeczywistych pomiarów apartamentu FRL (SoundSpaces 2.0, Sek. 5.2)
    jest w zasięgu? Byłaby to mocniejsza walidacja fizyczna niż Sabine — i dotyczy dokładnie
    tej rodziny scen, która okazała się otwarta.
+
+## Stan kodu treningu z 11–12.08.2026 (przebiegi sprzed commita e5eff1a1)
+
+Kontrola z 2026-11-13, wyłącznie odczytowa (git diff/log/show, pliki JSON). Pytanie: czy kod,
+na którym powstało 14 przebiegów sieci głębi z 11.08, różni się od dzisiejszego w sposób,
+który mógłby zmieniać wyniki. Czasy commitów przeliczone na UTC: `e2fbf45e` = 2026-08-05
+16:20:34 UTC (18:20 +0200), `e5eff1a1` = **2026-08-12 13:07:10 UTC** (15:07 +0200).
+
+### (a) Które przebiegi powstały przed `e5eff1a1`
+
+`started_utc` z `outputs/ml/runs/<id>/config.json`, `ended_utc` ze `status.json`,
+ewaluacja = pole `created_utc` z `outputs/ml/eval/<id>/eval.json` (zgodne z datą modyfikacji
+pliku, która jest w czasie lokalnym +0200: 23:21 dla SE/B, 13:30–13:31 dla echo2depth).
+
+| przebieg | start (UTC) | koniec (UTC) | eval.json (UTC) |
+|---|---|---|---|
+| `SE_seed0`  | 08-11 19:05:07 | 08-11 20:01:19 | 08-11 21:21:14 |
+| `B_seed0`   | 08-11 20:01:22 | 08-11 20:57:39 | 08-11 21:21:25 |
+| `EA_seed0`  | 08-11 20:58:02 | 08-11 21:08:31 | 08-12 11:30:13 |
+| `EB_seed0`  | 08-11 21:08:33 | 08-11 21:18:52 | 08-12 11:30:19 |
+| `ED_seed0`  | 08-11 21:18:54 | 08-11 21:29:35 | 08-12 11:30:24 |
+| `ESE_seed0` | 08-11 21:29:37 | 08-11 21:40:00 | 08-12 11:30:29 |
+| `EA_seed1`  | 08-11 21:40:02 | 08-11 21:50:29 | 08-12 11:30:34 |
+| `EB_seed1`  | 08-11 21:50:31 | 08-11 22:00:42 | 08-12 11:30:40 |
+| `ED_seed1`  | 08-11 22:00:44 | 08-11 22:11:10 | 08-12 11:30:45 |
+| `ESE_seed1` | 08-11 22:11:12 | 08-11 22:21:24 | 08-12 11:30:50 |
+| `EA_seed2`  | 08-11 22:21:26 | 08-11 22:31:50 | 08-12 11:30:56 |
+| `EB_seed2`  | 08-11 22:31:52 | 08-11 22:42:08 | 08-12 11:31:01 |
+| `ED_seed2`  | 08-11 22:42:09 | 08-11 22:52:36 | 08-12 11:31:06 |
+| `ESE_seed2` | 08-11 22:52:37 | 08-11 23:02:50 | 08-12 11:31:12 |
+
+Wszystkie 14 przebiegów i wszystkie 14 ewaluacji mieszczą się między `e2fbf45e` a `e5eff1a1`.
+Pozostałe przebiegi w `outputs/ml/runs/` (bez katalogów `*_reeval`, które mają skopiowany
+`config.json` oryginału) startowały **po** `e5eff1a1`; najwcześniejszy z nich to `EPA_seed0`,
+2026-08-13 05:38:11 UTC (~16,5 h po commicie), dalej `EPB/EPD_seed0`, `A_seed0`, `D_seed0`,
+`EK*` (08-13), `EPA/EPB/EPD_seed1/2`, `A/B/D_seed1/2` (08-15/16), `ED_seed*_nf*` (11-12)
+i `ED_seed0_as1` (11-13, w toku). Pliki `eval.json` tych 14 przebiegów są w `e5eff1a1`
+zacommitowane i do dziś niezmienione (`git diff e5eff1a1 -- outputs/ml/eval/<id>/eval.json`
+pusty dla każdego z 14).
+
+### (b) Różnice `e2fbf45e` → `e5eff1a1` w plikach treningu, danych i ewaluacji
+
+Pominięto zmiany ścieżek importów, komentarzy i czysty refaktor. Ocena „zmienia wynik
+`ED_seed0`?” dotyczy treningu i ewaluacji test@36.
+
+1. **`depth_model/train_condition.py` — protokół walidacji.** W `e2fbf45e` walidacja szła na
+   podzbiorze kątów warunku (`angle_subset=cond.angle_subset`), w `e5eff1a1` zawsze na pełnych
+   36 kątach (`VAL_ANGLE_SUBSET = "all"`), z dodatkowym `val@4` liczonym z tych samych predykcji
+   i osobnymi wagami `best4_*.pth`. Checkpoint `best_*.pth` wybierany po `val@36`.
+   Zmienia wynik `ED_seed0`? **Tak względem stanu z 05.08 — ale nie względem `e5eff1a1`**:
+   14 przebiegów już używało nowego protokołu (`status.json`: `val_angle_subset = "all"`,
+   istnieją `best_val36_rmse`, `best_val4_rmse`, `best_step_same`; wiersze `metrics.jsonl`
+   mają klucze `all` + `val4` i `n_samples = 6588`, czyli 36 kątów zbioru walidacyjnego;
+   `best_step_val36`/`best_step_val4` w `status.json` równe argminom z `metrics.jsonl`).
+2. **`train_condition.py::evaluate()` — agregacja metryk walidacji.** `Evaluator` →
+   `SampleStatsCollector`/`SampleTable` (`depth_model/metrics.py`), klucz `overall` → `all`.
+   Definicja RMSE ta sama w obu: pierwiastek z sumy kwadratów błędu przez liczbę pikseli
+   `gt > 0` (RMSE po pikselach całego zbioru, nie średnia po próbkach). Zmienia wynik? **Nie** —
+   ta sama definicja, a 14 przebiegów zapisało już format `all`.
+3. **`train_condition.py` — kasowanie `metrics.jsonl` i `train_loss.csv` przy świeżym
+   przebiegu (bez `--resume`).** W kodzie z 11.08 tego jeszcze nie było: `EA/EB/ED/ESE_seed0`
+   mają po **80** wierszy w `metrics.jsonl` (40 starych w formacie `overall`, z wcześniejszego
+   przebiegu na starym protokole walidacji, + 40 nowych) i 801 linii w `train_loss.csv`.
+   Zmienia wynik? **Nie** — najlepszy krok trzymany jest w pamięci od `inf`, wiersze nowego
+   przebiegu zaczynają się od kroku 1000, a `best_*.pth` mają czasy modyfikacji z nowego
+   przebiegu (np. `ED_seed0`: 23:21:19 +0200 = krok 9000, ~2,5 min po starcie). Skutek tylko
+   diagnostyczny — patrz pkt 4.
+4. **`train_condition.py::_plateau_diagnostics()` + `budget_ceiling_warning`** (nowe). Tylko
+   pola diagnostyczne `status.json`. Zmienia wynik? **Nie.** Uwaga faktograficzna: funkcja czyta
+   `r["overall"]["RMSE"]`, a `evaluate()` zapisuje klucz `all`, więc dla przebiegów z samymi
+   nowymi wierszami zwraca `n_validations = 0` (tak jest we wszystkich przebiegach poza
+   czterema), a w `EA/EB/ED/ESE_seed0` (`n_validations = 40`) liczy plateau z **wierszy
+   poprzedniego przebiegu**. Pola `plateau`/`still_improving_at_end`/`budget_ceiling_warning`
+   nie są więc wiarygodne w żadnym przebiegu; nie wpływają na wagi ani na ewaluację.
+5. **`train_condition.py` + `dataset/echo_h5_dataset.py` — permutacja echa
+   (`shuffle_echo_seed`, `_echo_permutation`)**, stosowana też do walidacji. W `e2fbf45e`
+   nie istniała wcale (nie było też warunków SE/ESE), więc SE/ESE z 11.08 musiały powstać na
+   kodzie niezacommitowanym. Zmienia wynik `ED_seed0`? **Nie** (`shuffle_echo_seed = null`
+   w `config.json` ED). Dla treningu `SE_seed0`/`ESE_seed*`: **nieustalone** — nie da się
+   sprawdzić, czy implementacja z 11.08 była identyczna z zacommitowaną (komentarz w kodzie
+   opisuje zastąpienie błędnej wersji wektorowej pętlą zamian; obie zużywają RNG inaczej).
+   Ponowna ewaluacja tego nie rozstrzyga, bo ewaluacja SE/ESE idzie na prawdziwym echu
+   (`shuffled_echo: false` w oryginale i w powtórce).
+6. **`echo_h5_dataset.py` — maska przecięcia (`mask_variant`, `mask_mode`, `valid_ref`) i
+   wydzielenie `_lookup`.** Maska domyślnie wyłączona (`None`), używana tylko w ewaluacjach
+   `*_mask-*`; `_lookup` to ta sama logika wyszukiwania wierszy. Zmienia wynik? **Nie.**
+7. **`dataset/angles.py` — `random_K_of_G` i `select_angles`.** `rng.choice(N_ANGLES)` →
+   `rng.choice(pool.size)` z `pool = grid` dla `random_K`; `pool.size == 36 == N_ANGLES`,
+   ten sam RNG z tego samego skrótu SHA-256. Sprawdzone wykonaniem obu wersji z gita:
+   wynik bitowo identyczny w 10 800 przypadkach (`random_4`/`cardinal`/`all` × ziarna 0–2 ×
+   4 sceny × 300 lokalizacji). Zmienia wynik? **Nie.**
+8. **`dataset/splits.py`, `dataset/echo_data.py`, `depth_model/fast_bilinear.py`.** Tylko
+   importy/tekst pomocy (`fast_bilinear.py` bez zmian). Odcisk podziału `e0bf7547668d9e0a`
+   w `config.json` wszystkich przebiegów. Zmienia wynik? **Nie.**
+9. **`matrix/experiments.py` (dawniej `ml/experiments.py`).** Doszło pole
+   `Condition.shuffle_echo_seed` i warunki SE/ESE/EK*/PD/EPA/EPB/EPD oraz planowanie
+   (`PLANNED_SEEDS`, `DEFERRED_GROUPS`, `disk_budget`). Definicja ED i wartości domyślne
+   `RunSpec` (`TOTAL_STEPS = 40 000`, `BATCH_SIZE = 32`, Adam, lr 1e-4, wd 5e-4, β1 0,9,
+   AMP, walidacja co 1000) bez zmian. Zmienia wynik? **Nie.**
+10. **`depth_model/metrics.py`.** `Evaluator`/`MetricAccumulator` zachowane z tą samą
+    definicją RMSE; dodano `SampleStatsCollector`, `SampleTable`, bootstrap po lokalizacjach.
+    Zmienia wynik? **Nie.**
+11. **`depth_model/evaluate.py` — nowy w `e5eff1a1`.** W `e2fbf45e` nie było żadnego skryptu
+    ewaluacji testowej: istniała tylko walidacyjna `evaluate()` w `train_condition.py` i
+    `Evaluator` w `metrics.py` (zbiór `test` pojawia się jedynie w liczeniu liczności i
+    `verify_loader.py`). Ewaluacje z 11–12.08 musiały więc użyć niezacommitowanej wersji
+    `evaluate.py`. Ich `eval.json` mają ten sam układ pól co późniejsze (jedyna różnica:
+    `mask_mode`, dodane po `e5eff1a1`). Zmienia wynik? **Nie** — ustalone empirycznie, pkt (c).
+
+Zmiany po `e5eff1a1` w tych plikach (`git diff e5eff1a1 HEAD`): komentarz o statystykach
+ImageNet, opcjonalny `dataset_filter` (domyślnie `None`), `--tag` w `train_condition.py`,
+`--mask-mode` w `evaluate.py`; w drzewie roboczym niezacommitowany `--angle-seed`
+(domyślnie `None` = dotychczasowe zachowanie). Żadna nie zmienia zachowania domyślnego.
+
+### (c) Dowody spójności
+
+- **Pola `status.json`.** Wszystkie 14 przebiegów ma ten sam zestaw kluczy co przebiegi
+  późniejsze (`A_seed0`, `EPA_seed0`, `EK6_seed0`, `ED_seed0_nf0`): m.in. `val_angle_subset`
+  (= `"all"`), `best_val36_rmse`, `best_step_val36`, `best_val4_rmse`, `best_step_val4`,
+  `best_step_same`, `plateau`. Jedyny wyjątek czasowy: `EA_seed0/status.json` ma datę
+  modyfikacji 2026-08-12 14:24 +0200 (pozostałe pliki tego katalogu 08-11 ~23:00); jego
+  zawartość zgadza się z `metrics.jsonl` (`best_step_val36 = 2000`, `best_step_val4 = 11000`).
+- **`config.json`.** `spec` (bez `condition`/`seed`/`tag`) identyczny we wszystkich przebiegach
+  echo2depth (`EA/EB/ED/ESE` z 08-11, `EK*`, `EP*`, `ED_*_nf*`): `total_steps 40000`,
+  `batch_size 32`, `amp true`, `lr 1e-4`, `weight_decay 5e-4`, `beta1 0.9`, `adam`,
+  `validation_freq 1000`, `edge_threshold_m 0.1`, `num_workers 8`, `fast_bilinear false`;
+  w pełnym modelu `SE_seed0`/`B_seed0` identyczny z `A/B/D_seed*` (`fast_bilinear true`).
+  Słownik `condition` każdego z warunków B/SE/EA/EB/ED/ESE ma jedną wersję we wszystkich
+  przebiegach; `n_train`/`n_val` też zgodne (ED: 5 496 / 6 588; B: 49 464 / 6 588).
+- **Ponowna ewaluacja** (`outputs/ml/overnight_2026-11/reeval_14_runs.md`, katalogi
+  `eval/<id>_reeval`): te same wagi oceniane dzisiejszym `evaluate.py` dają test@36 różniący
+  się od zapisanego o **maks. |Δ RMSE| = 2,41·10⁻⁷** (14 przebiegów); dla `ED_seed0/1/2`
+  odpowiednio 1,5·10⁻⁸, 1,13·10⁻⁷, 2,7·10⁻⁸, czyli ≤ 1,1·10⁻⁷ — poziom szumu numerycznego
+  float32/AMP. Ewaluacja z 11–12.08 jest więc odtwarzalna dzisiejszym kodem.
+
+### (d) Co jest, a czego nie ma w gicie
+
+**Stanu kodu treningowego z 11–12.08.2026 nie da się odtworzyć z gita — nie był
+zacommitowany.** W gicie są tylko stany z 05.08 (`e2fbf45e`) i z 12.08 15:07 (`e5eff1a1`);
+różnice między nimi opisano w (b). Kod z 11.08 jest „pomiędzy”: miał już walidację na 36
+kątach, `val@4`, format `all` i permutację echa (dowód w artefaktach), ale jeszcze nie miał
+kasowania logów przy świeżym przebiegu (dowód: 80 wierszy w czterech `metrics.jsonl`).
+
+**Co z tego wynika dla wiarygodności.** Fakty: ewaluacja tych 14 przebiegów jest odtworzona
+dzisiejszym kodem do 2,4·10⁻⁷, a wszystkie widoczne w artefaktach parametry treningu
+(hiperparametry, podział, definicja warunku, protokół walidacji i wyboru checkpointu) są
+zgodne z kodem zacommitowanym i z przebiegami późniejszymi. Nie da się natomiast wykluczyć
+różnic w niezapisanej w artefaktach części ścieżki treningu (np. implementacji permutacji
+echa dla SE/ESE) — to pozostaje niesprawdzalne, a nie wykazane. Rozbieżność `ED_seed0`
+(test@36 0,64695) wobec powtórzeń `ED_seed0_nf0–nf4` (0,64986–0,65477) **nie wynika
+z ewaluacji**; czy wynika ze stanu kodu z 11.08, czy z niedeterminizmu treningu, ta kontrola
+nie rozstrzyga.

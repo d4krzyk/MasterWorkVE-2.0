@@ -1,0 +1,113 @@
+{
+  "run_id": "RGBONLY_D_seed0",
+  "control": "RGB-only (RGBDepthNet Paridy, bez echa/materialu/uwagi)",
+  "condition": {
+    "id": "D",
+    "angle_subset": "random_4",
+    "model": "full",
+    "geometry": "main",
+    "angle_seed": 0,
+    "isolates": "SAMA gestosc katowa przy licznosci probek rownej A",
+    "group": "glowne",
+    "shuffle_echo_seed": null
+  },
+  "spec": {
+    "condition": "D",
+    "seed": 0,
+    "total_steps": 40000,
+    "batch_size": 32,
+    "num_workers": 8,
+    "amp": true,
+    "lr": 0.0001,
+    "weight_decay": 0.0005,
+    "beta1": 0.9,
+    "optimizer": "adam",
+    "validation_freq": 1000,
+    "display_freq": 100,
+    "edge_threshold_m": 0.1,
+    "extra": {},
+    "tag": "rgbonly"
+  },
+  "dry_run": false,
+  "argv": [
+    "my-operations/ml/depth_model/train_rgbonly.py",
+    "--condition",
+    "D",
+    "--seed",
+    "0"
+  ],
+  "train_data": {
+    "variant": "main",
+    "mode": "train",
+    "angle_subset": "random_4",
+    "angle_seed": 0,
+    "image_transform": true,
+    "augment": null,
+    "return_meta": true,
+    "mask_variant": null,
+    "mask_mode": "intersection",
+    "shuffle_echo_seed": null
+  },
+  "val_data": {
+    "variant": "main",
+    "mode": "val",
+    "angle_subset": "all",
+    "angle_seed": 0,
+    "image_transform": true,
+    "augment": false,
+    "return_meta": true,
+    "mask_variant": null,
+    "mask_mode": "intersection",
+    "shuffle_echo_seed": null
+  },
+  "val_angle_subset": "all",
+  "max_depth": 14.104,
+  "loss": "LogDepthLoss (Parida), piksele depth_gt != 0",
+  "optimizer": {
+    "name": "adam",
+    "lr": 0.0001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "weight_decay": 0.0005
+  },
+  "split_fingerprint": "e0bf7547668d9e0a",
+  "train_pairs_fingerprint": "66b5c838241ba273",
+  "pairs_check": {
+    "split_fingerprint": "e0bf7547668d9e0a",
+    "conditions": {
+      "D": {
+        "angle_subset": "random_4",
+        "angle_seed": 0,
+        "geometry": "main",
+        "n_rgbonly": 5496,
+        "n_train_condition": 5496,
+        "n_expected": 5496,
+        "n_from_full_model_run_config": 5496,
+        "no_duplicates": true,
+        "sets_identical": true,
+        "order_identical": true,
+        "identical_to_split_x_select_angles": true,
+        "hdf5_rows_match": true,
+        "fingerprint": "66b5c838241ba273",
+        "n_locations": 1374,
+        "ok": true
+      }
+    },
+    "ok": true,
+    "eval_counts": {
+      "val": 6588,
+      "test@36": 6588,
+      "test@4": 732
+    },
+    "eval_counts_ok": true
+  },
+  "n_train": 5496,
+  "n_val": 6588,
+  "full_model_run": "/home/d4krzyk/Dokumenty/MasterWorkVE/outputs/ml/runs/D_seed0",
+  "torch": "2.13.0+cu130",
+  "cuda_device": "NVIDIA GeForce RTX 5070 Ti",
+  "started_utc": "2026-11-13T07:02:44.006366+00:00",
+  "hostname": "PC-KRZYK"
+}

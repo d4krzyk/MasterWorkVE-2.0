@@ -81,6 +81,12 @@ outputs/**
 !outputs/ml/overnight_2026-11/*.csv
 !outputs/ml/overnight_2026-11/*.sh
 !outputs/ml/overnight_2026-11/*.py
+# Czesc B (2026-11-13): kontrola RGB-only -- male JSON-y wynikow (bez wag, probek .npz, train_loss.csv).
+!outputs/ml/overnight_2026-11/rgbonly/check_pairs.json
+!outputs/ml/overnight_2026-11/rgbonly/*/eval.json
+!outputs/ml/overnight_2026-11/rgbonly/*/best.json
+!outputs/ml/overnight_2026-11/rgbonly/*/status.json
+!outputs/ml/overnight_2026-11/rgbonly/*/config.json
 !outputs/ml/tables_5_3_5_5/*.json
 !outputs/ml/tables_5_3_5_5/*.md
 # Zdjecia wag z kontroli niedeterminizmu: ~15 GB, kasowane automatycznie po
@@ -109,3 +115,6 @@ outputs/ml/eval/**/*.npz
 # przypadkiem zacommitowac razem z packiem. Zdarzylo sie raz.
 **/.git.disabled/
 **/.git.bak/
+
+# Dokumenty Word (praca dyplomowa) -- nie wersjonujemy; dwa pliki .docx z habitat-sim/openexr sa juz sledzone.
+*.docx

@@ -1947,6 +1947,216 @@
       "uwaga": "strata `LogDepthLoss` na pikselach gt ≠ 0, `max_depth` 14,104 m (`train_condition.py`, `experiments.py`)"
     },
     {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "RGB-only A: średnia ± sd (test@36)",
+      "wartosc": "0.36365 ± 0.00359",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_A_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "RGB-only D: średnia ± sd (test@36)",
+      "wartosc": "0.34549 ± 0.00243",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_D_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "RGB-only B: średnia ± sd (test@36)",
+      "wartosc": "0.28710 ± 0.00345",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_B_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "D − A: RGB-only vs model pełny (test@36)",
+      "wartosc": "-0.01817 (p=0.0267) vs -0.02048 (p=0.0096)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "B − D: RGB-only vs model pełny (test@36)",
+      "wartosc": "-0.05839 (p=0.0006) vs -0.02833 (p=0.0010)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "B − A: RGB-only vs model pełny (test@36)",
+      "wartosc": "-0.07655 (p=0.0028) vs -0.04881 (p=0.0018)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Udział (D − A)/(B − A): RGB-only vs model pełny (test@36)",
+      "wartosc": "0.235 vs 0.418",
+      "jednostka": "ułamek",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/ + eval/",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "średnia z 3 ziaren; per ziarno RGB-only 0.193 / 0.287 / 0.223; pełny 0.404 / 0.468 / 0.383"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "RGB-only B (średnia z 3 ziaren) vs SE_seed0 (test@36)",
+      "wartosc": "0.28710 vs 0.26433",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_B_seed{0,1,2}/eval.json + eval/SE_seed0/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "różnica -0.02276; SE n = 1"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "RGB-only A: średnia ± sd (test@4)",
+      "wartosc": "0.35857 ± 0.00291",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_A_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "RGB-only D: średnia ± sd (test@4)",
+      "wartosc": "0.35387 ± 0.00278",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_D_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "RGB-only B: średnia ± sd (test@4)",
+      "wartosc": "0.29620 ± 0.00334",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_B_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "RGBDepthNet od zera, te same pary (lokalizacja, kąt) co warunek; 3 ziarna"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "D − A: RGB-only vs model pełny (test@4)",
+      "wartosc": "-0.00471 (p=0.2143) vs -0.00765 (p=0.0368)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "B − D: RGB-only vs model pełny (test@4)",
+      "wartosc": "-0.05767 (p=0.0032) vs -0.02917 (p=0.0012)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "B − A: RGB-only vs model pełny (test@4)",
+      "wartosc": "-0.06237 (p=0.0024) vs -0.03682 (p=0.0032)",
+      "jednostka": "RMSE",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/RGBONLY_*_seed{0,1,2}/eval.json + eval/{A,D,B}_seed{0,1,2}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "X − Y, test t po ziarnach (df = 2); lewa wartość RGB-only"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Udział (D − A)/(B − A): RGB-only vs model pełny (test@4)",
+      "wartosc": "0.075 vs 0.205",
+      "jednostka": "ułamek",
+      "status": "[Z]",
+      "dowod": "overnight_2026-11/rgbonly/ + eval/",
+      "sekcja": "STAN_WYNIKOW.md §11.8",
+      "uwaga": "średnia z 3 ziaren; per ziarno RGB-only 0.101 / 0.127 / -0.004; pełny 0.152 / 0.262 / 0.201"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "ED z angle_seed 1 / 2 / 3 (krok 6)",
+      "wartosc": "0.64461 / 0.66028 / 0.64627",
+      "jednostka": "RMSE test@36",
+      "status": "[Z]",
+      "dowod": "eval/ED_seed0_as{1,2,3}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.7",
+      "uwaga": "trening ziarno 0; konfiguracja jak ED_seed0"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "ED, 4 losowania angle_seed 0–3: średnia / sd / rozstęp",
+      "wartosc": "0.6509 / 0.0071 / 0.0157",
+      "jednostka": "RMSE test@36",
+      "status": "[Z]",
+      "dowod": "determinism/noise_floor_ED_40k.json + eval/ED_seed0_as{1,2,3}/eval.json",
+      "sekcja": "STAN_WYNIKOW.md §11.7",
+      "uwaga": "losowanie 0 = średnia 5 powtórzeń nf"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Plateau: przebiegi z najlepszym krokiem ≥ 31 000",
+      "wartosc": "12 z 43",
+      "jednostka": "przebiegów",
+      "status": "[Z]",
+      "dowod": "runs/<43 jawne nazwy>/metrics.jsonl (ostatnie 40 wierszy)",
+      "sekcja": "STAN_WYNIKOW.md §11.9",
+      "uwaga": "A_seed0; A_seed1; A_seed2; B_seed0; B_seed1; B_seed2; D_seed0; D_seed1; D_seed2; EB_seed0; EB_seed2; SE_seed0"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Plateau: mediana poprawy po kroku 30 000 (RMSE@30000 − min RMSE kroków 31000–40000)",
+      "wartosc": "0.0066",
+      "jednostka": "RMSE val",
+      "status": "[Z]",
+      "dowod": "runs/<43 jawne nazwy>/metrics.jsonl",
+      "sekcja": "STAN_WYNIKOW.md §11.9",
+      "uwaga": "RMSE walidacyjne, nie test; plateau_recomputed.md"
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "Plateau: mediana sd RMSE w ostatniej ćwiartce (n = 10, ddof = 1)",
+      "wartosc": "0.0052",
+      "jednostka": "RMSE val",
+      "status": "[Z]",
+      "dowod": "runs/<43 jawne nazwy>/metrics.jsonl",
+      "sekcja": "STAN_WYNIKOW.md §11.9",
+      "uwaga": ""
+    },
+    {
+      "grupa": "kontrole_2026_11",
+      "nazwa": "probe_aux: podział train / eval po lokalizacjach",
+      "wartosc": "1099 / 275",
+      "jednostka": "lokalizacji",
+      "status": "[Z]",
+      "dowod": "probing/probe_aux_random_seed0/status.json",
+      "sekcja": "STAN_WYNIKOW.md §11.9",
+      "uwaga": "n_train 39564, n_eval 9900 (÷ 36 orientacji); `probe.py::_aux_split` — podział po kluczu scena·100000+lokalizacja, 0 wspólnych lokalizacji"
+    },
+    {
       "grupa": "budzet",
       "nazwa": "Przebiegów w macierzy (PLAN)",
       "wartosc": 66,
