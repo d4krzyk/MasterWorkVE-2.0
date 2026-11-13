@@ -34,3 +34,6 @@ Wazne ustalenie do decyzji o kroku 7: `scratch` w `transfer.py` ma 36 orientacji
 ## Dopisek (po części B)
 - Część B zakończona 2026-11-13 09:32:50 (133 min), wszystkie kroki OK; wyniki: `step6_summary.md`, `step7_summary.md`, `SUMMARY_B.md`, `rgbonly/`.
 - Zadanie tylko-odczyt: `plateau_recomputed.md` (43 przebiegi, ostatnie 40 wierszy `metrics.jsonl`) i `metryki_zbiory_fakty.md` (pretext/transfer/probing: zbiór i wybór checkpointu).
+
+## Dopisek: commity po części B
+Zacommitowane na `final-checks` (5 commitów: --angle-seed, poprawka plateau + test, skrypty, dokumentacja, dowody + .gitignore). Nieśledzony `Praca_Magisterska_VE-13-11-26.docx` jest teraz ignorowany (`*.docx`), nie dotykany. Push/PR nie wykonywane.
