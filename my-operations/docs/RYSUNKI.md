@@ -107,7 +107,8 @@ nie dałoby się orzec.
 
 **Co pokazuje spadek udziału z 70 % do 42 %.** Prior wizualny przykrywa część struktury kątowej
 echa — to jest oczekiwane i **nie unieważnia** wniosku: w pełnym modelu efekt gęstości pozostaje
-istotny (p = 0,0096, przedział bootstrapowy wyklucza zero w 3 ziarnach na 3).
+istotny (p = 0,0096, przedział bootstrapowy wyklucza zero w 3 ziarnach na 3). **Zastrzeżenie (krok 7):** kontrast `D − A`
+bez echa (RGB-only) to −0,01817 (p = 0,027), więc ten efekt nie jest przypisywalny echu (`STAN_WYNIKOW.md` §11.8).
 
 ---
 

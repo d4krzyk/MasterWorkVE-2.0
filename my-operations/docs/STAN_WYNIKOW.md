@@ -17,6 +17,9 @@ Aktualizacja **2026-11-13** (bez zmiany żadnej wartości z §0–§10): nowy §
 z n_boot = 2000, rozkład głębi względem okna echa, diagnostyka gałęzi modelu pełnego, niedeterminizm GPU
 na pełnym budżecie, tabele §5.3–5.5; §10.2 przeformułowane po pomiarze (okno echa dotyczy ok. 0,01 %
 pikseli); dopisane zastrzeżenia w §3, §6, §8, §9.
+Aktualizacja **2026-11-13 (część B)**: §11.7–§11.9 — `ED` z `angle_seed` 1/2/3, kontrola RGB-only (krok 7), przeliczone plateau;
+**zmienia interpretację twierdzenia 3** (§0, §2, §8): kontrast `D − A` występuje także bez echa (RGB-only −0,018, p = 0,027).
+Wartości liczbowe z §0–§10 (z wyjątkiem treści zastrzeżenia (a)) są bez zmian.
 
 **Rysunki** (`outputs/ml/figures/`, odtwarzalne przez `ml/analysis/figures.py`, zero GPU):
 
@@ -61,7 +64,7 @@ z liczbą · **[W]** wywnioskowane z kodu, nie z pomiaru. Pełny słownik oznacz
 |---|---|---|---|---|
 | 1 | Gęstość kątowa echa poprawia predykcję głębi | D − A = **−0,14672** (echo2depth) | 3 ziarna, CI z bootstrapu wyklucza zero | **[Z]** |
 | 2 | Krzywa nasyca się przy **K = 9–12** — dalsze zagęszczanie nie zwraca kosztu | spadek RMSE 4→9: **0,128** · 9→36: **0,019** | 3 ziarna, stały budżet próbek, 6 punktów | **[Z]** |
-| 3 | Efekt utrzymuje się w pełnym modelu | D − A = **−0,02048** | 3 ziarna, p = 0,0096; **zastrzeżenia (a)–(c) pod tabelą** | **[Z]** |
+| 3 | Zmiana siatki kątów poprawia też model pełny, ale **kontrast `D − A` występuje także bez echa** (RGB-only, §11.8) | D − A = **−0,02048**; RGB-only: **−0,01817** | 3 ziarna, p = 0,0096 (RGB-only: p = 0,027); **zastrzeżenia (a)–(c) pod tabelą** | **[Z]** |
 | 4 | Efekt nie zależy od wariantu geometrii sceny | main −0,14672 vs patched −0,13504 | 3 ziarna, różnica nieistotna (p = 0,26) | **[Z]** |
 | 5 | Zadanie pretekstowe orientacji jest rozwiązywalne | MAAE **25,65 ± 0,74°** wobec 90° losowo | 3 ziarna | **[Z]** |
 | 6 | Pretrening **uczy koder cech geometrycznych**, ale standardowe dostrajanie nie daje z nich mierzalnej korzyści (przyczyna: hipoteza, §5) | sonda: K36 − random = −0,168 (63,4 % rozpiętości); dostrajanie: wszystkie p > 0,07 | 3 ziarna sondy, 5 ziaren transferu | **[Z]** |
@@ -69,9 +72,13 @@ z liczbą · **[W]** wywnioskowane z kodu, nie z pomiaru. Pełny słownik oznacz
 
 **Zastrzeżenia do twierdzenia 3 (model pełny)** — podawać razem z liczbą:
 
-- **(a)** W warunkach `A` / `D` / `B` **nie ma kontroli RGB-only** (ten sam model bez echa przy tej
-  samej siatce kątów), więc efekt gęstości w modelu pełnym **nie jest przypisany samemu echu** —
-  siatka kątów zmienia też obrazy RGB widziane w treningu.
+- **(a)** Kontrola RGB-only została wykonana (krok 7, §11.8: ta sama `RGBDepthNet` bez echa, te same
+  pary (lokalizacja, kąt)): `D − A` = **−0,01817** (p = 0,027) bez echa wobec **−0,02048** (p = 0,0096)
+  w modelu pełnym; udział `(D − A)/(B − A)` per ziarno: **0,235** (RGB-only) vs **0,418** (model pełny)
+  vs **0,702** (tylko-echo, §1). Na `test@36` efekt `D − A` w modelu pełnym **nie jest więc przypisywalny
+  echu** — siatka kątów zmienia też obrazy RGB widziane w treningu (różnorodność orientacji kamery).
+  Część dodatkowa w modelu pełnym to −0,0023 (nietestowana). Na `test@4` `D − A` w RGB-only jest
+  nieistotne (−0,0047, p = 0,21), w modelu pełnym −0,0077 (p = 0,037).
 - **(b)** Model pełny zawiera `MaterialPropertyNet` (wagi losowe, **bez straty materiałowej** —
   jedyną stratą jest `LogDepthLoss` na głębi) oraz `attentionNet`; ich udziału w efekcie
   **nie rozdzielono**.
@@ -202,6 +209,11 @@ Względnie wobec baseline'u 4-kierunkowego: `D` daje **−7,0 %**, `B` daje **�
 > (0,29248 → 0,24367; p = 0,0018), z czego **7,0 punktu procentowego pochodzi z samej gęstości
 > kątowej**, przy niezmienionej liczbie próbek treningowych.
 
+> **[!] Zastrzeżenie po kroku 7 (2026-11-13).** Ten sam kontrast `D − A` bez echa (RGB-only) wynosi −0,01817
+> (−5,0 % względem RGB-only `A` = 0,36365), więc „7,0 pp z samej gęstości kątowej" opisuje **różnorodność
+> orientacji w zbiorze treningowym (obrazów i ech razem)**, a nie wkład echa. Zdania nie wolno cytować
+> bez tego zastrzeżenia; wkład echa wynika z `SE` / RGB-only (§11.8).
+
 **To zdanie celowo nie wspomina Gao — i to jest jego siła.** Baseline 4-kierunkowy jest tu
 odtworzony **wewnętrznie**, jako warunek `A` we własnym zbiorze i własnym protokole, a nie
 przepisany z cudzej tabeli. Porównanie jest więc odporne na zarzut o niezgodność silników
@@ -217,8 +229,10 @@ warto nazwać w pracy wprost, bo jest mocniejsza niż porównanie międzypracowe
 > lokalizacji. Na pytanie „ile z tego to Parida, a ile echo" nie mielibyśmy odpowiedzi.
 
 **Odwrócenie proporcji wobec `echo2depth`:** udział gęstości spada z 70,2 % do **42,0 %** — w pełnym
-modelu ilość danych waży więcej niż gęstość. Zgodne z obrazem, w którym prior wizualny przykrywa
-część struktury kątowej echa: sam efekt gęstości (spadek RMSE) maleje 7,2× (0,147 → 0,020).
+modelu ilość danych waży więcej niż gęstość: sam efekt gęstości (spadek RMSE) maleje 7,2× (0,147 → 0,020).
+Wcześniejsza interpretacja („prior wizualny przykrywa część struktury kątowej echa") była hipotezą; kontrola
+RGB-only pokazuje, że udział gęstości bez echa to już 23,5 % (iloraz średnich 23,7 %), w modelu pełnym 41,8 %
+(42,0 %), w tylko-echo 70,2 % (§11.8).
 
 **Bramka wykonalności [Z-]:** całkowity wkład echa do pełnego modelu `c_full` = **0,02228**,
 95 % CI [0,01840; 0,02643] (warunek `SE`, echo permutowane, **1 ziarno**, CI z bootstrapu po
@@ -503,7 +517,8 @@ Numeracja „Model 1 / Model 2" w raportach jest **odwrotna do intuicji**; szcze
 - **MAAE dla K=4 i K=12 są nierozróżnialne** — nie opisywać jako poprawy z liczbą klas.
 - **Kolumna „sam obraz" w galerii NIE mierzy wkładu echa** — modele różnią się obecnością echa,
   mechanizmem uwagi, siecią materiału i 19× liczbą parametrów naraz. Czystym pomiarem jest
-  warunek `SE`: **0,0223** [+0,01840; +0,02643].
+  warunek `SE`: **0,0223** [+0,01840; +0,02643]; ponadto RGB-only `B` = 0,28710 ± 0,00345 vs `SE_seed0`
+  = 0,26433 (§11.8).
 - **`MaterialPropertyNet` startuje z wag losowych**, nie z ImageNetu. Normalizacja obrazu
   statystykami ImageNetu jest wierna Paridzie, ale **nie** uzasadniona pretrenowanym ResNetem.
 - **Odniesienia Gao (0,360 / 0,332 / 0,374 / 0,346) NIE są baseline'em do przepisania** — inny
@@ -524,6 +539,16 @@ Numeracja „Model 1 / Model 2" w raportach jest **odwrotna do intuicji**; szcze
   ale nie wynika stąd, że cechy kodują materiał (sieć ma wagi losowe i nie ma straty materiałowej).
 - **Piksele poza oknem echa (§11.3):** tylko 0,014 % ważnych pikseli test@36 ma głębię > 10,29 m;
   argument o 73 % zakresu głębi dotyczy zakresu, nie pikseli.
+- **Kontrola RGB-only (§11.8):** `D − A` w modelu pełnym (−0,02048) ma odpowiednik bez echa (−0,01817); nie
+  przypisywać go echu. 3 ziarna (df = 2), bez korekty Holma dla tej rodziny.
+- **`angle_seed` (§11.7):** `ED` z `angle_seed` 0/1/2/3 ma RMSE 0,6509 (średnia 4 losowań, `nf` jako losowanie 0),
+  sd 0,0071, rozstęp 0,0157 — ≈ 3× rozstęp samego niedeterminizmu GPU (0,0049). Porównania `D` z jednym
+  `angle_seed` niosą szum rzędu 0,01 na przebieg; n = 3 nowych losowań.
+- **Plateau (§11.9):** pola plateau / `budget_ceiling_warning` w istniejących `status.json` oraz `sufit_budzetu`
+  w `echo_ablation.json` nie są podstawą żadnego wniosku; wiarygodne wartości: `plateau_recomputed.md`. Najlepszy
+  krok ≥ 31 000 ma 12 z 43 przebiegów (wszystkie `A`/`D`/`B`, 2 z 3 `EB`, `SE_seed0`) — w tych warunkach
+  minimum walidacyjne przypada późno w budżecie 40 000 kroków. Mediana poprawy po kroku 30 000 (0,0066) to ok. 1,3 sd
+  plateau (0,0052), więc nie dowodzi niedotrenowania ani jego braku; wpływu na kontrasty nie sprawdzano.
 
 ---
 
@@ -686,7 +711,7 @@ Zastrzeżenia: zerowanie cech jest zaburzeniem poza rozkładem (czystsze jest ta
 `test@36` tego samego modelu; tasowanie zależy od rozmiaru batcha (32) i zostawia część próbek na miejscu
 (np. 206 z 6 588 dla `A_seed0`); pod AMP przepisany forward różni się od `model(dev)` o ≤ 0,004 m (niedeterminizm
 cuDNN, bez AMP ~10⁻⁶). Wniosek dla zastrzeżenia (b) z §0: wpływ `MaterialPropertyNet` i attention na wynik jest
-**duży**, ale nadal **nierozdzielony** i nie dowodzi, że cechy kodują materiał (wagi losowe, brak straty materiałowej).
+**duży**, ale nadal **nierozdzielony** (kontrola RGB-only, §11.8, rozdziela efekt siatki kątów od echa, nie materiał od uwagi) i nie dowodzi, że cechy kodują materiał (wagi losowe, brak straty materiałowej).
 
 ### 11.5 Niedeterminizm GPU na pełnym budżecie (40 000 kroków, `ED`, konfiguracja jak oryginał)
 
@@ -729,6 +754,7 @@ RMSE test@36: `angle_seed` 1 = **0,64461**, 2 = **0,66028**, 3 = **0,64627** (`E
 powtórzenia `nf` średnia 0,65245, sd 0,00188, rozstęp 0,00491 — §11.5). Średnia `as1..3` = 0,65039, sd 0,00861,
 rozstęp 0,01568 (≈ 3,2× rozstęp `nf`); średnia `as` − średnia `nf` = −0,00207. Żaden z trzech wyników nie mieści się w zakresie
 powtórzeń `nf` (0,64986–0,65477); `as1` i `as3` są poniżej, `as2` powyżej.
+Z `nf` jako losowaniem 0 (średnia 0,65245): 4 losowania `angle_seed` 0/1/2/3 mają średnią **0,6509**, sd **0,0071**, rozstęp **0,0157**.
 Wniosek: losowanie czterech orientacji na lokalizację (`angle_seed`) jest osobnym źródłem rozrzutu, większym niż niedeterminizm
 GPU samego treningu, ale ma **n = 3** i zmienia wynik w obu kierunkach (średnio −0,002, w granicach szumu). Rozrzut ±0,008
 to nadal < 1/17 efektu gęstości (0,147). Przy porównaniach `D` z jednym `angle_seed` trzeba więc liczyć się z szumem
@@ -758,6 +784,7 @@ Kontrasty (X − Y; p: test t po ziarnach, df = 2):
 - Udział `(D − A)/(B − A)` per ziarno, test@36: RGB-only 0,193 / 0,287 / 0,223 (śr. 0,235), model pełny 0,404 / 0,468 / 0,383 (śr. 0,418).
   W RGB-only `B − D` (−0,058) jest ponad dwa razy większe niż w modelu pełnym (−0,028): to samo przejście 4 → 36 orientacji w danych
   uczących pomaga samemu obrazowi bardziej niż modelowi z echem — echo „zjada" część zysku, nie dodaje go.
+- Udział `(D − A)/(B − A)` wg modeli (test@36): tylko-echo **0,702** (§1) → model pełny **0,418** → RGB-only **0,235** (średnie per ziarno).
 - Wkład echa+materiału+uwagi (pełny − RGB-only) maleje z −0,071 (`A`) / −0,073 (`D`) do −0,043 (`B`).
 - RGB-only `B` (0,28710 ± 0,00345) jest gorszy od `SE_seed0` (potasowane echo, 0,26433) o 0,0228 (≈ 6,6 sd RGB-only B; SE n = 1): nawet
   echo bez informacji kątowej poprawia wynik względem braku echa.
@@ -770,4 +797,5 @@ Kontrasty (X − Y; p: test t po ziarnach, df = 2):
 `train_condition._plateau_diagnostics` czytała `r["overall"]` zamiast `r["all"]` (pola plateau i `budget_ceiling_warning` w `status.json`
 przebiegów sieci głębi były puste/nierzetelne). Poprawione w kodzie (nowe przebiegi); istniejące `status.json` nietknięte. Wartości
 przeliczone z `metrics.jsonl`: `overnight_2026-11/plateau_recomputed.md` (43 przebiegi: mediana poprawy po kroku 30 000 = 0,0066,
-sd plateau mediana 0,0052; najlepszy krok w ostatniej ćwiartce: wszystkie `A`, `D`, `B`, 2/3 `EB`, `SE`; w pozostałych warunkach echo-only — 0).
+sd plateau mediana 0,0052; najlepszy krok w ostatniej ćwiartce: **12 z 43** — wszystkie `A`, `D`, `B`, 2/3 `EB`, `SE_seed0`; w pozostałych
+warunkach echo-only — 0). Pola plateau i `sufit_budzetu` w starych plikach: nie cytować. Użycie: `checks_after_B.md` (a).

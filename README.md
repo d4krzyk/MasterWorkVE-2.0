@@ -13,11 +13,13 @@ się na *Beyond Image to Depth* (Parida i in., CVPR 2021).
 Gęstość kątowa poprawia predykcję głębi wyraźnie i istotnie, ale **krzywa nasyca się przy 9–12
 orientacjach**: przejście z 4 do 9 daje 6,7× więcej niż całe pozostałe rozszerzenie do 36. Przy
 stałym koszcie generowania danych opłaca się więc **losować kąty z siatki 9–12 orientacji**
-zamiast przybijać je do 4 kierunków. Efekt utrzymuje się w pełnym modelu audiowizualnym
-(p = 0,0096) i nie zależy od wariantu geometrii sceny. Poprawka Holma w rodzinach testów nie zmienia
+zamiast przybijać je do 4 kierunków. Kontrast `D − A` występuje także w pełnym modelu audiowizualnym
+(−0,0205, p = 0,0096), **ale tak samo bez echa**: RGB-only −0,0182 (p = 0,027); udział `(D − A)/(B − A)` to 0,70 w sieci
+tylko-echo, 0,42 w modelu pełnym i 0,24 w RGB-only — w modelu pełnym efekt nie jest więc przypisywalny echu
+(`STAN_WYNIKOW.md` §11.8). Efekt w sieci tylko-echo nie zależy od wariantu geometrii sceny. Poprawka Holma w rodzinach testów nie zmienia
 żadnego wniosku o istotności (po konserwatywnej korekcie na wszystkie 17 testów nie przeżywa efekt gęstości
 w modelu pełnym, p = 0,096, i efekt geometrii `EPB − EB`, p = 0,11); rozrzut GPU między powtórzeniami tego
-samego przebiegu to sd ≈ 0,002 (rozstęp 0,005) — `STAN_WYNIKOW.md` §11.
+samego przebiegu to sd ≈ 0,002 (rozstęp 0,005), a losowanie 4 orientacji (`angle_seed`) dodaje rozrzut o rozstępie 0,016 — `STAN_WYNIKOW.md` §11.
 
 Osobno badane zadanie pretekstowe przewidywania orientacji jest rozwiązywalne (MAAE 25,65° wobec
 90° losowego) i **uczy koder wizualny cech geometrycznych** — sondowanie zamrożonych reprezentacji
