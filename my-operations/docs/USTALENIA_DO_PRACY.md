@@ -42,3 +42,8 @@
 - Krzywa K: kroki powyżej K = 12 to 2,1× / 1,1× / 0,8× rozstępu 0,00491, czyli w zakresie niedeterminizmu GPU.
 - Zweryfikowane i skorygowane: „żadna > 6" dla `snr_final` nie jest prawdą w `main` (6 próbek, maks. 6,21); „43 poprawione kategorie" = 41 kategorii nazwanych z domyślnego na konkretny materiał (51 ze zmienionym przypisaniem).
 
+## Terminologia „gęstość kątowa" (2026-11-13; STAN_WYNIKOW.md §1)
+- W warunku D każda lokalizacja ma 4 orientacje losowane z 36 (`angles.select_angles`, hash `f"{angle_seed}|{scene}|{location_id}"`, angle_seed = 0); w A stałe 4 kardynalne. Liczba próbek (5 496) i liczba ech na lokalizację (4) są w A i D takie same.
+- W zbiorze treningowym (1 374 lokalizacji) D zawiera wszystkie 36 orientacji, każda w średnio 11,1 % lokalizacji (min 9,1 %, maks. 13,5 %; oczekiwane 4/36 = 11,1 %). Dla EK6/9/12/18: 6/9/12/18 różnych orientacji, ułamek lokalizacji 0,667 / 0,444 / 0,333 / 0,222 (= 4/K).
+- `D − A` mierzy zatem **różnorodność orientacji w zbiorze**, nie liczbę ech na lokalizację. W pracy „gęstość kątowa" = ta różnorodność. Źródło: `outputs/ml/overnight_2026-11/angle_diversity.md`.
+

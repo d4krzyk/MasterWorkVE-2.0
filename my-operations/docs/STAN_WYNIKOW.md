@@ -111,6 +111,18 @@ mniejszy błąd niż z przetasowanym.
 **Gęstość kątowa waży 2,36× więcej niż ilość danych.** Warunek `ED` jest tu kluczowy: ma
 **dokładnie tyle samo próbek** co `EA`, więc różnica `D − A` izoluje samą różnorodność kątową.
 
+> **Terminologia: co znaczy „gęstość kątowa" (nota z 2026-11-13).** W warunku `D` (`random_4`) każda lokalizacja ma
+> **4 orientacje losowane z 36** (`angles.select_angles`; losowanie zakotwiczone w hashu
+> `f"{angle_seed}|{scene}|{location_id}"`, `angle_seed = 0`), a `A` ma te same 4 orientacje kardynalne we wszystkich
+> lokalizacjach. W całym zbiorze treningowym (1 374 lokalizacje, 5 496 próbek, tyle samo w `A` i `D`) w `D` występują
+> **wszystkie 36 orientacji**, każda w średnio 11,1 % lokalizacji (min 9,1 %, maks. 13,5 %; oczekiwane 4/36 = 11,1 %).
+> Różnica `D − A` mierzy więc **różnorodność orientacji w zbiorze** przy tej samej liczbie próbek i tej samej liczbie ech
+> na lokalizację (4), a **nie** liczbę ech na lokalizację. W pracy „gęstość kątowa" oznacza właśnie tę różnorodność.
+> W krzywej stałego budżetu (`random_4_of_K`) liczba różnych orientacji w zbiorze to dokładnie K, a ułamek lokalizacji
+> z daną orientacją to średnio 4/K: K = 6 → 0,667 (min 0,643, maks. 0,684); K = 9 → 0,444 (0,421–0,467);
+> K = 12 → 0,333 (0,308–0,355); K = 18 → 0,222 (0,205–0,241); K = 36 → 0,111 (0,091–0,135); `A` (K = 4) → 1,000 we
+> wszystkich lokalizacjach. Źródło: `outputs/ml/overnight_2026-11/angle_diversity.{py,json,md}` (CPU, z kodu i podziału).
+
 ### Krzywa nasycenia przy stałym budżecie próbek — **główny rysunek** [Z]
 
 4 próbki na lokalizację (5 496) w **każdym** punkcie; zmienia się wyłącznie siatka K, z której
@@ -710,3 +722,52 @@ Wszystkie 14 liczb kontrolnych z §1 zgadza się ze skryptem; poza nimi:
   krzywa EA ściśle rosnąca w każdym ziarnie. Odległość liczona od najbliższej orientacji **siatki** K, a nie
   od faktycznie wylosowanych czterech orientacji lokalizacji.
 
+
+### 11.7 `ED` z różnym `angle_seed` (krok 6; ziarno treningu 0, konfiguracja jak `ED_seed0`) [Z]
+
+RMSE test@36: `angle_seed` 1 = **0,64461**, 2 = **0,66028**, 3 = **0,64627** (`ED_seed0_as1..3`; `angle_seed` 0: oryginał 0,64695,
+powtórzenia `nf` średnia 0,65245, sd 0,00188, rozstęp 0,00491 — §11.5). Średnia `as1..3` = 0,65039, sd 0,00861,
+rozstęp 0,01568 (≈ 3,2× rozstęp `nf`); średnia `as` − średnia `nf` = −0,00207. Żaden z trzech wyników nie mieści się w zakresie
+powtórzeń `nf` (0,64986–0,65477); `as1` i `as3` są poniżej, `as2` powyżej.
+Wniosek: losowanie czterech orientacji na lokalizację (`angle_seed`) jest osobnym źródłem rozrzutu, większym niż niedeterminizm
+GPU samego treningu, ale ma **n = 3** i zmienia wynik w obu kierunkach (średnio −0,002, w granicach szumu). Rozrzut ±0,008
+to nadal < 1/17 efektu gęstości (0,147). Przy porównaniach `D` z jednym `angle_seed` trzeba więc liczyć się z szumem
+rzędu 0,01 na pojedynczym przebiegu. Dowody: `outputs/ml/overnight_2026-11/step6_summary.md`, `outputs/ml/eval/ED_seed0_as{1,2,3}/`.
+
+### 11.8 Kontrola RGB-only (krok 7: `RGBDepthNet` od zera na tych samych parach co `A`/`D`/`B`) [Z]
+
+RMSE test@36 [m], średnia ± sd po 3 ziarnach (pełne liczby, test@4 i wartości per ziarno: `overnight_2026-11/checks_after_B.md`):
+
+| warunek | RGB-only | model pełny | pełny − RGB-only (sparowane, p) |
+|---|---|---|---|
+| A | 0,36365 ± 0,00359 | 0,29248 ± 0,00488 | −0,07117 (0,0002) |
+| D | 0,34549 ± 0,00243 | 0,27199 ± 0,00265 | −0,07349 (0,0008) |
+| B | 0,28710 ± 0,00345 | 0,24367 ± 0,00142 | −0,04343 (0,0041) |
+
+Kontrasty (X − Y; p: test t po ziarnach, df = 2):
+
+| kontrast | RGB-only | model pełny |
+|---|---|---|
+| D − A | −0,01817 (p = 0,027) | −0,02048 (p = 0,010) |
+| B − D | −0,05839 (p = 0,0006) | −0,02833 (p = 0,0010) |
+| B − A | −0,07655 (p = 0,0028) | −0,04881 (p = 0,0018) |
+
+- **Czego nie wolno już powiedzieć:** efekt `D − A` w modelu pełnym (−0,020) istnieje także bez echa (−0,018), więc **na test@36
+  prawie cały „efekt gęstości kątowej" `D − A` w modelu pełnym jest nierozróżnialny od efektu różnorodności obrazów** (orientacji
+  kamery). Na test@4 `D − A` w RGB-only to −0,0047 (p = 0,21, nieistotne), w modelu pełnym −0,0077 (p = 0,037).
+- Udział `(D − A)/(B − A)` per ziarno, test@36: RGB-only 0,193 / 0,287 / 0,223 (śr. 0,235), model pełny 0,404 / 0,468 / 0,383 (śr. 0,418).
+  W RGB-only `B − D` (−0,058) jest ponad dwa razy większe niż w modelu pełnym (−0,028): to samo przejście 4 → 36 orientacji w danych
+  uczących pomaga samemu obrazowi bardziej niż modelowi z echem — echo „zjada" część zysku, nie dodaje go.
+- Wkład echa+materiału+uwagi (pełny − RGB-only) maleje z −0,071 (`A`) / −0,073 (`D`) do −0,043 (`B`).
+- RGB-only `B` (0,28710 ± 0,00345) jest gorszy od `SE_seed0` (potasowane echo, 0,26433) o 0,0228 (≈ 6,6 sd RGB-only B; SE n = 1): nawet
+  echo bez informacji kątowej poprawia wynik względem braku echa.
+- Zastrzeżenia: 3 ziarna (df = 2), brak korekty Holma dla tej rodziny; RGB-only trenowany tym samym protokołem (40 000 kroków,
+  batch 32, wybór po walidacji na 36 orientacjach), ewaluowany `evaluate.py`-owym kodem. Dowody: `overnight_2026-11/step7_summary.md`,
+  `overnight_2026-11/rgbonly/RGBONLY_*/eval.json`.
+
+### 11.9 Poprawka diagnostyki plateau
+
+`train_condition._plateau_diagnostics` czytała `r["overall"]` zamiast `r["all"]` (pola plateau i `budget_ceiling_warning` w `status.json`
+przebiegów sieci głębi były puste/nierzetelne). Poprawione w kodzie (nowe przebiegi); istniejące `status.json` nietknięte. Wartości
+przeliczone z `metrics.jsonl`: `overnight_2026-11/plateau_recomputed.md` (43 przebiegi: mediana poprawy po kroku 30 000 = 0,0066,
+sd plateau mediana 0,0052; najlepszy krok w ostatniej ćwiartce: wszystkie `A`, `D`, `B`, 2/3 `EB`, `SE`; w pozostałych warunkach echo-only — 0).
