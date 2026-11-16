@@ -7,7 +7,7 @@
 - Średnie N: 12,08 (census), 12,13 (gotowy zbiór main). Stałe N o tej gwarancji: 54 (100% lok.), 35 (99%), 25 (95%); N=21 pokrywa 91,21%.
 - „2,14×" = 21/9,83 z 12 pozycji sprzed census. Z census: 54/12,13 ≈ 4,45×.
 - mp3d: 89,1% dopasowane, 1,9% remis, 9,0% domyślne (przeliczone z surowych danych 2026-11-13; wcześniej 88,6%, suma 99,5%).
-- RT60: 7 z 8 scen szczelnych, powód pominięcia office_4 nie jest nigdzie zapisany.
+- RT60: 8 z 8 scen szczelnych (office_4 dopomiarzony 2026-11-16, przebieg D; powód pierwotnego pominięcia: brak dowodu w repo). Mediana 1,26×, zakres 0,96–1,74× na scenę; office_4 = 0,96×. Zależy od reguły V (rzut z `ceiling`: 1,10–1,74×) — OBSERWACJE §5.
 
 ## Protokół ML
 - Trening: 40 000 kroków, batch 32, lr 1e-4, wd 5e-4, Adam (0,9; 0,999), LogDepthLoss na pikselach gt≠0, max_depth 14,104, AMP włączone (43/43 przebiegi głębi).

@@ -827,8 +827,9 @@ predykcji głębi z echa. Uzasadnienie fizyczne łaty jest zmierzone i **niezale
 jakiegokolwiek baseline'u** (§5 ogr. 10, `RAPORT_SESJI` §2.13–§2.15): ucieczka promieni
 22 % → 0.00 %, zgodność z Eyringiem 0.41× → 1.00×, wysokość pomieszczenia zgodna ze scenami
 szczelnymi. **Zastrzeżenie, które musi iść razem z każdym wynikiem z tego wariantu:** sceny
-załatane są mierzalnie **bardziej wyidealizowane** niż nienaruszone skany (rozdzielenie
-zupełne wobec scen szczelnych, Mann-Whitney p = 0.0032), bo łata jest idealnie płaską,
+załatane są mierzalnie **bardziej wyidealizowane** niż nienaruszone skany (wobec 8 scen
+szczelnych: mediana 1.00× vs 1.26×, Mann-Whitney na poziomie sceny dokładny p = 0.0127; rozdzielenie
+zupełne tylko przy regule V z samego `ceiling` — przebieg D, OBSERWACJE §5), bo łata jest idealnie płaską,
 jednorodną płaszczyzną z jednego materiału — dokładnie tym, co zakłada model dyfuzyjny.
 
 **Wariant `patched` wymaga wcześniejszego wygenerowania siatek** (742 MB, poza gitem):

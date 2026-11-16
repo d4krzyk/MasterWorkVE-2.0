@@ -519,6 +519,40 @@ zawiodła w sposób przewidywalny i wykrywalny**, a nie przez pecha.
    w logu (brak błędu i wpisu o pominięciu), ani w `RAPORT_SESJI_2026-07-26_29.md` („na 7 scenach").
    Nie jest to wykluczenie sceny held-out jako takiej, bo `frl_apartment_5` (też held-out) jest
    w przebiegach B i C. Wynik „1.27×, n = 21" dotyczy więc 7 z 8 scen szczelnych.
+
+   **Uzupełnienie 2026-11-16 — `office_4` dopomiarzony (przebieg D) i liczby dla 8 z 8 scen.**
+   Te same parametry co A (30 renderów, rozgrzewka 50, `threadCount=1`, 500 promieni); pliki
+   `outputs/measurements/sabine/D_office_4.log`, `D_office_4_kontrola_office_1.log`,
+   `D_podsumowanie.txt`. Kontrola odtwarzalności: `office_1` przeliczony == wiersz z A we
+   wszystkich pasmach (różnica 0.000). Kod liczący nie zmienił się od A (od 0c2b6d91 doszła
+   tylko opcja `--patched`). Powód pierwotnego pominięcia: brak dowodu w repo.
+   - `office_4`: zmierzone/Eyring **1.01 / 0.88 / 0.96** (500 Hz / 1 kHz / 2 kHz); V = 96.6 m³,
+     S = 177.0 m², pokrycie sufitem 87.0 %, α_sr(1 kHz) = 0.074, Eyring(1 kHz) = 1.149 s.
+   - Agregat **n = 8 scen** (jednostka: scena, mediana po pasmach 500 Hz–2 kHz): mediana
+     **1.26×**, zakres **0.96–1.74×**. Na poziomie punktów scena×pasmo (n = 24): 0.88–1.75×.
+     Zakresy „na scenę" i „na punkt" to różne poziomy agregacji — nie łączyć ich w jednym zdaniu.
+     (Stare „1.07–1.74×" i „1.02–1.75×, n = 21" dotyczyły 7 scen i też są tymi dwoma poziomami.)
+   - Wobec załatanych `frl_apartment_*` (6 scen, mediana 1.00×, zakres 0.92–1.05×), Mann-Whitney
+     na poziomie sceny, dwustronny: 8 vs 6 **dokładny p = 0.0127** (asymptotyczny z poprawką
+     ciągłości 0.0169). „Rozdzielenie zupełne" (min szczelnych > 1.05) **nie zachodzi** przy
+     regule V z skryptu, bo `office_4` = 0.96. Stare p = 0.0032 (7 vs 6) to wariant asymptotyczny
+     z poprawką ciągłości; dokładny dla 7 vs 6 wynosi 0.0012.
+   - **Wynik zależy od reguły V.** Skrypt bierze rzut = max(`ceiling`, `floor`+`rug`+`mat`+`stair`);
+     dla `office_4` (pokrycie sufitem 87.0 %) i `room_2` (87.9 %) wygrywa podłoga. Rzut z samego
+     `ceiling` (V = 84.1 m³ i 49.4 m³) daje `office_4` **1.10×** i `room_2` **1.22×**; dla
+     pozostałych scen (pokrycie 100 %) i dla wszystkich 6 załatanych reguły się pokrywają.
+     Wtedy zakres 8 scen to 1.10–1.74×, rozdzielenie jest znów zupełne, a dokładny p = 0.0007.
+     Wniosek „załatane bliżej Eyringa niż szczelne" przeżywa obie reguły (p < 0.05); cechy
+     „zupełne" i „office_4 jedyną sceną poniżej 1.0" — nie. Obie reguły podawać razem; reguła
+     `ceiling` jest analizą wrażliwości dobraną po obejrzeniu wyniku, nie regułą założoną z góry.
+   - **Zastrzeżenia do wiersza `office_4`:** 9.35 % powierzchni (`class_id=-1`) na materiale
+     domyślnym α = 0.1 — dla α tej części z przedziału 0.02–0.30 stosunek przy 1 kHz mieści
+     się w 0.79–1.11. Przyczyna niskiego pokrycia sufitem nie jest ustalona (brak dowodu w repo).
+   - **Kontrola negatywna** (pomiar bliżej wariantu realnych materiałów czy domyślnego, 8 scen):
+     przy 1 kHz Eyring 6/8 REAL, Sabine 5/8 REAL; po wszystkich 3 pasmach (24 punkty) Eyring
+     18/24, Sabine 17/24. `hotel_0` i `apartment_0` wychodzą DEFAULT w każdym paśmie,
+     `office_4` przy Sabinie tylko w paśmie 1 kHz. Kontrola nie jest więc rozstrzygająca,
+     także dla scen mierzonych wcześniej.
 2. **Trzy pliki dowodowe powstały ad hoc.** `outputs/ml/echo_ablation/final_results_2026-08-13.json`,
    `echo_ablation.json` i `echo_3seeds.json` nie mają programu, który by je zapisywał — w kodzie
    repo są wyłącznie ich odczyty (`ml/analysis/thesis_numbers.py`, `ml/analysis/figures.py`).
