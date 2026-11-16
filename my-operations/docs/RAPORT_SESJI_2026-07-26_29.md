@@ -686,6 +686,12 @@ nienaruszonej — jest mierzalnie bardziej idealna (p = 0.0032). To wystarczy, b
 Logi: `outputs/measurements/sabine/{A_sealed,B_frl_orig,C_frl_patched}.log`, zestawienie
 w `outputs/measurements/sabine/summary.txt` (w gicie).
 
+> **Uzupełnienie 2026-11-16.** Liczby powyżej (n = 7) zostają jako zapis historyczny. `office_4`
+> (ósma scena szczelna) dopomiarzono później (przebieg D): zmierzone/Eyring 1.01 / 0.88 / 0.96,
+> agregat n = 8 scen: mediana 1.26×, zakres 0.96–1.74×; „rozdzielenie zupełne" i p = 0.0032
+> dotyczą więc tylko n = 7. Aktualne liczby, zależność od reguły V i zastrzeżenia:
+> `OBSERWACJE_METODOLOGICZNE.md` §5.
+
 ---
 
 ### 2.16 Kontrola wygenerowanego datasetu — oba warianty kompletne i spójne **[Z]**

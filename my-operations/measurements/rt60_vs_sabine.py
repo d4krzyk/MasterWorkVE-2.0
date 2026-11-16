@@ -11,7 +11,9 @@ Obie strony rownania pochodza z NIEZALEZNYCH zrodel:
       powierzchnie per kategoria  <- mesh_semantic.ply (parser z tools/replica_semantic_area.py)
       kategoria -> material       <- replica_material_config.json (pole `labels`)
       absorpcja alfa(f)           <- ten sam config, pasma oktawowe 125-4000 Hz
-      objetosc V                  <- rzut z kategorii `ceiling` x (srednie z sufitu - srednie z podlogi)
+      objetosc V                  <- rzut poziomy x (srednie z sufitu - srednie z podlogi), gdzie
+                                     rzut = max(pole `ceiling`, pole podloga-podobnych kategorii
+                                     floor+rug+mat+stair) — patrz komentarz w scene_geometry()
                                      UWAGA: surowy PLY jest Z-UP, habitat transformuje do y-up
                                      dopiero przy ladowaniu — sprawdzone na zakresach wspolrzednych
       Sabine:  RT60 = 0.161 * V / A,          A = suma S_i * alfa_i(f)
@@ -142,10 +144,18 @@ def scene_geometry(scene, patched=False):
         by_cat[str(c)] += float(area[sel].sum())
         z_by_cat[str(c)] = (zmean[sel], area[sel])
 
-    # Rzut poziomy pomieszczenia: SUFIT, a nie podloga. Kategoria `floor` jest
-    # przyslonieta przez dywany, maty i meble stojace bezposrednio na podlodze
-    # (osobne kategorie `rug`, `mat`), wiec zaniza rzut. Sufity w skanach Replica
-    # sa praktycznie nieprzyslonieta plaszczyzna.
+    # Rzut poziomy pomieszczenia = max(pole `ceiling`, pole podloga-podobnych kategorii).
+    # Pierwotny zamysl: brac SUFIT, bo kategoria `floor` jest przyslonieta przez dywany
+    # i maty (osobne kategorie `rug`, `mat`) oraz meble stojace na podlodze, wiec samo
+    # `floor` zaniza rzut. Dlatego podloga jest liczona lacznie (floor+rug+mat+stair),
+    # a wynik to wiekszy z dwoch rzutow.
+    # UWAGA — faktyczne zachowanie: tam, gdzie w skanie brakuje czesci sufitu
+    # (room_2: pokrycie 87.9 %, office_4: 87.0 %), pole `ceiling` jest MNIEJSZE od pola
+    # podloga-podobnych i to ono wygrywa max(). V jest wtedy wieksze niz z samego sufitu
+    # (office_4: 96.6 m3 zamiast 84.1; room_2: 56.2 zamiast 49.4), a stosunek
+    # zmierzone/Eyring odpowiednio nizszy. Dla scen z pokryciem 100 % obie reguly daja
+    # to samo. Regula "sam sufit" jest policzona jako analiza wrazliwosci
+    # (measurements/rt60_podsumowanie.py), nie jest regula domyslna tego skryptu.
     ceil_area = by_cat.get("ceiling", 0.0)
     floor_like = sum(by_cat.get(c, 0.0) for c in ("floor", "rug", "mat", "stair"))
     footprint = max(ceil_area, floor_like)

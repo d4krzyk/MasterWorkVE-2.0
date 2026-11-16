@@ -1,0 +1,104 @@
+TEST SABINE/EYRING — przebieg D: office_4 + kontrola odtwarzalnosci (2026-11-16)
+Plik GENEROWANY przez my-operations/measurements/rt60_podsumowanie.py z logow
+A_sealed, C_frl_patched, D_office_4, D_office_4_kontrola_office_1 (bez symulatora).
+Parametry pomiaru: rt60_vs_sabine.py, 30 renderow, rozgrzewka 50, threadCount=1,
+500 promieni, pasma agregatu 500 Hz - 2 kHz. A_sealed.log i summary.txt NIETKNIETE.
+
+KONTROLA ODTWARZALNOSCI: office_1 (A_sealed.log vs D_office_4_kontrola_office_1.log)
+  najwieksza roznica po wszystkich kolumnach tabeli i pasmach 125-4000 Hz: 0.000
+
+office_4 (regula V = max):
+  V = 96.6 m3, S = 177.0 m2, pokrycie sufitem 87.0 %, material domyslny 9.35 % (16.5 m2)
+  Eyring 500/1k/2k = 0.941, 1.149, 1.052 s; pomiar = 0.950, 1.008, 1.008 s
+  zmierzone/Eyring = 1.01, 0.88, 0.96
+
+====================================================================================================
+TABELA NA SCENE — REGULA SKRYPTU: rzut = max(ceiling, floor+rug+mat+stair)
+pom. = zmierzone RT60 'pozne' [s]; Eyr. = Eyring [s]; zm./Eyr. = pom./Eyr.; mediana po 3 pasmach
+====================================================================================================
+grupa    scena              V [m3] sufit% |  pom.500  pom.1k  pom.2k |  Eyr.500  Eyr.1k  Eyr.2k |   r500   r1k   r2k  mediana
+szczelne room_0               82.9  100.0 |    0.513   0.463   0.405 |    0.424   0.302   0.294 |   1.21  1.53  1.38    1.377
+szczelne office_1             23.1  100.0 |    0.413   0.401   0.359 |    0.360   0.284   0.282 |   1.15  1.41  1.27    1.271
+szczelne hotel_0              75.4  100.0 |    0.533   0.550   0.550 |    0.394   0.317   0.314 |   1.35  1.74  1.75    1.736
+szczelne apartment_0         378.6  100.0 |    0.787   0.771   0.787 |    0.698   0.664   0.610 |   1.13  1.16  1.29    1.161
+szczelne room_1               44.0  100.0 |    0.410   0.392   0.337 |    0.357   0.252   0.246 |   1.15  1.55  1.37    1.371
+szczelne room_2               56.2   87.9 |    0.638   0.543   0.517 |    0.623   0.508   0.457 |   1.02  1.07  1.13    1.070
+szczelne office_0             45.9  100.0 |    0.514   0.455   0.368 |    0.483   0.331   0.297 |   1.06  1.38  1.24    1.241
+szczelne office_4             96.6   87.0 |    0.950   1.008   1.008 |    0.941   1.149   1.052 |   1.01  0.88  0.96    0.958
+zalatane frl_apartment_0     201.0  100.0 |    0.642   0.614   0.581 |    0.718   0.614   0.559 |   0.89  1.00  1.04    0.999
+zalatane frl_apartment_1     206.3  100.0 |    0.678   0.615   0.610 |    0.721   0.613   0.562 |   0.94  1.00  1.08    1.003
+zalatane frl_apartment_2     203.0  100.0 |    0.575   0.548   0.543 |    0.697   0.598   0.547 |   0.82  0.92  0.99    0.917
+zalatane frl_apartment_3     203.2  100.0 |    0.661   0.622   0.617 |    0.697   0.594   0.545 |   0.95  1.05  1.13    1.047
+zalatane frl_apartment_4     207.5  100.0 |    0.589   0.576   0.559 |    0.681   0.574   0.532 |   0.86  1.00  1.05    1.003
+zalatane frl_apartment_5     205.4  100.0 |    0.683   0.633   0.623 |    0.718   0.611   0.558 |   0.95  1.04  1.12    1.037
+
+  szczelne n=8: mediana 1.256x, zakres na scene 0.96-1.74x | punkty n=24: mediana 1.225x, zakres 0.88-1.75x
+  zalatane n=6: mediana 1.003x, zakres na scene 0.92-1.05x
+  rozdzielenie zupelne (min szczelnych > max zalatanych): NIE (0.958 vs 1.047)
+  Mann-Whitney 8 vs 6                 dwustronny, poziom sceny: dokladny p = 0.0127; asympt. z poprawka ciaglosci 0.0169, bez 0.0142
+  Mann-Whitney 7 vs 6 (bez office_4)  dwustronny, poziom sceny: dokladny p = 0.0012; asympt. z poprawka ciaglosci 0.0034, bez 0.0027
+
+====================================================================================================
+TABELA NA SCENE — ANALIZA WRAZLIWOSCI: rzut = pole `ceiling` (dobrana po obejrzeniu wyniku)
+pom. = zmierzone RT60 'pozne' [s]; Eyr. = Eyring [s]; zm./Eyr. = pom./Eyr.; mediana po 3 pasmach
+====================================================================================================
+grupa    scena              V [m3] sufit% |  pom.500  pom.1k  pom.2k |  Eyr.500  Eyr.1k  Eyr.2k |   r500   r1k   r2k  mediana
+szczelne room_0               82.9  100.0 |    0.513   0.463   0.405 |    0.424   0.302   0.294 |   1.21  1.53  1.38    1.377
+szczelne office_1             23.1  100.0 |    0.413   0.401   0.359 |    0.360   0.284   0.282 |   1.15  1.41  1.27    1.271
+szczelne hotel_0              75.4  100.0 |    0.533   0.550   0.550 |    0.394   0.317   0.314 |   1.35  1.74  1.75    1.736
+szczelne apartment_0         378.6  100.0 |    0.787   0.771   0.787 |    0.698   0.664   0.610 |   1.13  1.16  1.29    1.161
+szczelne room_1               44.0  100.0 |    0.410   0.392   0.337 |    0.357   0.252   0.246 |   1.15  1.55  1.37    1.371
+szczelne room_2               49.4   87.9 |    0.638   0.543   0.517 |    0.548   0.446   0.402 |   1.16  1.22  1.29    1.217
+szczelne office_0             45.9  100.0 |    0.514   0.455   0.368 |    0.483   0.331   0.297 |   1.06  1.38  1.24    1.241
+szczelne office_4             84.1   87.0 |    0.950   1.008   1.008 |    0.819   1.000   0.915 |   1.16  1.01  1.10    1.101
+zalatane frl_apartment_0     201.0  100.0 |    0.642   0.614   0.581 |    0.718   0.614   0.559 |   0.89  1.00  1.04    0.999
+zalatane frl_apartment_1     206.3  100.0 |    0.678   0.615   0.610 |    0.721   0.613   0.562 |   0.94  1.00  1.08    1.003
+zalatane frl_apartment_2     203.0  100.0 |    0.575   0.548   0.543 |    0.697   0.598   0.547 |   0.82  0.92  0.99    0.917
+zalatane frl_apartment_3     203.2  100.0 |    0.661   0.622   0.617 |    0.697   0.594   0.545 |   0.95  1.05  1.13    1.047
+zalatane frl_apartment_4     207.5  100.0 |    0.589   0.576   0.559 |    0.681   0.574   0.532 |   0.86  1.00  1.05    1.003
+zalatane frl_apartment_5     205.4  100.0 |    0.683   0.633   0.623 |    0.718   0.611   0.558 |   0.95  1.04  1.12    1.037
+
+  szczelne n=8: mediana 1.256x, zakres na scene 1.10-1.74x | punkty n=24: mediana 1.256x, zakres 1.01-1.75x
+  zalatane n=6: mediana 1.003x, zakres na scene 0.92-1.05x
+  rozdzielenie zupelne (min szczelnych > max zalatanych): TAK (1.101 vs 1.047)
+  Mann-Whitney 8 vs 6                 dwustronny, poziom sceny: dokladny p = 0.0007; asympt. z poprawka ciaglosci 0.0024, bez 0.0019
+  Mann-Whitney 7 vs 6 (bez office_4)  dwustronny, poziom sceny: dokladny p = 0.0012; asympt. z poprawka ciaglosci 0.0034, bez 0.0027
+
+Test: jednostka = scena (mediana po 3 pasmach), bo pasma tej samej sceny nie sa niezalezne.
+Wartosci do odtworzenia testu: kolumna 'mediana' obu tabel (8 szczelnych i 6 zalatanych).
+
+====================================================================================================
+REGULA V — gdzie obie reguly sie roznia
+====================================================================================================
+  room_2     pokrycie sufitem 87.9 %: V 56.2 -> 49.4 m3 (max -> ceiling), mediana zm./Eyring 1.07 -> 1.22
+  office_4   pokrycie sufitem 87.0 %: V 96.6 -> 84.1 m3 (max -> ceiling), mediana zm./Eyring 0.96 -> 1.10
+  Pozostale 12 scen (6 szczelnych o pokryciu 100 %, 6 zalatanych) — obie reguly identyczne.
+  Wniosek 'zalatane blizej Eyringa niz szczelne' jest spelniony przy obu regulach (p < 0.05);
+  'rozdzielenie zupelne' i 'office_4 jedyna scena ponizej 1.0' zaleza od reguly.
+
+====================================================================================================
+KONTROLA NEGATYWNA (8 scen, regula V = max): pomiar blizej wariantu REAL czy DEFAULT
+====================================================================================================
+  room_0      500:S=R/E=R  1000:S=R/E=R  2000:S=R/E=R   (1 kHz: pomiar 0.463, Sabine real 0.343 / def 0.787, Eyring real 0.302 / def 0.747)
+  office_1    500:S=R/E=R  1000:S=R/E=R  2000:S=R/E=R   (1 kHz: pomiar 0.401, Sabine real 0.313 / def 0.563, Eyring real 0.284 / def 0.534)
+  hotel_0     500:S=D/E=D  1000:S=D/E=D  2000:S=D/E=D   (1 kHz: pomiar 0.550, Sabine real 0.349 / def 0.622, Eyring real 0.317 / def 0.590)
+  apartment_0 500:S=D/E=D  1000:S=D/E=D  2000:S=D/E=D   (1 kHz: pomiar 0.771, Sabine real 0.703 / def 0.773, Eyring real 0.664 / def 0.734)
+  room_1      500:S=R/E=R  1000:S=R/E=R  2000:S=R/E=R   (1 kHz: pomiar 0.392, Sabine real 0.288 / def 0.685, Eyring real 0.252 / def 0.650)
+  room_2      500:S=R/E=R  1000:S=R/E=R  2000:S=R/E=R   (1 kHz: pomiar 0.543, Sabine real 0.547 / def 0.761, Eyring real 0.508 / def 0.722)
+  office_0    500:S=R/E=R  1000:S=R/E=R  2000:S=R/E=R   (1 kHz: pomiar 0.455, Sabine real 0.368 / def 0.729, Eyring real 0.331 / def 0.691)
+  office_4    500:S=R/E=R  1000:S=D/E=R  2000:S=R/E=R   (1 kHz: pomiar 1.008, Sabine real 1.193 / def 0.879, Eyring real 1.149 / def 0.834)
+  REAL blizej przy 1 kHz: Eyring 6/8, Sabine 5/8; po 3 pasmach: Eyring 18/24, Sabine 17/24 (R=REAL, D=DEFAULT)
+
+====================================================================================================
+CZULOSC office_4 NA 9.35 % MATERIALU DOMYSLNEGO (alfa tej czesci = x, regula V = max)
+====================================================================================================
+      x | Eyring 500/1k/2k [s]     | zm./Eyring 500/1k/2k
+   0.00 | 1.057  1.322  1.197      | 0.90  0.76  0.84
+   0.02 | 1.032  1.284  1.165      | 0.92  0.79  0.87
+   0.05 | 0.996  1.230  1.120      | 0.95  0.82  0.90
+   0.10 | 0.941  1.149  1.052      | 1.01  0.88  0.96  <- uzyte w tescie
+   0.20 | 0.848  1.014  0.937      | 1.12  0.99  1.08
+   0.30 | 0.770  0.907  0.844      | 1.23  1.11  1.19
+   0.50 | 0.650  0.747  0.703      | 1.46  1.35  1.43
+   0.75 | 0.541  0.609  0.579      | 1.76  1.66  1.74
+  Plausibilny zakres x = 0.02-0.30 daje przy 1 kHz zm./Eyring 0.79-1.11.

@@ -43,6 +43,7 @@ outputs/**
 !outputs/measurements/*/*.json
 !outputs/measurements/dataset_check/*.log
 !outputs/measurements/sabine/summary.txt
+!outputs/measurements/sabine/D_podsumowanie.txt
 # Faza uczenia: podzial lokalizacji, raporty weryfikacji dataloadera, benchmark
 # i konfiguracja macierzy eksperymentow. To pliki, na ktorych opieraja sie liczby
 # w docs/RAPORT_SESJI_2026-08-05.md — lacznie ~65 KB.

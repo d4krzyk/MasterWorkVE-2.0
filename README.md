@@ -274,9 +274,10 @@ przy każdym.
 > o pierwszym z nich). Odtwarzalny jest tylko `final_results_2026-08-15.json` (`final_results.py`).
 > Tam, gdzie to możliwe, liczby sprawdzać z surowych `outputs/ml/eval/*/eval.json`.
 >
-> **Test RT60 vs Sabine/Eyring nie obejmuje `office_4`.** To ósma scena szczelna, ale przebieg
-> `outputs/measurements/sabine/A_sealed.log` objął 7 scen; powód pominięcia nie jest nigdzie
-> zapisany (szczegóły: `my-operations/docs/OBSERWACJE_METODOLOGICZNE.md` §5).
+> **Test RT60 vs Sabine/Eyring obejmuje 8 z 8 scen szczelnych.** Przebieg A
+> (`outputs/measurements/sabine/A_sealed.log`) objął 7 scen; `office_4` dopomiarzono 2026-11-16
+> (przebieg D, `D_office_4.log`). Powód pierwotnego pominięcia: brak dowodu w repo
+> (szczegóły i zastrzeżenia: `my-operations/docs/OBSERWACJE_METODOLOGICZNE.md` §5).
 
 ---
 
