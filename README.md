@@ -1,4 +1,6 @@
-# Visual Echoes 2.0 — gęstość kątowa echa w audiowizualnej predykcji głębi
+# Wpływ gęstości kątowej ech na predykcję głębi na zbiorze generowanym w SoundSpaces 2.0
+
+UMK, Wydział Matematyki i Informatyki, 2026.
 
 Praca magisterska. Bada, **ile orientacji agenta trzeba wyrenderować akustycznie**, żeby model
 przewidujący głębię z obrazu i echa działał dobrze — i czy istnieje punkt, powyżej którego
@@ -7,6 +9,35 @@ zagęszczanie siatki przestaje się opłacać.
 Praca rozszerza *VisualEchoes* (Gao i in., ECCV 2020), które renderowało echo z **4 kierunków
 kardynalnych**, do **36 orientacji co 10°**, i mierzy, co z tego wynika. Warstwa uczenia opiera
 się na *Beyond Image to Depth* (Parida i in., CVPR 2021).
+
+## Zbiór danych
+
+Wygenerowany zbiór ech jest opublikowany na Hugging Face:
+**<https://huggingface.co/datasets/d4krzyk/echo-angular-density-replica>**
+
+**Dostęp warunkowy.** Zbiór zawiera dane pochodne z Replica Dataset, więc pobranie wymaga
+zaakceptowania warunków *Replica Research Terms* i użycia danych wyłącznie do celów
+niekomercyjnych (badania lub edukacja).
+
+**Zawartość** — pary echo binauralne + RGB + głębia, **36 orientacji co 10°** w każdej lokalizacji:
+
+| wariant | geometria | scen | lokalizacji | próbek | rozmiar |
+|---|---|---|---|---|---|
+| `main` | oryginalna Replica | 18 | 1 740 | 62 640 | ≈ 14 GB |
+| `patched` | dziury w siatce domknięte | 10 | 1 224 | 44 064 | ≈ 9,5 GB |
+
+**Odtworzenie.** Kod referencyjny to commit `ccf211c4`. Dane wygenerowano z `0c2b6d91`
+z niezacommitowanymi zmianami (numerycznie równoważnymi `ccf211c4`); pliki HDF5 nie zapisują hasha
+commita. Szczegóły, komendy i środowisko: [`my-operations/docs/HF_REPRODUKCJA.md`](my-operations/docs/HF_REPRODUKCJA.md)
+oraz [`my-operations/docs/GENERATOR_PARAMS.md`](my-operations/docs/GENERATOR_PARAMS.md).
+
+**Powtarzalność.** Przy `threadCount = 1` tablice `echo`/`rgb`/`depth` powinny wyjść identyczne,
+ale nie potwierdzono tego pełną regeneracją. Sumy z `SHA256SUMS` służą wyłącznie do kontroli
+pobrania — całe pliki `.h5` zawierają znaczniki czasu i nazwę hosta, więc ich SHA256 nie jest powtarzalne.
+
+**Cytowanie.** *Wpływ gęstości kątowej ech na predykcję głębi na zbiorze generowanym w SoundSpaces 2.0*,
+praca magisterska, UMK, Wydział Matematyki i Informatyki, 2026. Zbiór pochodzi też od Replica Dataset
+(Straub i in., 2019) i zbioru lokalizacji z VisualEchoes (Gao i in., ECCV 2020).
 
 ## Wynik w jednym akapicie
 
